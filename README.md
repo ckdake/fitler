@@ -50,6 +50,8 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 * Correlate each entry with Strava API
 * Correlate each entry with RidewithGPS API
 
+* Load files from S3 bucket or somewhere else instead of local
+
 * Can we get whoop scores for each one?
 * What is in TrainingPeaks?
 * What is in Wandrer.earth?
