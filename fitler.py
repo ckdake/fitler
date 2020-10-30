@@ -19,26 +19,23 @@ class ActivityMetadata:
         self.start_time = dateparser.parse(datetimestring).astimezone().replace(microsecond=0).isoformat()
 
     def to_json(self):
-        return json.dumps({
-            "start_time": self.start_time,
-            "original_filename": self.original_filename
-        })
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 class ActivityFileCollection:
     def __init__(self, folder):
         self.folder = folder 
+        self.activities_metadata = []
 
-    def print_activities_metadata(self):
+    def process(self):
         gen = glob.iglob(self.folder)
-        amc = []
 
         for file in gen:
             af = ActivityFile(file)
-            am = af.get_activity_metadata()
-            amc.append(am)
+            am = af.parse()
+            self.activities_metadata.append(am)
 
-        #TODO I bet this doesn't work the way I want it to. getting through parsing errors first
-        print(json.dumps(amc))
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4) 
 
 class ActivityFile:
     def __init__(self, file):
@@ -60,7 +57,7 @@ class ActivityFile:
         else:
             raise ValueError("Why hello there unknown file format!", self.file)
 
-    def get_activity_metadata(self):
+    def parse(self):
         read_file = self.file
         fp = 0
 
@@ -81,9 +78,6 @@ class ActivityFile:
 
         if self.gzipped:
             fp.close()
-
-        #TODO this is here for now for debugging so it spits out one at a time
-        print(self.activity_metadata.to_json())
         return self.activity_metadata
 
     def process_gpx(self, file):
@@ -100,8 +94,7 @@ class ActivityFile:
                         self.activity_metadata.set_start_time(str(data.value))
                         break
         except Exception as e:
-            print("Barfed on ", file)
-            print(e)
+            self.activity_metadata.error = str(e)
                 
     def process_tcx(self, file):
         tcx = tcxparser.TCXParser(file)
@@ -109,6 +102,7 @@ class ActivityFile:
 
 def main():
     amc = ActivityFileCollection('./export*/activities/*')
-    amc.print_activities_metadata()
+    amc.process()
+    print(amc.to_json())
     
 main()
