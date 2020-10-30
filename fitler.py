@@ -37,6 +37,7 @@ class ActivityFileCollection:
             am = af.get_activity_metadata()
             amc.append(am)
 
+        #TODO I bet this doesn't work the way I want it to. getting through parsing errors first
         print(json.dumps(amc))
 
 class ActivityFile:
@@ -81,6 +82,7 @@ class ActivityFile:
         if self.gzipped:
             fp.close()
 
+        #TODO this is here for now for debugging so it spits out one at a time
         print(self.activity_metadata.to_json())
         return self.activity_metadata
 
@@ -90,12 +92,16 @@ class ActivityFile:
         self.activity_metadata.set_start_time(str(gpx.get_time_bounds().start_time))
 
     def process_fit(self, file):
-        fitfile = fitparse.FitFile(file)
-        for record in fitfile.get_messages("record"):
-            for data in record:
-                if data.name == "timestamp":
-                    self.activity_metadata.set_start_time(str(data.value))
-                    break
+        try:
+            fitfile = fitparse.FitFile(file)
+            for record in fitfile.get_messages("record"):
+                for data in record:
+                    if data.name == "timestamp":
+                        self.activity_metadata.set_start_time(str(data.value))
+                        break
+        except Exception as e:
+            print("Barfed on ", file)
+            print(e)
                 
     def process_tcx(self, file):
         tcx = tcxparser.TCXParser(file)
