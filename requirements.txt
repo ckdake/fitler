@@ -1,0 +1,3 @@
+gpxpy
+python-tcxparser
+fitparse
