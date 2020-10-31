@@ -1,3 +1,5 @@
+from fitler.metadata import ActivityMetadata
+
 import glob
 import tempfile
 import gzip

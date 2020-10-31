@@ -26,7 +26,8 @@ It should be named export_123455 (your user id). Put it in this folder folder.
     virtualenv env
     source env/bin/activate
     pip3 install -r requirements.txt
-    python3 fitler.py
+    pip3 install .
+    python3 scripts/doit.py
     deactivate
 
 

@@ -1,5 +1,5 @@
-from .fitler.file import ActivityFileCollection, ActivityFile
-from .filter.metadata import ActivityMetadata
+from .file import ActivityFileCollection, ActivityFile
+from .metadata import ActivityMetadata
 
 __version__ = '0.0.1'
 __all__ = [
