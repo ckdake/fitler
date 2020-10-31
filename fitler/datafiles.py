@@ -15,13 +15,18 @@ class ActivityFileCollection(object):
         self.folder = folder 
         self.activities_metadata = []
 
-    def process(self):
+    def process(self, limit = -1):
         gen = glob.iglob(self.folder)
 
+        counter = 0
         for file in gen:
-            af = ActivityFile(file)
-            am = af.parse()
-            self.activities_metadata.append(am)
+            if limit > 0 and counter == limit:
+                break
+            else:
+                counter += 1
+                af = ActivityFile(file)
+                am = af.parse()
+                self.activities_metadata.append(am)
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4) 
