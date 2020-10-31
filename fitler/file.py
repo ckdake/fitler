@@ -2,26 +2,13 @@ import glob
 import tempfile
 import gzip
 import json
-from dateutil import parser as dateparser
 
 import gpxpy
 import gpxpy.gpx
 import tcxparser
 import fitparse
 
-class ActivityMetadata:
-    start_time = ''
-
-    def __init__(self, file):
-        self.original_filename = file.split('/')[-1]
-
-    def set_start_time(self, datetimestring):
-        self.start_time = dateparser.parse(datetimestring).astimezone().replace(microsecond=0).isoformat()
-
-    def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
-
-class ActivityFileCollection:
+class ActivityFileCollection(object):
     def __init__(self, folder):
         self.folder = folder 
         self.activities_metadata = []
@@ -37,7 +24,7 @@ class ActivityFileCollection:
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4) 
 
-class ActivityFile:
+class ActivityFile(object):
     def __init__(self, file):
         self.file = file
         self.activity_metadata = ActivityMetadata(file)
@@ -99,10 +86,3 @@ class ActivityFile:
     def process_tcx(self, file):
         tcx = tcxparser.TCXParser(file)
         self.activity_metadata.set_start_time(str(tcx.started_at))
-
-def main():
-    amc = ActivityFileCollection('./export*/activities/*')
-    amc.process()
-    print(amc.to_json())
-    
-main()
