@@ -1,3 +1,5 @@
 gpxpy
 python-tcxparser
 fitparse
+
+openpyxl
