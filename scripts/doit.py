@@ -13,11 +13,13 @@ print("Files parsed: ", len(activityfiles.activities_metadata))
 
 # iterate through the files
 for fam in activityfiles.activities_metadata:
-    fam.date
     # figure out if there is a match in the spreadsheet in a horribly bad way
+    matchy = 0
     for sam in spreadsheet.activities_metadata:
         if fam.date == sam.date:
+            matchy = 1
             print(
                 "Match? (sheet: ", sam.date, "-", sam.activity_type, "-", sam.equipment, "-", sam.strava_id, 
                 ") MAY BE: (file", fam.date, "-", fam.original_filename, ")")
- 
+    if not matchy:
+        print ("NO MATCH: ", fam.original_filename)
