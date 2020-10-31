@@ -36,10 +36,13 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 * Get everything out of tcx files: https://pypi.org/project/python-tcxparser/
 * Get everything out of fit files: https://github.com/dtcooper/python-fitparse/ 
 
+
 * Get everything out of a spreadsheet with headers
 * Correlate spreadsheet entries with files into object representation
 
+
 * Generate JSON blob that represents all the metadata and let people use it.
+
 
 * Output as all fit
 * Output as all tcx
@@ -47,10 +50,16 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 * Output as all kml
 * Output as all geojson
 
+
 * Correlate each entry with Strava API
 * Correlate each entry with RidewithGPS API
 
+
 * Load files from S3 bucket or somewhere else instead of local
+
+* use multiprocessing to spin off workers for individual file parsing, as well as doing each API in parallel
+* cache things and use shas to know when files have been processed into cache
+
 
 * Can we get whoop scores for each one?
 * What is in TrainingPeaks?
