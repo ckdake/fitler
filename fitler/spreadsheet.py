@@ -22,27 +22,31 @@ class ActivitySpreadsheet(object):
 
         for i, row in enumerate(sheet.iter_rows(values_only=True)):
             if i != 0:
-                am = ActivityMetadata()
-                am.date = dateparser.parse(str(row[0])).strftime("%Y-%m-%d")
-                am.activity_type = row[1]
-                am.location_name = row[2]
-                am.city = row[3]
-                am.state = row[4]
-                am.temperature = row[5]
-                am.equipment = row[6]
-                am.duration_hms = row[7]
+                am_dict = {}
+                am_dict['date'] = dateparser.parse(str(row[0])).strftime("%Y-%m-%d")
+                if activity_type := row[1]: am_dict['activity_type'] = activity_type
+                if location_name := row[2]: am_dict['location_name'] = location_name
+                if city := row[3]: am_dict['city'] = city
+                if state := row[4]: am_dict['state'] = state
+                if temperature := row[5]: am_dict['temperature'] = temperature
+                if equipment := row[6]: am_dict['equipment'] = equipment
+                if duration_hms := row[7]: am_dict['duration_hms'] = duration_hms
                 # row[8] is calculated 'duration_h', 
-                am.distance = row[9]
-                am.max_speed = row[10]
-                am.avg_heart_rate = row[11]
-                am.calories = row[12]
-                am.max_elevation = row[13]
-                am.total_elevation_gain = row[14]
-                am.with_names = row[15]
-                am.avg_heart_rate = row[16]
-                am.strava_id = row[17]
-                am.garmin_id = row[18]
-                am.notes = row[19]
+                if distance := row[9]: am_dict['distance'] = distance
+                if max_speed := row[10]: am_dict['max_speed'] = max_speed
+                if avg_heart_rate := row[11]: am_dict['avg_heart_rate'] = avg_heart_rate
+                if calories := row[12]: am_dict['calories'] = calories
+                if max_elevation := row[13]: am_dict['max_elevation'] = max_elevation
+                if total_elevation_gain := row[14]: am_dict['total_elevation_gain'] = total_elevation_gain
+                if with_names := row[15]: am_dict['with_names'] = with_names
+                if avg_heart_rate := row[16]: am_dict['avg_heart_rate'] = avg_heart_rate
+                if strava_id := row[17]: am_dict['strava_id'] = strava_id
+                if garmin_id := row[18]: am_dict['garmin_id'] = garmin_id
+                if notes := row[19]: am_dict['notes'] = notes
+
+                am, created = ActivityMetadata.get_or_create(**am_dict)
+                am.save()
+
                 self.activities_metadata.append(am)
     
     def to_json(self):

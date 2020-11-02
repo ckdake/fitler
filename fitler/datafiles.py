@@ -34,7 +34,9 @@ class ActivityFileCollection(object):
 class ActivityFile(object):
     def __init__(self, file):
         self.file = file
-        self.activity_metadata = ActivityMetadata(file)
+        self.activity_metadata, created = ActivityMetadata.get_or_create(
+            original_filename=file.split('/')[-1]
+        )
 
         if ".fit.gz" in self.file:
             self.file_type = "FIT"
@@ -50,6 +52,8 @@ class ActivityFile(object):
             self.gzipped = 0
         else:
             raise ValueError("Why hello there unknown file format!", self.file)
+
+        self.activity_metadata.save()
 
     def parse(self):
         read_file = self.file
@@ -72,6 +76,8 @@ class ActivityFile(object):
 
         if self.gzipped:
             fp.close()
+
+        self.activity_metadata.save()
         return self.activity_metadata
 
     def process_gpx(self, file):
