@@ -81,21 +81,29 @@ class ActivityFile(object):
         return self.activity_metadata
 
     def process_gpx(self, file):
+        # probably should convert these to a TCX file
+        # examples at https://github.com/tkrajina/gpxpy/blob/dev/gpxinfo
         gpx_file = open(file, 'r')
         gpx = gpxpy.parse(gpx_file)
         self.activity_metadata.set_start_time(str(gpx.get_time_bounds().start_time))
+        self.activity_metadata.distance = gpx.length_2d()
 
     def process_fit(self, file):
+        # should these get converted to tcx, or vice versa?
+        # examples at fitdump -n session 998158033.fit 
         try:
             fitfile = fitparse.FitFile(file)
-            for record in fitfile.get_messages("record"):
+            for record in fitfile.get_messages("session"):
                 for data in record:
-                    if data.name == "timestamp":
+                    if str(data.name) == "start_time":
                         self.activity_metadata.set_start_time(str(data.value))
-                        break
+                    elif data.name == "total_distance":
+                        self.activity_metadata.distance = data.value * 0.00062137
         except Exception as e:
             self.activity_metadata.error = str(e)
                 
     def process_tcx(self, file):
+        # examples at https://github.com/vkurup/python-tcxparser
         tcx = tcxparser.TCXParser(file)
         self.activity_metadata.set_start_time(str(tcx.started_at))
+        self.activity_metadata.distance = tcx.distance * 0.00062137

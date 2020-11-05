@@ -1,5 +1,7 @@
 import json
 from dateutil import parser as dateparser
+from datetime import timezone, datetime, timedelta
+import pytz
 from peewee import *
 
 db = SqliteDatabase('metadata.db')
@@ -31,7 +33,7 @@ class ActivityMetadata(Model):
 
     def set_start_time(self, datetimestring):
         self.start_time = dateparser.parse(datetimestring).astimezone().replace(microsecond=0).isoformat()
-        self.date = dateparser.parse(datetimestring).strftime("%Y-%m-%d")
+        self.date = dateparser.parse(datetimestring).astimezone(pytz.timezone("US/Eastern")).strftime("%Y-%m-%d")
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
