@@ -7,3 +7,5 @@ fitparse
 openpyxl
 dateparser
 pytz
+
+stravaio
