@@ -3,6 +3,7 @@ from fitler.metadata import ActivityMetadata
 import dateparser
 import stravaio
 import os
+import time
 
 # stravaio.strava_oauth2(
 #     client_id=os.environ['STRAVA_CLIENT_ID'], 
@@ -17,7 +18,9 @@ class StravaActivities(object):
         self.client = stravaio.StravaIO(access_token=token)
     
     def process(self):
-        list_activitites = self.client.get_logged_in_athlete_activities(after='last week')
+        # TODO: how to load in the stuff stored locally? 
+
+        list_activitites = self.client.get_logged_in_athlete_activities() #after='last week')
         for a in list_activitites:
             activity = self.client.get_activity_by_id(a.id)
             activity.store_locally()
@@ -48,5 +51,6 @@ class StravaActivities(object):
             am, created = ActivityMetadata.get_or_create(**am_dict)
             am.save()
             self.activities_metadata.append(am)
+            time.sleep(2)
 
         # TODO: destroy the client somehow

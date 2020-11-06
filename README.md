@@ -51,7 +51,7 @@ It should be named export_123455 (your user id). Put it in this folder folder.
     * Output as all geojson: https://pypi.org/project/geojson/ 
 
 
-    * Correlate each entry with Strava API: https://pypi.org/project/stravaio/ (basics are in, need to figure out pulling all and matching, add more fields to db)
+    * Correlate each entry with Strava API: https://pypi.org/project/stravaio/ (basics of pulling are in, need to figure out pulling all and matching, add more fields to db, what about writing? Updating Name based on authoritative? CK strava has some old janky names)
     * Correlate each entry with RidewithGPS API: Needs an open source python client lib! https://ridewithgps.com/api
     * Correlate each entry with Garmin: https://pypi.org/project/garminconnect/ 
 
