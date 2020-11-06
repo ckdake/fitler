@@ -5,4 +5,5 @@ python-tcxparser
 fitparse
 
 openpyxl
+dateparser
 pytz

@@ -86,7 +86,7 @@ class ActivityFile(object):
         gpx_file = open(file, 'r')
         gpx = gpxpy.parse(gpx_file)
         self.activity_metadata.set_start_time(str(gpx.get_time_bounds().start_time))
-        self.activity_metadata.distance = gpx.length_2d()
+        self.activity_metadata.distance = gpx.length_2d() * 0.00062137
 
     def process_fit(self, file):
         # should these get converted to tcx, or vice versa?

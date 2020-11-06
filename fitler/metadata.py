@@ -1,5 +1,5 @@
 import json
-from dateutil import parser as dateparser
+import dateparser
 from datetime import timezone, datetime, timedelta
 import pytz
 from peewee import *
@@ -32,8 +32,13 @@ class ActivityMetadata(Model):
     notes = CharField(null = True)
 
     def set_start_time(self, datetimestring):
-        self.start_time = dateparser.parse(datetimestring).astimezone().replace(microsecond=0).isoformat()
-        self.date = dateparser.parse(datetimestring).astimezone(pytz.timezone("US/Eastern")).strftime("%Y-%m-%d")
+        timezone_datetime_obj = dateparser.parse(
+            datetimestring,
+            settings={"TIMEZONE": 'GMT', 'RETURN_AS_TIMEZONE_AWARE': True}
+        ).astimezone(pytz.timezone('US/Eastern'))
+
+        self.start_time = timezone_datetime_obj.replace(microsecond=0).isoformat()
+        self.date = timezone_datetime_obj.strftime("%Y-%m-%d")
 
     def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
