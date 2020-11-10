@@ -44,6 +44,7 @@ class ActivitySpreadsheet(object):
                 if garmin_id := row[18]: am_dict['garmin_id'] = garmin_id
                 if notes := row[19]: am_dict['notes'] = notes
 
+                am_dict['source'] = 'Spreadsheet'
                 am, created = ActivityMetadata.get_or_create(**am_dict)
                 am.save()
 

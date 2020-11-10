@@ -42,6 +42,7 @@ class StravaActivities(object):
                 am_dict['strava_id'] = activity_dict["id"]
                 # if garmin_id := row[18]: am_dict['garmin_id'] = garmin_id
                 am_dict['notes'] = activity_dict["name"]
+                am_dict['source'] = "Strava"
 
                 am, created = ActivityMetadata.get_or_create(**am_dict)
                 am.save()
@@ -64,6 +65,7 @@ class RideWithGPSActivities(object):
     def process(self):
         for a in []:
             am_dict = {}
+            am_dict['source'] = "Spreadsheet"
             am, created = ActivityMetadata.get_or_create(**am_dict)
             am.save()
             self.activities_metadata.append(am)

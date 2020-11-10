@@ -30,6 +30,7 @@ class ActivityMetadata(Model):
     garmin_id = IntegerField(null = True)
     ridewithgps_id = IntegerField(null = True)
     notes = CharField(null = True)
+    source = CharField(null = True)
 
     def set_start_time(self, datetimestring):
         timezone_datetime_obj = dateparser.parse(

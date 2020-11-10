@@ -1,32 +1,69 @@
 import fitler
 import os
+import copy
 
-###### Fire up the db
+# Fire up the db
 fitler.ActivityMetadata.migrate()
 
-###### load up all the activites from the spreadsheet into metadata format
-spreadsheet = fitler.ActivitySpreadsheet('/Users/ckdake/Documents/exerciselog.xlsx')
-spreadsheet.parse()
-print("Spreadsheet rows parsed: ", len(spreadsheet.activities_metadata))
 
-###### load up all the activities from the files into metadata format
+###### Load the spreadsheet in as 'Spreadsheet'
+# spreadsheet = fitler.ActivitySpreadsheet('/Users/ckdake/Documents/exerciselog.xlsx')
+# spreadsheet.parse()
+# print("Spreadsheet rows parsed: ", len(spreadsheet.activities_metadata))
+
+###### Load the files in as 'File'
 # activityfiles = fitler.ActivityFileCollection('./export*/activities/*')
 # activityfiles.process()  #can limit here to 10
 # print("Files parsed: ", len(activityfiles.activities_metadata))
 
-###### slurp a little in from strava
+###### Load from Strava as 'Strava'
 # stravabits = fitler.StravaActivities(os.environ['STRAVA_ACCESS_TOKEN'])
 # stravabits.process()
 # print("Strava Activities pulled from API: ", len(stravabits.activities_metadata))
-### Just load from our local files instead!
-stravabits = fitler.StravaJsonActivities('/Users/ckdake/.stravadata/activities_5850/*')
-stravabits.process()
-print("Strava Activities pulled from files: ", len(stravabits.activities_metadata))
 
-###### and some ridewithgps
+###### Load from our strava local files as 'StravaFile'
+# stravabits = fitler.StravaJsonActivities('/Users/ckdake/.stravadata/activities_5850/*')
+# stravabits.process()
+# print("Strava Activities pulled from files: ", len(stravabits.activities_metadata))
+
+###### Load from RidewithGPS as 'RidewithGPS'
 # ridewithgpsbits = fitler.RideWithGPSActivities(os.environ['RIDWITHGPS_ACCSS_TOKEN'])
 # ridewithgpsbits.process()
 # print("RideWithGPS Activities pulled: ", len(ridewithgpsbits.activiteis_metadata))
+
+###### Load from Garmin somehow.
+
+
+# Populate the "Main" from the spreadsheet if we need to
+if fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main").count() == 0:
+    for activity in fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Spreadsheet"):
+        activity_copy = copy.deepcopy(activity)
+        activity_copy.id = None
+        activity_copy.source = 'Main'
+        activity_copy.save()
+
+# Fill in the missing file IDs from File using ~match.  How many are missing?
+missingfiles = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.original_filename == None)
+print('--------- Main is missing file for:', len(missingfiles), '---------')
+
+# Fill in the missing strava IDs from Strava using ~match. How many are missing?
+missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == None)
+print('--------- Main is missing strava_id for:', len(missingstrava), '---------')
+
+# Fill in the missing garmin IDs from Garmin using ~match. How many are missing?
+missinggarmin = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.garmin_id == None)
+print('--------- Main is missing garmin_id for:', len(missinggarmin), '---------')
+
+# Fill in the missing RidewithGPS IDs from RidewithGPS using ~match. How many are missing?
+missingridebygps = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.ridewithgps_id == None)
+print('--------- Main is missing ridewithgps_id for:', len(missingridebygps), '---------')
+
+
+
+
+
+exit()
+
 
 
 nomatches = []
@@ -83,16 +120,3 @@ print('--------- TOO MANY MATCHES:', len(toomanymatches), '---------')
 print('--------- MISSING DISTANCE:', len(missingdistance), '---------')
 # for am in missingdistance:
 #     print(am.original_filename)
-
-# now, iterate through the spreadsheet, who is missing files?
-missingfiles = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.original_filename == None)
-print('--------- MISSING FILE:', len(missingfiles), '---------')
-
-missinggarmin = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.garmin_id == None)
-print('--------- MISSING Garmin:', len(missinggarmin), '---------')
-
-missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.strava_id == None)
-print('--------- MISSING Strava:', len(missingstrava), '---------')
-
-missingridebygps = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.ridewithgps_id == None)
-print('--------- MISSING RidewithGPS:', len(missingridebygps), '---------')

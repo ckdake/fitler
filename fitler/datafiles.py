@@ -77,6 +77,7 @@ class ActivityFile(object):
         if self.gzipped:
             fp.close()
 
+        self.activity_metadata.source = "File"
         self.activity_metadata.save()
         return self.activity_metadata
 

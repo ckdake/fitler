@@ -25,6 +25,7 @@ class StravaJsonActivities(object):
                     am_dict['distance'] = data["distance"] * 0.00062137
                     am_dict['strava_id'] = data["id"]
                     am_dict['notes'] = data["name"]
+                    am_dict['source'] = "StravaFile"
 
                     am, created = ActivityMetadata.get_or_create(**am_dict)
                     am.save()
