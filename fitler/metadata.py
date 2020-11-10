@@ -17,7 +17,7 @@ class ActivityMetadata(Model):
     temperature = DecimalField(null = True)
     equipment = CharField(null = True)
     duration_hms = CharField(null = True)
-    distance = DecimalField(null = True)
+    distance = FloatField(null = True)
     max_speed = DecimalField(null = True)
     avg_heart_rate = IntegerField(null = True)
     max_heart_rate = IntegerField(null = True)
