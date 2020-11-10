@@ -23,7 +23,7 @@ class StravaActivities(object):
 
                 am_dict = {}
 
-                am_dict['date'] = dateparser.parse(activity_dict["start_date"]).strftime("%Y-%m-%d")
+                am_dict['date'] = dateparser.parse(activity_dict["start_date_local"]).strftime("%Y-%m-%d")
                 # am_dict['activity_type'] = activity_type
                 # am_dict['location_name'] = location_name
                 # am_dict['city'] = city  ---> get from start_latlng

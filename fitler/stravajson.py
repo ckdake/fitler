@@ -21,7 +21,7 @@ class StravaJsonActivities(object):
                 with open(file) as f:
                     data = json.load(f)
                     am_dict = {}
-                    am_dict['date'] = dateparser.parse(data["start_date"]).strftime("%Y-%m-%d")
+                    am_dict['date'] = dateparser.parse(data["start_date_local"]).strftime("%Y-%m-%d")
                     am_dict['distance'] = data["distance"] * 0.00062137
                     am_dict['strava_id'] = data["id"]
                     am_dict['notes'] = data["name"]
