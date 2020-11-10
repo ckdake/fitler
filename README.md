@@ -34,11 +34,15 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 ## TODO
 
     * Write some tests...
+    * Build a config object and load it from JSON. Which sources are active and which one is primary, and what "rules" are in place. e.g.:
+    ** Spreadsheet is at PATH, and is "primary"
+    ** Strava is active, add strava_id to "primary", add "name" from strava to "notes" in primary, add "equipment" from "primary" to RidewithGPS
+    ** RidewithGPS is active, add ridewithgps_id to "primary", add "notes" from primary to "name" in RidewithGPS, add "equipment" from "primary" to RidewithGPS
 
     * Get everything out of gpx files: https://pypi.org/project/gpxpy/  (basics are in, need to fill out metadata, add more fields to db!)
     * Get everything out of tcx files: https://pypi.org/project/python-tcxparser/ (basics are in, need to fill out metadata, add more fields to db!) 
     * Get everything out of fit files: https://github.com/dtcooper/python-fitparse/ (basics are in, need to fill out metadata, add more fields to db!)
-    * Get everythong out of KML files: https://pypi.org/project/pykml/
+    * Get everything out of KML files: https://pypi.org/project/pykml/
     * Get everything out of a spreadsheet with headers: https://pypi.org/project/openpyxl/ (basics are in, work better with headers)
 
     * Store everything in KM and s per all the filespecs (instead of conversions to mph/miles/etc)
