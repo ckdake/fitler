@@ -2,7 +2,7 @@
 
 A self contained, non descructive, way to help you understand your activity data.
 
-You'll need a folder of your data files, for now put it in a folder like export_1.
+You'll need a folder of your data files, for now put it in a folder like data/export_1.
 
 Eventually and optionally you can add in some some api keys or a spreadsheet.
 
@@ -26,7 +26,11 @@ It should be named export_123455 (your user id). Put it in this folder folder.
     virtualenv env
     source env/bin/activate
     pip3 install -r requirements.txt
-    pip3 install .
+    pip3 install -e ./
+
+    mypy fitler/*.py
+    black fitler/*.py
+
     python3 scripts/doit.py
     deactivate
 

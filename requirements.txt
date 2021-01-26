@@ -1,11 +1,14 @@
-peewee
+mypy
+black
 
-gpxpy
-python-tcxparser
-fitparse
+# peewee
+
+# gpxpy
+# python-tcxparser
+# fitparse
 
 openpyxl
 dateparser
 pytz
 
-stravaio
+# stravaio

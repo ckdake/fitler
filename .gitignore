@@ -1,5 +1,7 @@
 *.swp
-export*
+data
 env
 __pycache__
 metadata.db
+.venv
+fitler.egg-info
