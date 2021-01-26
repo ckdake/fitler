@@ -58,6 +58,10 @@ class Activity(Protocol):
     def source_athelete_id(self) -> int:
         """ e.g. athelete_id from strava"""
         return -1
+    
+    def source_training_load(self) -> float:
+        """ e.g. suffer score from strava, whoop score from whoop"""
+        return 0
 
     def distance_meters(self) -> int:
         return -1

@@ -19,10 +19,10 @@ class SpreadsheetActivity(Activity):
             self.activity_type = activity_type
         if location_name := row[2]:
             self.location_name = location_name
-        if city := row[3]:
-            self.city = city
-        if state := row[4]:
-            self.state = state
+        if location_city := row[3]:
+            self.location_city = location_city
+        if location_state := row[4]:
+            self.location_state = location_state
         if average_temperature_f := row[5]:
             self.average_temperature_f = average_temperature_f
         if gear_name := row[6]:
