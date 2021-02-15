@@ -1,10 +1,13 @@
-from .datafiles import ActivityFileCollection, ActivityFile
-from .metadata import ActivityMetadata
-from .spreadsheet import ActivitySpreadsheet
-from .apis import StravaActivities
-from .stravajson import StravaJsonActivities
+from .activity import Activity
+from .activity_collection import ActivityCollection
 
-__version__ = '0.0.1'
+from .spreadsheet_activity import SpreadsheetActivity
+from .spreadsheet_activity_collection import SpreadsheetActivityCollection
+
+__version__ = "0.0.1"
 __all__ = [
-    'ActivityFileCollection', 'ActivityFile', 'ActivityMetadata', 'ActivitySpreadsheet', 'StravaActivities', 'StravaJsonActivities'
+    "Activity",
+    "ActivityCollection",
+    "SpreadsheetActivity",
+    "SpreadsheetActivityCollection",
 ]
