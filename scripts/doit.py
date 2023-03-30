@@ -154,12 +154,19 @@ for ride in rides:
             'to', ride.equipment,
             'a.k.a.',  list(ridewithgps_gear.keys())[list(ridewithgps_gear.values()).index(ride.equipment)]
         )
-        # TODO(CK): push to RideWithGPS
+        ridewithgpsbits.set_trip_gear(
+            ridewithgps_ride.ridewithgps_id,
+            list(ridewithgps_gear.keys())[list(ridewithgps_gear.values()).index(ride.equipment)]
+        )
+
     if ride.notes != ridewithgps_ride.notes:
         print(
             'RideWithGPS', ridewithgps_ride.ridewithgps_id,
             'Needs name updated from', ridewithgps_ride.notes,
             'to', ride.notes, 
         )
-        # TODO(CK): push to RideWithGPS
+        ridewithgpsbits.set_trip_name(
+            ridewithgps_ride.ridewithgps_id,
+            ride.notes
+        )
     

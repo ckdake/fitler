@@ -6,6 +6,7 @@ import os
 import time
 import ridewithgps
 import urllib.parse
+import requests
 from pprint import pprint
 
 class StravaActivities(object):
@@ -73,6 +74,32 @@ class RideWithGPSActivities(object):
 
         self.userid =  auth['user']['id']
         self.auth_token = auth['user']['auth_token']
+
+    def set_trip_gear(self, trip_id, gear_id):
+        r = requests.put(
+            "https://ridewithgps.com/trips/{0}.json".format(trip_id),
+            json = {
+                "apikey": self.apikey,
+                "version": 2,
+                "auth_token": self.auth_token,
+                "trip": {
+                    "gear_id": gear_id
+                }
+            }
+        )
+    
+    def set_trip_name(self, trip_id, name):
+        r = requests.put(
+            "https://ridewithgps.com/trips/{0}.json".format(trip_id),
+            json = {
+                "apikey": self.apikey,
+                "version": 2,
+                "auth_token": self.auth_token,
+                "trip": {
+                    "name": name
+                }
+            }
+        )
 
     def get_gear(self):
         gear = {}
