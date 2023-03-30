@@ -9,3 +9,5 @@ dateparser
 pytz
 
 stravaio
+
+git+https://github.com/ckdake/python-ridewithgps@main#egg=ridewithgps

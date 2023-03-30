@@ -4,6 +4,8 @@ import dateparser
 import stravaio
 import os
 import time
+import ridewithgps
+import urllib.parse
 
 class StravaActivities(object):
 
@@ -31,7 +33,7 @@ class StravaActivities(object):
                 # am_dict['temperature'] = temperature
                 # am_dict['equipment'] = equipment ---> get from gear_id and join
                 # am_dict['duration_hms'] = duration_hms  ---> get from elapsed_time in s
-                am_dict['distance'] = activity_dict["distance"] * 0.00062137
+                am_dict['distance'] = activity_dict["distance"] * 0.00062137 # source data is in meters, convert to miles
                 # am_dict['max_speed'] = max_speed  -->  convert from m/s to mph
                 # am_dict['avg_heart_rate'] = avg_heart_rate
                 #  am_dict['calories'] = calories
@@ -55,17 +57,55 @@ class StravaActivities(object):
         # TODO: destroy the client somehow
 
 class RideWithGPSActivities(object):
-    # 1. get an auth token using os.environ['RIDEWITHGPS_KEY'] and username/password
-    # 2. pull activities
-
-    def __init__(self, token):
+    def __init__(self):
         self.activities_metadata = []
-        self.client = []
-    
+        self.client = ridewithgps.RideWithGPS()
+
+        self.username = os.environ['RIDEWITHGPS_EMAIL']
+        self.password = os.environ['RIDEWITHGPS_PASSWORD']
+        self.apikey   = os.environ['RIDEWITHGPS_KEY']
+
+        auth = self.client.call(
+            "/users/current.json", 
+            {"email": self.username, "password": self.password, "apikey": self.apikey, "version": 2}
+        )
+
+        self.userid =  auth['user']['id']
+        self.auth_token = auth['user']['auth_token']
+
+    def get_gear(self):
+        gear = {}
+        gear_results = self.client.call(
+            "/users/{0}/gear.json".format(self.userid),
+            {"offset": 0, "limit": 10000, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
+        )["results"]
+        for g in gear_results:
+            gear[g["id"]] = g["nickname"]
+        return gear
+
     def process(self):
-        for a in []:
-            am_dict = {}
-            am_dict['source'] = "Spreadsheet"
-            am, created = ActivityMetadata.get_or_create(**am_dict)
-            am.save()
-            self.activities_metadata.append(am)
+        gear = self.get_gear()
+
+        activities = self.client.call(
+            "/users/{0}/trips.json".format(self.userid),
+            {"offset": 0, "limit": 10000, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
+        )["results"]
+        for a in activities:
+            try:
+                am_dict = {}
+                
+                am_dict['date'] = dateparser.parse(a["departed_at"]).strftime("%Y-%m-%d")
+                am_dict['distance'] = a["distance"] * 0.00062137 # source data is in meters, convert to miles
+                am_dict['equipment'] = gear[a["gear_id"]]
+                am_dict['ridewithgps_id'] = a["id"]
+                am_dict['notes'] = a["name"]
+
+                am_dict['source'] = "RideWithGPS"
+
+                am, created = ActivityMetadata.get_or_create(**am_dict)
+                am.save()
+                
+                self.activities_metadata.append(am)
+
+            except Exception as e:
+                print(e) 

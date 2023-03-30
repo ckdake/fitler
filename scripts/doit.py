@@ -1,12 +1,13 @@
 import fitler
 import os
 import copy
+from pprint import pprint
 
 ##### uncomment this to get SQL Logging
-# import logging
-# logger = logging.getLogger('peewee')
-# logger.addHandler(logging.StreamHandler())
-# logger.setLevel(logging.DEBUG)
+import logging
+logger = logging.getLogger('peewee')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.WARN)
 
 # Fire up the db
 fitler.ActivityMetadata.migrate()
@@ -27,14 +28,14 @@ print("Spreadsheet rows parsed: ", len(spreadsheet.activities_metadata))
 # print("Strava Activities pulled from API: ", len(stravabits.activities_metadata))
 
 ###### Load from our strava local files as 'StravaFile'
-stravabits = fitler.StravaJsonActivities('/Users/ckdake/.stravadata/activities_5850/*')
-stravabits.process()
-print("Strava Activities pulled from files: ", len(stravabits.activities_metadata))
+# stravabits = fitler.StravaJsonActivities('/Users/ckdake/.stravadata/activities_5850/*')
+# stravabits.process()
+# print("Strava Activities pulled from files: ", len(stravabits.activities_metadata))
 
 ###### Load from RidewithGPS as 'RidewithGPS'
-# ridewithgpsbits = fitler.RideWithGPSActivities(os.environ['RIDWITHGPS_ACCSS_TOKEN'])
+ridewithgpsbits = fitler.RideWithGPSActivities()
 # ridewithgpsbits.process()
-# print("RideWithGPS Activities pulled: ", len(ridewithgpsbits.activiteis_metadata))
+print("RideWithGPS Activities pulled: ", len(ridewithgpsbits.activities_metadata))
 
 ###### Load from Garmin somehow.
 
@@ -70,10 +71,10 @@ def bestmatch(targetmetadata, source):
         ):
         matches += 0
         # print("-", am.date, "-", am.distance)
-    if (matches < 2):
+    if (matches < 1):
         # print("Error: no matches!")
         return None
-    elif (matches > 2):
+    elif (matches > 1):
         # print("Error: too many matches!")
         return None
     return match
@@ -87,31 +88,69 @@ if fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Mai
         activity_copy.source = 'Main'
         activity_copy.save()
 
-# Fill in the missing strava IDs from Strava File using ~match. How many are missing?
-missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == "")
-print('--------- Main is sadly missing strava_id for:', len(missingstrava), '---------')
-for activity in missingstrava:
-    candidate = bestmatch({'distance': activity.distance, 'date': activity.date}, "StravaFile")
+#### Fill in the missing strava IDs from Strava File using ~match. How many are missing?
+# missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == "")
+# print('--------- Main is sadly missing strava_id for:', len(missingstrava), '---------')
+# for activity in missingstrava:
+#     candidate = bestmatch({'distance': activity.distance, 'date': activity.date}, "StravaFile")
+#     if candidate:
+#         print('StravaFile', candidate.strava_id, 'was lonely! Found a match.')
+#         activity.strava_id = candidate.strava_id
+#         activity.save()
+# missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == "")
+# print('--------- Main is now happily only missing strava_id for:', len(missingstrava), '---------')
+
+#### Then do it from actual Strava with ~match. How many are missing?
+
+
+#### Fill in the missing file IDs from File using ~match.  How many are missing?
+# missingfiles = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.original_filename == None)
+# print('--------- Main is missing file for:', len(missingfiles), '---------')
+
+##### Fill in the missing garmin IDs from Garmin using ~match. How many are missing?
+# missinggarmin = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.garmin_id == None)
+# print('--------- Main is missing garmin_id for:', len(missinggarmin), '---------')
+
+##### Fill in the missing RidewithGPS IDs from RidewithGPS using ~match. How many are missing?
+missingridewithgps = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.ridewithgps_id == None)
+print('--------- Main is sadly missing ridewithgps_id for:', len(missingridewithgps), '---------')
+for activity in missingridewithgps:
+    candidate = bestmatch({'distance': activity.distance, 'date': activity.date}, "RideWithGPS")
     if candidate:
-        print('StravaFile', candidate.strava_id, 'was lonely! Found a match.')
-        activity.strava_id = candidate.strava_id
+        print('RideWithGPS', candidate.ridewithgps_id, 'was lonely! Found a match.')
+        activity.ridewithgps_id = candidate.ridewithgps_id
         activity.save()
-missingstrava = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == "")
-print('--------- Main is now happily only missing strava_id for:', len(missingstrava), '---------')
-
-exit()
-
-# Then do it from actual Strava with ~match. How many are missing?
+missingridewithgps = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.ridewithgps_id == None)
+print('--------- Main is now happily only missing ridewithgps_id for:', len(missingridewithgps), '---------')
 
 
-# Fill in the missing file IDs from File using ~match.  How many are missing?
-missingfiles = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.original_filename == None)
-print('--------- Main is missing file for:', len(missingfiles), '---------')
+##### Figure out which things in RideWithGPS need Gear updated
+ridewithgps_gear = ridewithgpsbits.get_gear()
 
-# Fill in the missing garmin IDs from Garmin using ~match. How many are missing?
-missinggarmin = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.garmin_id == None)
-print('--------- Main is missing garmin_id for:', len(missinggarmin), '---------')
+print(ridewithgps_gear)
 
-# Fill in the missing RidewithGPS IDs from RidewithGPS using ~match. How many are missing?
-missingridebygps = fitler.ActivityMetadata.select().where(fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.ridewithgps_id == None)
-print('--------- Main is missing ridewithgps_id for:', len(missingridebygps), '---------')
+rides =  fitler.ActivityMetadata.select().where(
+    fitler.ActivityMetadata.source == "Main", 
+    fitler.ActivityMetadata.ridewithgps_id != None
+)
+for ride in rides:
+    ridewithgps_ride = fitler.ActivityMetadata.select().where(
+        fitler.ActivityMetadata.source == "RideWithGPS",
+        fitler.ActivityMetadata.ridewithgps_id == ride.ridewithgps_id
+    )[0]
+    if ride.equipment != ridewithgps_ride.equipment:
+        print(
+            'RideWithGPS', ridewithgps_ride.ridewithgps_id,
+            'Needs gear updated from', ridewithgps_ride.equipment,
+            'to', ride.equipment,
+            'a.k.a.',  list(ridewithgps_gear.keys())[list(ridewithgps_gear.values()).index(ride.equipment)]
+        )
+        # TODO(CK): push to RideWithGPS
+    if ride.notes != ridewithgps_ride.notes:
+        print(
+            'RideWithGPS', ridewithgps_ride.ridewithgps_id,
+            'Needs name updated from', ridewithgps_ride.notes,
+            'to', ride.notes, 
+        )
+        # TODO(CK): push to RideWithGPS
+    
