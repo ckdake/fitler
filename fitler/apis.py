@@ -6,6 +6,7 @@ import os
 import time
 import ridewithgps
 import urllib.parse
+from pprint import pprint
 
 class StravaActivities(object):
 
@@ -52,7 +53,7 @@ class StravaActivities(object):
                 time.sleep(2)
             except Exception as e:
                 # TODO: fix ValueError: Invalid value for `activity_type` (Hike), must be one of ['Ride', 'Run']
-                print(e)
+                print('Exception Saving Strava Activity:', e)
 
         # TODO: destroy the client somehow
 
@@ -77,7 +78,7 @@ class RideWithGPSActivities(object):
         gear = {}
         gear_results = self.client.call(
             "/users/{0}/gear.json".format(self.userid),
-            {"offset": 0, "limit": 10000, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
+            {"offset": 0, "limit": 50, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
         )["results"]
         for g in gear_results:
             gear[g["id"]] = g["nickname"]
@@ -96,7 +97,7 @@ class RideWithGPSActivities(object):
                 
                 am_dict['date'] = dateparser.parse(a["departed_at"]).strftime("%Y-%m-%d")
                 am_dict['distance'] = a["distance"] * 0.00062137 # source data is in meters, convert to miles
-                am_dict['equipment'] = gear[a["gear_id"]]
+                am_dict['equipment'] = gear[a["gear_id"]] if a["gear_id"] else ""
                 am_dict['ridewithgps_id'] = a["id"]
                 am_dict['notes'] = a["name"]
 
@@ -108,4 +109,4 @@ class RideWithGPSActivities(object):
                 self.activities_metadata.append(am)
 
             except Exception as e:
-                print(e) 
+                print('Exception Saving RideWithGPS Activity:', e) 
