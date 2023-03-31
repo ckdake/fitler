@@ -118,7 +118,7 @@ class RideWithGPSActivities(object):
         gear = {}
         gear_results = self.client.call(
             "/users/{0}/gear.json".format(self.userid),
-            {"offset": 0, "limit": 50, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
+            {"offset": 0, "limit": 100, "apikey": self.apikey, "version": 2, "auth_token": self.auth_token}
         )["results"]
         for g in gear_results:
             gear[g["id"]] = g["nickname"]
