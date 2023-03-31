@@ -101,6 +101,19 @@ class RideWithGPSActivities(object):
             }
         )
 
+    def create_trip(self, file_path):
+        r = requests.post(
+            "https://ridewithgps.com/trips.json",
+            files = {
+                'file': open(file_path, 'rb')
+            },
+            data = {
+                "apikey": self.apikey,
+                "version": 2,
+                "auth_token": self.auth_token,
+            }
+        )
+
     def get_gear(self):
         gear = {}
         gear_results = self.client.call(
