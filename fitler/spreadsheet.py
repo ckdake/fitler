@@ -31,20 +31,19 @@ class ActivitySpreadsheet(object):
                 if temperature := row[5]: am_dict['temperature'] = temperature
                 if equipment := row[6]: am_dict['equipment'] = equipment
                 if duration_hms := row[7]: am_dict['duration_hms'] = duration_hms
-                # row[8] is calculated 'duration_h', 
-                if distance := row[9]: am_dict['distance'] = distance
-                if max_speed := row[10]: am_dict['max_speed'] = max_speed
-                if avg_heart_rate := row[11]: am_dict['avg_heart_rate'] = avg_heart_rate
-                if max_heart_rate := row[12]: am_dict['max_heart_rate'] = max_heart_rate
-                if calories := row[13]: am_dict['calories'] = calories
-                if max_elevation := row[14]: am_dict['max_elevation'] = max_elevation
-                if total_elevation_gain := row[15]: am_dict['total_elevation_gain'] = total_elevation_gain
-                if with_names := row[16]: am_dict['with_names'] = with_names
-                if avg_cadence := row[17]: am_dict['avg_cadence'] = avg_cadence
-                if strava_id := row[18]: am_dict['strava_id'] = strava_id
-                if garmin_id := row[19]: am_dict['garmin_id'] = garmin_id
-                if ridewithgps_id := row[20]: am_dict['ridewithgps_id'] = ridewithgps_id
-                if notes := row[21]: am_dict['notes'] = notes
+                if distance := row[8]: am_dict['distance'] = distance
+                if max_speed := row[9]: am_dict['max_speed'] = max_speed
+                if avg_heart_rate := row[10]: am_dict['avg_heart_rate'] = avg_heart_rate
+                if max_heart_rate := row[11]: am_dict['max_heart_rate'] = max_heart_rate
+                if calories := row[12]: am_dict['calories'] = calories
+                if max_elevation := row[13]: am_dict['max_elevation'] = max_elevation
+                if total_elevation_gain := row[14]: am_dict['total_elevation_gain'] = total_elevation_gain
+                if with_names := row[15]: am_dict['with_names'] = with_names
+                if avg_cadence := row[16]: am_dict['avg_cadence'] = avg_cadence
+                if strava_id := row[17]: am_dict['strava_id'] = strava_id
+                if garmin_id := row[18]: am_dict['garmin_id'] = garmin_id
+                if ridewithgps_id := row[19]: am_dict['ridewithgps_id'] = ridewithgps_id
+                if notes := row[20]: am_dict['notes'] = notes
 
                 am_dict['source'] = 'Spreadsheet'
                 am, created = ActivityMetadata.get_or_create(**am_dict)

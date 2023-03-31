@@ -31,6 +31,15 @@ It should be named export_123455 (your user id). Put it in this folder folder.
     deactivate
 
 
+## Getting things back out into spreadsheet
+
+    sqlite3 metadata.db
+    .headers on
+    .mode csv
+    .output metadata.csv
+    SELECT date,activity_type,location_name,city,state,temperature,equipment,duration_hms,max_speed,avg_heart_rate,max_heart_rate,calories,max_elevation,total_elevation_gain,with_names,avg_cadence,strava_id,garmin_id,ridewithgps_id,notes from ActivityMetadata where source="Main";
+    .quit
+
 ## TODO
 
     * Write some tests...
