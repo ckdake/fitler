@@ -1,7 +1,7 @@
 name: black
 on: [push]
 jobs:
-  run-pylint:
+  run-black:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
