@@ -1,0 +1,12 @@
+name: pylint
+on: [push]
+jobs:
+  run-pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Installs packages
+        run: pip3 install -r requirements.txt
+      - name: Runs black
+        run: black --check .
