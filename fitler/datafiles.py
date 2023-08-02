@@ -10,12 +10,13 @@ import gpxpy.gpx
 import tcxparser
 import fitparse
 
+
 class ActivityFileCollection(object):
     def __init__(self, folder):
-        self.folder = folder 
+        self.folder = folder
         self.activities_metadata = []
 
-    def process(self, limit = -1):
+    def process(self, limit=-1):
         gen = glob.iglob(self.folder)
 
         counter = 0
@@ -29,13 +30,14 @@ class ActivityFileCollection(object):
                 self.activities_metadata.append(am)
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4) 
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
 
 class ActivityFile(object):
     def __init__(self, file):
         self.file = file
         self.activity_metadata, created = ActivityMetadata.get_or_create(
-            original_filename=file.split('/')[-1]
+            original_filename=file.split("/")[-1]
         )
 
         if ".fit.gz" in self.file:
@@ -61,7 +63,7 @@ class ActivityFile(object):
 
         if self.gzipped:
             fp = tempfile.NamedTemporaryFile()
-            with gzip.open(self.file, 'rb') as f:
+            with gzip.open(self.file, "rb") as f:
                 fp.write(f.read().lstrip())
             read_file = fp.name
 
@@ -84,14 +86,14 @@ class ActivityFile(object):
     def process_gpx(self, file):
         # probably should convert these to a TCX file
         # examples at https://github.com/tkrajina/gpxpy/blob/dev/gpxinfo
-        gpx_file = open(file, 'r')
+        gpx_file = open(file, "r")
         gpx = gpxpy.parse(gpx_file)
         self.activity_metadata.set_start_time(str(gpx.get_time_bounds().start_time))
         self.activity_metadata.distance = gpx.length_2d() * 0.00062137
 
     def process_fit(self, file):
         # should these get converted to tcx, or vice versa?
-        # examples at fitdump -n session 998158033.fit 
+        # examples at fitdump -n session 998158033.fit
         try:
             fitfile = fitparse.FitFile(file)
             for record in fitfile.get_messages("session"):
@@ -102,7 +104,7 @@ class ActivityFile(object):
                         self.activity_metadata.distance = data.value * 0.00062137
         except Exception as e:
             self.activity_metadata.error = str(e)
-                
+
     def process_tcx(self, file):
         # examples at https://github.com/vkurup/python-tcxparser
         tcx = tcxparser.TCXParser(file)
