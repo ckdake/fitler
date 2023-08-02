@@ -2,13 +2,11 @@
 from fitler.metadata import ActivityMetadata
 
 import dateparser
-import stravaio
+import stravaio  # type: ignore
 import os
 import time
-import ridewithgps
-import urllib.parse
+import ridewithgps  # type: ignore
 import requests
-from pprint import pprint
 
 
 class StravaActivities(object):
@@ -38,12 +36,15 @@ class StravaActivities(object):
                 # am_dict['city'] = city  ---> get from start_latlng
                 # am_dict['state'] = state  ---> get from start_latlng
                 # am_dict['temperature'] = temperature
-                # am_dict['equipment'] = equipment ---> get from gear_id and join
-                # am_dict['duration_hms'] = duration_hms  ---> get from elapsed_time in s
+                # am_dict['equipment'] = equipment
+                #     ---> get from gear_id and join
+                # am_dict['duration_hms'] = duration_hms
+                #     ---> get from elapsed_time in s
                 am_dict["distance"] = (
                     activity_dict["distance"] * 0.00062137
                 )  # source data is in meters, convert to miles
-                # am_dict['max_speed'] = max_speed  -->  convert from m/s to mph
+                # am_dict['max_speed'] = max_speed
+                #     --->  convert from m/s to mph
                 # am_dict['avg_heart_rate'] = avg_heart_rate
                 #  am_dict['calories'] = calories
                 # am_dict['max_elevation'] = max_elevation
@@ -60,8 +61,8 @@ class StravaActivities(object):
                 self.activities_metadata.append(am)
                 time.sleep(2)
             except Exception as e:
-                # TODO: fix ValueError: Invalid value for `activity_type` (Hike),
-                #        must be one of ['Ride', 'Run']
+                # TODO: fix ValueError: Invalid value for
+                #  `activity_type` (Hike), must be one of ['Ride', 'Run']
                 print("Exception Saving Strava Activity:", e)
 
         # TODO: destroy the client somehow
@@ -90,7 +91,7 @@ class RideWithGPSActivities(object):
         self.auth_token = auth["user"]["auth_token"]
 
     def set_trip_gear(self, trip_id, gear_id):
-        r = requests.put(
+        requests.put(
             "https://ridewithgps.com/trips/{0}.json".format(trip_id),
             json={
                 "apikey": self.apikey,
@@ -101,7 +102,7 @@ class RideWithGPSActivities(object):
         )
 
     def set_trip_name(self, trip_id, name):
-        r = requests.put(
+        requests.put(
             "https://ridewithgps.com/trips/{0}.json".format(trip_id),
             json={
                 "apikey": self.apikey,
@@ -112,7 +113,7 @@ class RideWithGPSActivities(object):
         )
 
     def create_trip(self, file_path):
-        r = requests.post(
+        requests.post(
             "https://ridewithgps.com/trips.json",
             files={"file": open(file_path, "rb")},
             data={
@@ -162,6 +163,7 @@ class RideWithGPSActivities(object):
                     a["distance"] * 0.00062137
                 )  # source data is in meters, convert to miles
                 am_dict["equipment"] = gear[a["gear_id"]] if a["gear_id"] else ""
+
                 am_dict["ridewithgps_id"] = a["id"]
                 am_dict["notes"] = a["name"]
 

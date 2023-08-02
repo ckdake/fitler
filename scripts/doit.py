@@ -1,38 +1,39 @@
-import os
+# import os
 import copy
-from pprint import pprint
+
+# from pprint import pprint
 import fitler
 
-##### uncomment this to get SQL Logging
+# uncomment this to get SQL Logging
 # import logging
 # logger = logging.getLogger('peewee')
 # logger.addHandler(logging.StreamHandler())
 # logger.setLevel(logging.DEBUG)
 
-##### Fire up the db
+# Fire up the db
 fitler.ActivityMetadata.migrate()
 
-###### Load the spreadsheet in as 'Spreadsheet'
+# Load the spreadsheet in as 'Spreadsheet'
 spreadsheet = fitler.ActivitySpreadsheet("/home/vscode/exerciselog.xlsx")
 spreadsheet.parse()
 print("Spreadsheet rows parsed: ", len(spreadsheet.activities_metadata))
 
-###### Load the files in as 'File'
+# Load the files in as 'File'
 activityfiles = fitler.ActivityFileCollection("./export*/activities/*")
 activityfiles.process()  # can limit here to 10
 print("Files parsed: ", len(activityfiles.activities_metadata))
 
-###### Load from Strava as 'Strava'
+# Load from Strava as 'Strava'
 # stravabits = fitler.StravaActivities(os.environ['STRAVA_ACCESS_TOKEN'])
 # stravabits.process()
 # print("Strava Activities pulled from API: ", len(stravabits.activities_metadata))
 
-###### Load from our cached strava local files as 'StravaFile'
+# Load from our cached strava local files as 'StravaFile'
 # stravabits = fitler.StravaJsonActivities('/Users/ckdake/.stravadata/activities_5850/*')
 # stravabits.process()
 # print("Strava Activities pulled from files: ", len(stravabits.activities_metadata))
 
-###### Load from RidewithGPS as 'RidewithGPS'
+# Load from RidewithGPS as 'RidewithGPS'
 ridewithgpsbits = fitler.RideWithGPSActivities()
 ridewithgpsbits.process()
 print("RideWithGPS Activities pulled: ", len(ridewithgpsbits.activities_metadata))
@@ -40,7 +41,7 @@ print("RideWithGPS Activities pulled: ", len(ridewithgpsbits.activities_metadata
 
 quit()
 
-###### Load from Garmin somehow.
+# Load from Garmin somehow.
 
 
 # this is where we match
@@ -84,7 +85,7 @@ def bestmatch(targetmetadata, source):
     return match
 
 
-#### Populate the "Main" from the spreadsheet if we need to
+# Populate the "Main" from the spreadsheet if we need to
 if (
     fitler.ActivityMetadata.select()
     .where(fitler.ActivityMetadata.source == "Main")
@@ -101,7 +102,7 @@ if (
         activity_copy.save()
 
 
-#### Fill in the missing strava IDs from Strava File using ~match. How many are missing?
+# Fill in the missing strava IDs from Strava File using ~match. How many are missing?
 missingstrava = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == ""
 )
@@ -124,7 +125,7 @@ print(
 )
 
 
-#### Then do it from actual Strava with ~match. How many are missing?
+# Then do it from actual Strava with ~match. How many are missing?
 missingstrava = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.strava_id == ""
 )
@@ -147,10 +148,10 @@ print(
 )
 
 
-#### Fill in the missing file IDs from File using ~match.  How many are missing?
+# Fill in the missing file IDs from File using ~match.  How many are missing?
 missingfiles = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main",
-    fitler.ActivityMetadata.original_filename == None,
+    fitler.ActivityMetadata.original_filename is None,
 )
 print("--------- Main is sadly missing file for:", len(missingfiles), "---------")
 for activity in missingfiles:
@@ -168,17 +169,19 @@ print(
 )
 
 
-##### Fill in the missing garmin IDs from Garmin using ~match. How many are missing?
+# Fill in the missing garmin IDs from Garmin using ~match.
+# How many are missing?
 missinggarmin = fitler.ActivityMetadata.select().where(
-    fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.garmin_id == None
+    fitler.ActivityMetadata.source == "Main", fitler.ActivityMetadata.garmin_id is None
 )
 print("--------- Main is missing garmin_id for:", len(missinggarmin), "---------")
 
 
-##### Fill in the missing RidewithGPS IDs from RidewithGPS using ~match. How many are missing?
+# Fill in the missing RidewithGPS IDs from RidewithGPS using ~match.
+# How many are missing?
 missingridewithgps = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main",
-    fitler.ActivityMetadata.ridewithgps_id == None,
+    fitler.ActivityMetadata.ridewithgps_id is None,
 )
 print(
     "--------- Main is sadly missing ridewithgps_id for:",
@@ -195,7 +198,7 @@ for activity in missingridewithgps:
         activity.save()
 missingridewithgps = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main",
-    fitler.ActivityMetadata.ridewithgps_id == None,
+    fitler.ActivityMetadata.ridewithgps_id is None,
 )
 print(
     "--------- Main is now happily only missing ridewithgps_id for:",
@@ -204,11 +207,11 @@ print(
 )
 
 
-##### Figure out which things in RideWithGPS need Gear and Names updated
+# Figure out which things in RideWithGPS need Gear and Names updated
 ridewithgps_gear = ridewithgpsbits.get_gear()
 rides = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main",
-    fitler.ActivityMetadata.ridewithgps_id != None,
+    fitler.ActivityMetadata.ridewithgps_id is not None,
 )
 for ride in rides:
     ridewithgps_ride = fitler.ActivityMetadata.select().where(
@@ -247,15 +250,19 @@ for ride in rides:
         # )
 
 
-##### For activities not in RideWithGPS, upload them! Careful.
-# Once this runs, you'll need to rm the sqllite db and rerun from scratch to sync everything up.
+# For activities not in RideWithGPS, upload them! Careful.
+# Once this runs, you'll need to rm the sqllite db and rerun from
+# scratch to sync everything up.
 rides = fitler.ActivityMetadata.select().where(
     fitler.ActivityMetadata.source == "Main",
-    fitler.ActivityMetadata.ridewithgps_id == None,
-    fitler.ActivityMetadata.original_filename != None,
+    fitler.ActivityMetadata.ridewithgps_id is None,
+    fitler.ActivityMetadata.original_filename is not None,
 )
 for ride in rides:
     print(ride.id, "is missing from RideWithGPS. Uploading:", ride.original_filename)
     # ridewithgpsbits.create_trip(
-    #         os.path.join('/Users/ckdake/Code/fitler/export_5850/activities', ride.original_filename)
+    #         os.path.join(
+    #             '/Users/ckdake/Code/fitler/export_5850/activities',
+    #             ride.original_filename
+    #         )
     # )

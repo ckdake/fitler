@@ -1,9 +1,17 @@
 """Defines our data model."""
 import json
 import dateparser
-from datetime import timezone, datetime, timedelta
 import pytz
-from peewee import *
+from peewee import (
+    SqliteDatabase,
+    Model,
+    DateTimeField,
+    CharField,
+    DecimalField,
+    FloatField,
+    IntegerField,
+    DateField,
+)
 
 db = SqliteDatabase("metadata.sqlite3")
 

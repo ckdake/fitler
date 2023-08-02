@@ -8,8 +8,8 @@ import json
 
 import gpxpy
 import gpxpy.gpx
-import tcxparser
-import fitparse
+import tcxparser  # type: ignore
+import fitparse  # type: ignore
 
 
 class ActivityFileCollection(object):

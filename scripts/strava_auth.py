@@ -1,5 +1,5 @@
 import os
-import stravaio
+import stravaio  # type: ignore
 
 auth = stravaio.strava_oauth2(
     client_id=os.environ["STRAVA_CLIENT_ID"],
