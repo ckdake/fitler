@@ -1,3 +1,4 @@
+"""This is the init module for fitler"""
 from .datafiles import ActivityFileCollection, ActivityFile
 from .metadata import ActivityMetadata
 from .spreadsheet import ActivitySpreadsheet

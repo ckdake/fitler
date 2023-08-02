@@ -1,3 +1,4 @@
+"""Defines interactions with files on disk"""
 from fitler.metadata import ActivityMetadata
 
 import glob

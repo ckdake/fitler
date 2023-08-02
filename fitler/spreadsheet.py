@@ -1,3 +1,4 @@
+"""Defines how we interact with a local spreadsheet"""
 from fitler.metadata import ActivityMetadata
 
 import openpyxl

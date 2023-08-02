@@ -1,3 +1,4 @@
+"""Contains api wrappers for all upstream APIs that we are using"""
 from fitler.metadata import ActivityMetadata
 
 import dateparser
@@ -59,7 +60,8 @@ class StravaActivities(object):
                 self.activities_metadata.append(am)
                 time.sleep(2)
             except Exception as e:
-                # TODO: fix ValueError: Invalid value for `activity_type` (Hike), must be one of ['Ride', 'Run']
+                # TODO: fix ValueError: Invalid value for `activity_type` (Hike),
+                #        must be one of ['Ride', 'Run']
                 print("Exception Saving Strava Activity:", e)
 
         # TODO: destroy the client somehow

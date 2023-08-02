@@ -1,3 +1,4 @@
+"""Defines our data model."""
 import json
 import dateparser
 from datetime import timezone, datetime, timedelta

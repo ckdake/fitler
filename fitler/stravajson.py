@@ -1,3 +1,4 @@
+"""Handles locally cached strava json"""
 from fitler.metadata import ActivityMetadata
 
 import dateparser
