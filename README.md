@@ -21,15 +21,9 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 ## Running
 
     git clone git@github.com:ckdake/fitler.git
-    cd fitler
-    pip3 install virtualenv --user
-    virtualenv env
-    source env/bin/activate
-    pip3 install -r requirements.txt
+    # Open in VS Code as a devcontainer and wait for boot.
     pip3 install .
     python3 scripts/doit.py
-    deactivate
-
 
 ## Getting things back out into spreadsheet
 
