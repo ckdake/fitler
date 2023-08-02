@@ -1,5 +1,4 @@
 *.swp
 export*
-env
 __pycache__
 metadata.db
