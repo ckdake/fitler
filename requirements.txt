@@ -1,15 +1,15 @@
-pylint
+pylint==2.17.5
 
-peewee
+peewee==3.16.2
 
-gpxpy
-python-tcxparser
-fitparse
+gpxpy==1.5.0
+python-tcxparser==2.3.0
+fitparse==1.2.0
 
-openpyxl
-dateparser
-pytz
+openpyxl==3.1.2
+dateparser==1.1.8
+pytz==2023.3
 
-stravaio
-requests
-git+https://github.com/ckdake/python-ridewithgps@main#egg=ridewithgps
+stravaio==0.0.9
+requests==2.31.0
+ridewithgps @ git+https://github.com/ckdake/python-ridewithgps@4c45869a78e952d4e3644273bc2e623fd8a3e081
