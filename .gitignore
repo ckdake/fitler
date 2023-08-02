@@ -1,4 +1,6 @@
 *.swp
 export*
 __pycache__
-metadata.db
+metadata.sqlite3
+build
+fitler.egg-info

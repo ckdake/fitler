@@ -13,9 +13,11 @@ from pprint import pprint
 fitler.ActivityMetadata.migrate()
 
 ###### Load the spreadsheet in as 'Spreadsheet'
-spreadsheet = fitler.ActivitySpreadsheet('/Users/ckdake/Documents/exerciselog.xlsx')
+spreadsheet = fitler.ActivitySpreadsheet('/home/vscode/exerciselog.xlsx')
 spreadsheet.parse()
 print("Spreadsheet rows parsed: ", len(spreadsheet.activities_metadata))
+
+quit()
 
 ###### Load the files in as 'File'
 activityfiles = fitler.ActivityFileCollection('./export*/activities/*')

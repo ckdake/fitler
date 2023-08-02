@@ -4,7 +4,7 @@ from datetime import timezone, datetime, timedelta
 import pytz
 from peewee import *
 
-db = SqliteDatabase('metadata.db')
+db = SqliteDatabase('metadata.sqlite3')
 
 class ActivityMetadata(Model):
     start_time = DateTimeField(null = True)
@@ -45,7 +45,7 @@ class ActivityMetadata(Model):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
     class Meta:
-        database = db # This model uses the "metadata.db" database
+        database = db # This model uses the "metadata.sqlite3" database
 
     @classmethod
     def migrate(self):

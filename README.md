@@ -20,6 +20,7 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 
 ## Running
 
+    # Ensure you have a spreadsheet at ~/Documents/exerciselog.xlsx
     git clone git@github.com:ckdake/fitler.git
     # Open in VS Code as a devcontainer and wait for boot.
     pip3 install .
@@ -27,7 +28,7 @@ It should be named export_123455 (your user id). Put it in this folder folder.
 
 ## Getting things back out into spreadsheet
 
-    sqlite3 metadata.db
+    sqlite3 metadata.sqlite3
     .headers on
     .mode csv
     .output metadata.csv
