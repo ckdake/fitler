@@ -11,7 +11,7 @@ fitparse==1.2.0
 
 openpyxl==3.1.2
 dateparser==1.1.8
-pytz==2023.3
+pytz==2023.3.post1
 
 stravaio==0.0.9
 requests==2.31.0
