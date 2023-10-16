@@ -3,7 +3,7 @@ black==23.7.0
 mypy==1.5.1
 flake8==6.1.0
 
-peewee==3.16.3
+peewee==3.17.0
 
 gpxpy==1.5.0
 python-tcxparser==2.3.0
