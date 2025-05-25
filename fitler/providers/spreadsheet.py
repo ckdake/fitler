@@ -17,6 +17,9 @@ class SpreadsheetActivities(FitnessProvider):
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
 
+        if sheet is None:
+            return []
+
         activities: List[Activity] = []
         for i, row in enumerate(sheet.iter_rows(values_only=True)):
             if i == 0:

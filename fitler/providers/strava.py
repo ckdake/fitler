@@ -17,11 +17,11 @@ class StravaActivities(FitnessProvider):
             try:
                 activity = self.client.get_activity_by_id(a.id)
                 activity_dict = activity.to_dict()
+                parsed_date = dateparser.parse(activity_dict.get("start_date_local"))
+                start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
                 act = Activity(
                     name=activity_dict.get("name"),
-                    date=dateparser.parse(activity_dict["start_date_local"]).strftime(
-                        "%Y-%m-%d"
-                    ),
+                    start_date=start_date,
                     start_time=activity_dict.get("start_date_local"),
                     distance=activity_dict.get("distance", 0)
                     * 0.00062137,  # meters to miles

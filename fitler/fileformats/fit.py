@@ -1,4 +1,4 @@
-import fitparse
+import fitparse  # type: ignore
 
 
 def parse_fit(file_path):

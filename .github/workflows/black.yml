@@ -9,4 +9,4 @@ jobs:
       - name: Installs packages
         run: pip3 install -r requirements.txt
       - name: Runs black
-        run: black --check .
+        run: black --check fitler

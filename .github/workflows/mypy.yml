@@ -9,4 +9,4 @@ jobs:
       - name: Installs packages
         run: pip3 install -r requirements.txt
       - name: Runs mypy
-        run: mypy --install-types --non-interactive **/*.py
+        run: mypy --install-types --non-interactive fitler

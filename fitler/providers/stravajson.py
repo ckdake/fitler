@@ -18,11 +18,11 @@ class StravaJsonActivities(FitnessProvider):
         for file in gen:
             with open(file) as f:
                 data = json.load(f)
+                parsed_date = dateparser.parse(data.get("start_date_local"))
+                start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
                 activity = Activity(
                     name=data.get("name"),
-                    start_date=dateparser.parse(data["start_date_local"]).strftime(
-                        "%Y-%m-%d"
-                    ),
+                    start_date=start_date,
                     start_time=data.get("start_date_local"),
                     distance=data.get("distance", 0) * 0.00062137,
                     provider_ids={"strava": data.get("id")},

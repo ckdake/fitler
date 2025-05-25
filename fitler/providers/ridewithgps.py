@@ -41,10 +41,13 @@ class RideWithGPSActivities(FitnessProvider):
         )["results"]
         for a in api_activities:
             try:
+                departed_at = a.get("departed_at")
+                parsed_date = dateparser.parse(departed_at)
+                start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
                 act = Activity(
-                    start_time=a.get("departed_at"),
+                    start_time=departed_at,
                     distance=a.get("distance", 0) * 0.00062137,  # meters to miles
-                    date=dateparser.parse(a["departed_at"]).strftime("%Y-%m-%d"),
+                    start_date=start_date,
                     provider_ids={"ridewithgps": a.get("id")},
                     notes=a.get("name"),
                     equipment=gear[a["gear_id"]] if a.get("gear_id") else "",

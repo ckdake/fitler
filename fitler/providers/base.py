@@ -13,6 +13,7 @@ class Activity:
         source_file_type: Optional[str] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        equipment: Optional[str] = None,
         notes: Optional[str] = None,
         location_name: Optional[str] = None,
         tags: Optional[List[str]] = None,
@@ -29,6 +30,7 @@ class Activity:
         self.source_file_type = source_file_type
         self.name = name
         self.description = description
+        self.equipment = equipment
         self.notes = notes
         self.location_name = location_name
         self.tags = tags or []
