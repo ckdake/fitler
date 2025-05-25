@@ -1,11 +1,13 @@
 import argparse
-import sys
+
 
 def main():
     parser = argparse.ArgumentParser(description="Fitler CLI")
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("auth-strava", help="Authenticate with Strava and get an access token")
+    subparsers.add_parser(
+        "auth-strava", help="Authenticate with Strava and get an access token"
+    )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
     subparsers.add_parser("sync", help="Sync and match activities from all sources")
     subparsers.add_parser("help", help="Show usage and documentation")
@@ -14,15 +16,19 @@ def main():
 
     if args.command == "auth-strava":
         from fitler.commands.auth_strava import run
+
         run()
     elif args.command == "configure":
         from fitler.commands.configure import run
+
         run()
     elif args.command == "sync":
         from fitler.commands.sync_all import run
+
         run()
     elif args.command == "help" or args.command is None:
-        print("""
+        print(
+            """
 Fitler - Aggregate, sync, and analyze your fitness activity data.
 
 Usage:
@@ -40,9 +46,11 @@ Setup:
     3. Sync your activities with 'python -m fitler sync'.
 
 See README.md for more details.
-""")
+"""
+        )
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

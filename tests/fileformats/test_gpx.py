@@ -1,6 +1,7 @@
 import os
 from fitler.fileformats.gpx import parse_gpx
 
+
 def test_parse_gpx_sample():
     sample_path = os.path.join(os.path.dirname(__file__), "samples", "sample.gpx")
     result = parse_gpx(sample_path)

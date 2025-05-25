@@ -1,4 +1,5 @@
 """Defines interactions with files on disk"""
+
 from fitler.metadata import ActivityMetadata
 from fitler.fileformats.gpx import parse_gpx
 from fitler.fileformats.tcx import parse_tcx

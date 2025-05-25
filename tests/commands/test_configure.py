@@ -4,19 +4,22 @@ import tempfile
 
 import fitler.commands.configure as configure
 
+
 def test_run_creates_config_file(monkeypatch):
     """Test that configure.run() prompts for input and creates a config file."""
 
     # Prepare fake user input for all prompts
-    inputs = iter([
-        "/tmp/fake_spreadsheet.xlsx",
-        "./fake_glob/*",
-        "12345",  # Strava Client ID
-        "secret",  # Strava Client Secret
-        "user@example.com",  # RideWithGPS Email
-        "password",  # RideWithGPS Password
-        "apikey",    # RideWithGPS API Key
-    ])
+    inputs = iter(
+        [
+            "/tmp/fake_spreadsheet.xlsx",
+            "./fake_glob/*",
+            "12345",  # Strava Client ID
+            "secret",  # Strava Client Secret
+            "user@example.com",  # RideWithGPS Email
+            "password",  # RideWithGPS Password
+            "apikey",  # RideWithGPS API Key
+        ]
+    )
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
 
     # Use a temp directory for config file

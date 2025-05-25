@@ -1,6 +1,7 @@
 import os
 from fitler.fileformats.fit import parse_fit
 
+
 def test_parse_fit_sample():
     sample_path = os.path.join(os.path.dirname(__file__), "samples", "sample.fit")
     result = parse_fit(sample_path)

@@ -1,5 +1,6 @@
 import fitparse
 
+
 def parse_fit(file_path):
     """Parse a FIT file and return relevant activity data."""
     # should these get converted to tcx, or vice versa?

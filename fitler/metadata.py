@@ -1,4 +1,5 @@
 """Defines our data model."""
+
 import json
 import dateparser
 import pytz

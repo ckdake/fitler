@@ -17,5 +17,5 @@ __all__ = [
     "StravaActivities",
     "RideWithGPSActivities",
     "StravaJsonActivities",
-    "SpreadsheetProvider",  
+    "SpreadsheetActivities",
 ]

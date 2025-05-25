@@ -8,7 +8,7 @@ from .ridewithgps import RideWithGPSActivities
 
 __all__ = [
     "FitnessProvider",
-    "LocalSpreadsheetActivities",
+    "SpreadsheetActivities",
     "StravaActivities",
     "RideWithGPSActivities",
 ]

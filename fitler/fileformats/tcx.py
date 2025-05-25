@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 # self.activity_metadata.set_start_time(str(tcx.started_at))
 # self.activity_metadata.distance = tcx.distance * 0.00062137
 
+
 def parse_tcx(file_path):
     """Parse a TCX file and return relevant activity data."""
     tree = ET.parse(file_path)
@@ -19,7 +20,9 @@ def parse_tcx(file_path):
     start_time = first_activity.find(".//tcx:Lap", ns).get("StartTime")
     # DistanceMeters is optional and may need to be summed from Trackpoints
     distance_elem = first_activity.find(".//tcx:DistanceMeters", ns)
-    distance = float(distance_elem.text) * 0.00062137 if distance_elem is not None else None
+    distance = (
+        float(distance_elem.text) * 0.00062137 if distance_elem is not None else None
+    )
     return {
         "start_time": start_time,
         "distance": distance,

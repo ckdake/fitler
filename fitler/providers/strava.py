@@ -1,9 +1,10 @@
 import time
 import dateparser
 import stravaio  # type: ignore
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 
 from fitler.providers.base import FitnessProvider, Activity
+
 
 class StravaActivities(FitnessProvider):
     def __init__(self, token: str):
@@ -18,11 +19,12 @@ class StravaActivities(FitnessProvider):
                 activity_dict = activity.to_dict()
                 act = Activity(
                     name=activity_dict.get("name"),
-                    date=dateparser.parse(
-                        activity_dict["start_date_local"]
-                    ).strftime("%Y-%m-%d"),
+                    date=dateparser.parse(activity_dict["start_date_local"]).strftime(
+                        "%Y-%m-%d"
+                    ),
                     start_time=activity_dict.get("start_date_local"),
-                    distance=activity_dict.get("distance", 0) * 0.00062137,  # meters to miles
+                    distance=activity_dict.get("distance", 0)
+                    * 0.00062137,  # meters to miles
                     provider_ids={"strava": activity_dict.get("id")},
                     notes=activity_dict.get("name"),
                 )

@@ -1,10 +1,12 @@
 """Local provider for activities stored in a spreadsheet."""
+
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import openpyxl
 from dateutil import parser as dateparser
 
 from fitler.providers.base import FitnessProvider, Activity
+
 
 class SpreadsheetActivities(FitnessProvider):
     def __init__(self, path: str):
@@ -20,7 +22,9 @@ class SpreadsheetActivities(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
-            activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime("%Y-%m-%d")
+            activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime(
+                "%Y-%m-%d"
+            )
             if row[1]:
                 activity_kwargs["activity_type"] = row[1]
             if row[2]:
@@ -69,13 +73,19 @@ class SpreadsheetActivities(FitnessProvider):
         return activities
 
     def upload_activity(self, activity: Activity) -> str:
-        raise NotImplementedError("LocalSpreadsheetProvider does not support uploading activities.")
+        raise NotImplementedError(
+            "LocalSpreadsheetProvider does not support uploading activities."
+        )
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
-        raise NotImplementedError("LocalSpreadsheetProvider does not support fetching by ID.")
+        raise NotImplementedError(
+            "LocalSpreadsheetProvider does not support fetching by ID."
+        )
 
     def update_activity(self, activity_id: str, activity: Activity) -> bool:
-        raise NotImplementedError("LocalSpreadsheetProvider does not support updating activities.")
+        raise NotImplementedError(
+            "LocalSpreadsheetProvider does not support updating activities."
+        )
 
     def get_gear(self) -> Dict[str, str]:
         return {}

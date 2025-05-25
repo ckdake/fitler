@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 
+
 class Activity:
     """
     Central representation of an activity in fitler.
     """
+
     def __init__(
         self,
         source_file: Optional[str] = None,
@@ -41,6 +43,7 @@ class Activity:
 
     def to_dict(self):
         return self.__dict__
+
 
 class FitnessProvider(ABC):
     """

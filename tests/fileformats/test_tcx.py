@@ -1,6 +1,7 @@
 import os
 from fitler.fileformats.tcx import parse_tcx
 
+
 def test_parse_tcx_sample():
     sample_path = os.path.join(os.path.dirname(__file__), "samples", "sample.tcx")
     result = parse_tcx(sample_path)

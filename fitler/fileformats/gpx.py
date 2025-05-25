@@ -1,5 +1,6 @@
 import gpxpy
 
+
 def parse_gpx(file_path):
     """Parse a GPX file and return relevant activity data."""
     # probably should convert these to a TCX file
