@@ -4,3 +4,5 @@ __pycache__
 metadata.sqlite3
 build
 fitler.egg-info
+.mypy_cache
+fitler_config.json

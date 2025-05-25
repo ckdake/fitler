@@ -1,30 +1,140 @@
 # Fitler
 
-A self contained, non descructive, way to help you understand your activity data.
+Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness activity data from multiple sources (Strava, RideWithGPS, spreadsheets, and local files). It is designed to be self-contained, non-destructive, and extensible.
 
-You'll need a folder of your data files, for now put it in a folder like export_1.
+---
 
-Eventually and optionally you can add in some some api keys or a spreadsheet.
+## Features
 
-## Use your Strava data if you want
+- Parse and import activity files (`.fit`, `.tcx`, `.gpx`, and compressed variants)
+- Integrate with Strava and RideWithGPS APIs
+- Store and manage activity metadata in a local SQLite database
+- Command-line interface for authentication and future commands
+- Modular provider and file format architecture for easy extension
 
-Ask Strava for a dump. Get it! It will contain a bunch of things including
-an activities folder with the following filetyles:
+---
 
-.fit.gz
-.gpx
-.tcx.gz
-.gpx.gz
+## Setup & Installation
 
-It should be named export_123455 (your user id). Put it in this folder folder.
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/ckdake/fitler.git
+    cd fitler
+    ```
 
-## Running
+2. **(Optional) Open in VS Code Dev Container:**  
+   If using VS Code, open the folder and let the devcontainer boot.
 
-    # Ensure you have a spreadsheet at ~/Documents/exerciselog.xlsx
-    git clone git@github.com:ckdake/fitler.git
-    # Open in VS Code as a devcontainer and wait for boot.
-    pip3 install .
-    python3 scripts/doit.py
+3. **Install dependencies:**
+    ```sh
+    pip install .
+    ```
+
+    Or for development:
+    ```sh
+    pip install -e .
+    ```
+
+4. **Prepare your data:**
+    - Place your exported Strava activity files in a folder such as `export_12345/` in the repo root.
+    - If you're not using Strava export, place your files in `export_12345/activities/` in the repo root.
+    - (Optional) Place your exercise spreadsheet at `~/Documents/exerciselog.xlsx`.
+
+---
+
+## Authenticating with Strava
+
+To use Strava API features, you need to authenticate and get an access token.
+
+1. **Set your Strava API credentials as environment variables:**
+    ```sh
+    export STRAVA_CLIENT_ID=your_client_id
+    export STRAVA_CLIENT_SECRET=your_client_secret
+    ```
+
+2. **Run the Strava authentication command:**
+    ```sh
+    python -m fitler auth-strava
+    ```
+
+    This will guide you through the OAuth process and print an access token.  
+    Set it in your environment:
+    ```sh
+    export STRAVA_ACCESS_TOKEN=your_access_token
+    ```
+
+---
+
+## Running Fitler
+
+You can use the CLI for various commands:
+
+```sh
+python -m fitler --help
+python -m fitler configure
+python -m fitler auth-strava
+python -m fitler sync
+```
+
+- `configure` – Set up paths and API credentials.
+- `auth-strava` – Authenticate with Strava and get an access token.
+- `sync` – Sync and match activities from all sources.
+- `help` – Show usage and documentation.
+
+You can also use the Python API in your own scripts to process files, sync with providers, or analyze your data.
+
+---
+
+## Development
+
+- All core code lives in the `fitler/` package.
+- Providers are in `fitler/providers/`
+- File format handlers are in `fitler/fileformats/`
+- Database models are in `fitler/metadata.py`
+- CLI commands are in `fitler/commands/`
+
+---
+
+## Running Tests
+
+Fitler uses [pytest](https://pytest.org/) for testing. To run all tests:
+
+```sh
+pip install pytest
+pytest -v
+```
+
+Test files are in the `tests/` directory and mirror the package structure.
+
+---
+
+## Packaging & Publishing to PyPI
+
+To prepare and publish the package:
+
+1. **Update version and metadata in `setup.py` and `setup.cfg`.**
+2. **Build the package:**
+    ```sh
+    python -m build
+    ```
+3. **Upload to PyPI (requires `twine`):**
+    ```sh
+    twine upload dist/*
+    ```
+
+---
+
+## Contributing
+
+PRs and issues are welcome! See the TODO section in this README for ideas and next steps.
+
+---
+
+## License
+
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0). See the LICENSE file for details.
+
+---
 
 ## Getting things back out into spreadsheet
 
@@ -77,6 +187,4 @@ It should be named export_123455 (your user id). Put it in this folder folder.
     * What about choochoo?
     * What else?
 
-## Contributing
 
-PRs that help achieve these goals welcome!  

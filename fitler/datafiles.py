@@ -1,15 +1,13 @@
 """Defines interactions with files on disk"""
 from fitler.metadata import ActivityMetadata
+from fitler.fileformats.gpx import parse_gpx
+from fitler.fileformats.tcx import parse_tcx
+from fitler.fileformats.fit import parse_fit
 
 import glob
 import tempfile
 import gzip
 import json
-
-import gpxpy
-import gpxpy.gpx
-import tcxparser  # type: ignore
-import fitparse  # type: ignore
 
 
 class ActivityFileCollection(object):
@@ -53,6 +51,12 @@ class ActivityFile(object):
         elif ".gpx" in self.file:
             self.file_type = "GPX"
             self.gzipped = 0
+        elif ".tcx" in self.file:
+            self.file_type = "TCX"
+            self.gzipped = 0
+        elif ".fit" in self.file:
+            self.file_type = "FIT"
+            self.gzipped = 0
         else:
             raise ValueError("Why hello there unknown file format!", self.file)
 
@@ -60,7 +64,7 @@ class ActivityFile(object):
 
     def parse(self):
         read_file = self.file
-        fp = 0
+        fp = None
 
         if self.gzipped:
             fp = tempfile.NamedTemporaryFile()
@@ -68,46 +72,26 @@ class ActivityFile(object):
                 fp.write(f.read().lstrip())
             read_file = fp.name
 
-        if "FIT" == self.file_type:
-            self.process_fit(read_file)
-        elif "TCX" == self.file_type:
-            self.process_tcx(read_file)
-        elif "GPX" == self.file_type:
-            self.process_gpx(read_file)
-        else:
-            raise ValueError("Why hello there unknown file format!", self.file_type)
+        try:
+            if "FIT" == self.file_type:
+                result = parse_fit(read_file)
+            elif "TCX" == self.file_type:
+                result = parse_tcx(read_file)
+            elif "GPX" == self.file_type:
+                result = parse_gpx(read_file)
+            else:
+                raise ValueError("Why hello there unknown file format!", self.file_type)
 
-        if self.gzipped:
+            if result.get("start_time"):
+                self.activity_metadata.set_start_time(result["start_time"])
+            if result.get("distance") is not None:
+                self.activity_metadata.distance = result["distance"]
+        except Exception as e:
+            self.activity_metadata.error = str(e)
+
+        if self.gzipped and fp:
             fp.close()
 
         self.activity_metadata.source = "File"
         self.activity_metadata.save()
         return self.activity_metadata
-
-    def process_gpx(self, file):
-        # probably should convert these to a TCX file
-        # examples at https://github.com/tkrajina/gpxpy/blob/dev/gpxinfo
-        gpx_file = open(file, "r")
-        gpx = gpxpy.parse(gpx_file)
-        self.activity_metadata.set_start_time(str(gpx.get_time_bounds().start_time))
-        self.activity_metadata.distance = gpx.length_2d() * 0.00062137
-
-    def process_fit(self, file):
-        # should these get converted to tcx, or vice versa?
-        # examples at fitdump -n session 998158033.fit
-        try:
-            fitfile = fitparse.FitFile(file)
-            for record in fitfile.get_messages("session"):
-                for data in record:
-                    if str(data.name) == "start_time":
-                        self.activity_metadata.set_start_time(str(data.value))
-                    elif data.name == "total_distance":
-                        self.activity_metadata.distance = data.value * 0.00062137
-        except Exception as e:
-            self.activity_metadata.error = str(e)
-
-    def process_tcx(self, file):
-        # examples at https://github.com/vkurup/python-tcxparser
-        tcx = tcxparser.TCXParser(file)
-        self.activity_metadata.set_start_time(str(tcx.started_at))
-        self.activity_metadata.distance = tcx.distance * 0.00062137
