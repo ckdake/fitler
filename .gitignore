@@ -6,3 +6,4 @@ build
 fitler.egg-info
 .mypy_cache
 fitler_config.json
+.DS_Store
