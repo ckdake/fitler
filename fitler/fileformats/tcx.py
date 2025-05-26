@@ -1,3 +1,9 @@
+"""TCX file format parser for Fitler.
+
+This module provides functionality to parse TCX (Training Center XML) files and extract
+relevant activity data such as start time and distance for use in the Fitler application.
+"""
+
 import xml.etree.ElementTree as ET
 
 # Alternatively:

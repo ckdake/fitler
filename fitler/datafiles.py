@@ -1,14 +1,14 @@
 """Defines interactions with files on disk"""
 
-from fitler.metadata import ActivityMetadata
-from fitler.fileformats.gpx import parse_gpx
-from fitler.fileformats.tcx import parse_tcx
-from fitler.fileformats.fit import parse_fit
-
 import glob
 import tempfile
 import gzip
 import json
+
+from fitler.metadata import ActivityMetadata
+from fitler.fileformats.gpx import parse_gpx
+from fitler.fileformats.tcx import parse_tcx
+from fitler.fileformats.fit import parse_fit
 
 
 class ActivityFileCollection(object):

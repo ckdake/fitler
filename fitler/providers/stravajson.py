@@ -1,12 +1,17 @@
-"""Handles locally cached Strava JSON files as a provider."""
+"""Strava JSON provider for Fitler.
 
-from fitler.providers.base import FitnessProvider, Activity
+This module defines the StravaJsonActivities class, which provides an interface
+for interacting with locally cached Strava activity data stored as JSON files.
+It supports fetching activities from a folder of JSON files, but does not support
+uploading, creating, updating, or managing gear.
+"""
 
-import dateparser
 import glob
 import json
 from typing import List, Optional, Dict
+import dateparser
 
+from fitler.providers.base import FitnessProvider, Activity
 
 class StravaJsonActivities(FitnessProvider):
     def __init__(self, folder):

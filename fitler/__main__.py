@@ -1,7 +1,16 @@
+# pylint: disable=import-outside-toplevel
+"""Main entry point for the Fitler CLI.
+
+This module provides the command-line interface for Fitler, allowing users to
+authenticate with Strava, configure their environment, sync activities, and
+access help/documentation.
+"""
+
 import argparse
 
 
 def main():
+    """Main function for the Fitler CLI."""
     parser = argparse.ArgumentParser(description="Fitler CLI")
     subparsers = parser.add_subparsers(dest="command")
 

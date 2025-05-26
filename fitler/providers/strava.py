@@ -1,7 +1,14 @@
+"""Strava provider for Fitler.
+
+This module defines the StravaActivities class, which provides an interface
+for interacting with Strava activity data, including fetching, creating,
+and updating activities, as well as managing gear.
+"""
+
 import time
+from typing import List, Optional, Dict
 import dateparser
 import stravaio  # type: ignore
-from typing import List, Optional, Dict
 
 from fitler.providers.base import FitnessProvider, Activity
 

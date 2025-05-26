@@ -1,8 +1,15 @@
+"""RideWithGPS provider for Fitler.
+
+This module defines the RideWithGPSActivities class, which provides an interface
+for interacting with RideWithGPS activity data, including fetching, creating,
+updating activities, and managing gear.
+"""
+
 import os
+from typing import List, Optional, Dict
 import dateparser
 import ridewithgps  # type: ignore
 import requests
-from typing import List, Optional, Dict
 
 from fitler.providers.base import FitnessProvider, Activity
 
@@ -75,8 +82,8 @@ class RideWithGPSActivities(FitnessProvider):
         if response.status_code == 200:
             trip = response.json().get("trip", {})
             return str(trip.get("id"))
-        else:
-            raise Exception(f"Failed to create trip: {response.text}")
+
+        raise Exception(f"Failed to create trip: {response.text}")
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
         # Not implemented

@@ -2,6 +2,8 @@
 
 Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness activity data from multiple sources (Strava, RideWithGPS, spreadsheets, and local files). It is designed to be self-contained, non-destructive, and extensible.
 
+[CAUTION: This is under active development. Do not use it without reading the entire sync_all.py command!]
+
 ---
 
 ## Features

@@ -1,3 +1,10 @@
+"""FIT file format parser for Fitler.
+
+This module provides functionality to parse FIT (Flexible and Interoperable Data Transfer) files
+and extract relevant activity data such as start time and distance for use in the Fitler
+application.
+"""
+
 import fitparse  # type: ignore
 
 

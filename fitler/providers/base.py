@@ -57,29 +57,23 @@ class FitnessProvider(ABC):
     @abstractmethod
     def fetch_activities(self) -> List[Activity]:
         """Fetch and return a list of Activity objects from the provider."""
-        pass
 
     @abstractmethod
     def create_activity(self, activity: Activity) -> str:
         """Create a new activity on the provider. Returns the provider's activity ID."""
-        pass
 
     @abstractmethod
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
         """Fetch a single activity by its provider-specific ID."""
-        pass
 
     @abstractmethod
     def update_activity(self, activity_id: str, activity: Activity) -> bool:
         """Update an existing activity on the provider."""
-        pass
 
     @abstractmethod
     def get_gear(self) -> Dict[str, str]:
         """Fetch gear/equipment from the provider, if supported."""
-        pass
 
     @abstractmethod
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         """Set the gear/equipment for a specific activity on the provider."""
-        pass

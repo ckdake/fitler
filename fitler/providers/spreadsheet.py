@@ -1,4 +1,8 @@
-"""Local provider for activities stored in a spreadsheet."""
+"""Spreadsheet provider for Fitler.
+
+This module defines the SpreadsheetActivities class, which provides an interface
+for interacting with activity data stored in local spreadsheet files.
+"""
 
 from typing import List, Dict, Any, Optional
 from pathlib import Path
