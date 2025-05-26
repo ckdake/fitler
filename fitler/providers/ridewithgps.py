@@ -48,7 +48,7 @@ class RideWithGPSActivities(FitnessProvider):
                     start_time=departed_at,
                     distance=a.get("distance", 0) * 0.00062137,  # meters to miles
                     start_date=start_date,
-                    ridewithgps_id= a.get("id"),
+                    ridewithgps_id=a.get("id"),
                     notes=a.get("name"),
                     equipment=gear[a["gear_id"]] if a.get("gear_id") else "",
                     # Add more fields as needed

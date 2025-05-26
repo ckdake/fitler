@@ -3,6 +3,7 @@ import tempfile
 import shutil
 from fitler.datafiles import ActivityFile, ActivityFileCollection
 
+
 def create_sample_gpx_file(tmpdir):
     gpx_content = """<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="pytest">
@@ -20,6 +21,7 @@ def create_sample_gpx_file(tmpdir):
         f.write(gpx_content)
     return gpx_path
 
+
 def test_activity_file_parses_gpx(tmp_path):
     gpx_file = create_sample_gpx_file(tmp_path)
     af = ActivityFile(gpx_file)
@@ -27,6 +29,7 @@ def test_activity_file_parses_gpx(tmp_path):
     assert metadata is not None
     assert metadata.start_time.startswith("2024-05-27T")
     assert metadata.source == "File"
+
 
 def test_activity_file_collection(tmp_path):
     # Create multiple sample files

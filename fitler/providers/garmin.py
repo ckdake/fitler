@@ -3,6 +3,7 @@ from typing import List, Optional, Dict
 
 from fitler.providers.base import FitnessProvider, Activity
 
+
 class GarminActivities(FitnessProvider):
     def __init__(self):
         # Placeholder for Garmin authentication/initialization

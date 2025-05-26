@@ -1,11 +1,13 @@
 from fitler.metadata import ActivityMetadata
 
+
 def test_set_start_time_sets_fields():
     am = ActivityMetadata()
     am.set_start_time("2024-05-27T14:30:00Z")
     # Should set both start_time and date
     assert am.start_time.startswith("2024-05-27T")
     assert am.date == "2024-05-27"
+
 
 def test_to_json_returns_json_string():
     am = ActivityMetadata()
