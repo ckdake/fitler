@@ -53,7 +53,10 @@ class ActivityMetadata(Model):
         self.date = timezone_datetime_obj.strftime("%Y-%m-%d")
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        # Only serialize the model fields, not the whole object
+        field_names = [field.name for field in self._meta.sorted_fields]
+        data = {name: getattr(self, name) for name in field_names}
+        return json.dumps(data, sort_keys=True, indent=4)
 
     class Meta:
         database = db  # This model uses the "metadata.sqlite3" database

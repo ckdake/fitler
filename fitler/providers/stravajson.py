@@ -25,7 +25,7 @@ class StravaJsonActivities(FitnessProvider):
                     start_date=start_date,
                     start_time=data.get("start_date_local"),
                     distance=data.get("distance", 0) * 0.00062137,
-                    provider_ids={"strava": data.get("id")},
+                    strava_id=data.get("id"),
                     notes=data.get("name"),
                     extra=data,
                 )

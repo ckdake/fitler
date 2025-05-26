@@ -23,8 +23,9 @@ class Activity:
         distance: Optional[float] = None,
         duration: Optional[float] = None,
         tss: Optional[float] = None,
-        provider_ids: Optional[Dict[str, Any]] = None,
-        extra: Optional[Dict[str, Any]] = None,
+        strava_id: Optional[str] = None,
+        garmin_id: Optional[str] = None,
+        ridewithgps_id: Optional[str] = None,
     ):
         self.source_file = source_file
         self.source_file_type = source_file_type
@@ -40,8 +41,9 @@ class Activity:
         self.distance = distance
         self.duration = duration
         self.tss = tss
-        self.provider_ids = provider_ids or {}
-        self.extra = extra or {}
+        self.strava_id = strava_id
+        self.garmin_id = garmin_id
+        self.ridewithgps_id = ridewithgps_id
 
     def to_dict(self):
         return self.__dict__

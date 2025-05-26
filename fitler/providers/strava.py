@@ -25,7 +25,7 @@ class StravaActivities(FitnessProvider):
                     start_time=activity_dict.get("start_date_local"),
                     distance=activity_dict.get("distance", 0)
                     * 0.00062137,  # meters to miles
-                    provider_ids={"strava": activity_dict.get("id")},
+                    strava_id=activity_dict.get("id"),
                     notes=activity_dict.get("name"),
                 )
                 # am_dict['activity_type'] = activity_type
@@ -64,7 +64,7 @@ class StravaActivities(FitnessProvider):
                 name=activity_dict.get("name"),
                 start_time=activity_dict.get("start_date_local"),
                 distance=activity_dict.get("distance", 0) * 0.00062137,
-                provider_ids={"strava": activity_dict.get("id")},
+                strava_id=activity_dict.get("id"),
                 notes=activity_dict.get("name"),
             )
         except Exception as e:

@@ -60,16 +60,14 @@ class SpreadsheetActivities(FitnessProvider):
                 activity_kwargs["with_names"] = row[15]
             if row[16]:
                 activity_kwargs["avg_cadence"] = row[16]
-            provider_ids = {}
             if row[17]:
-                provider_ids["strava"] = row[17]
+                activity_kwargs["strava_id"] = row[17]
             if row[18]:
-                provider_ids["garmin"] = row[18]
+                activity_kwargs["garmin_id"] = row[18]
             if row[19]:
-                provider_ids["ridewithgps"] = row[19]
+                activity_kwargs["ridewithgps_id"] = row[19]
             if row[20]:
                 activity_kwargs["notes"] = row[20]
-            activity_kwargs["provider_ids"] = provider_ids
             activity_kwargs["source_file"] = str(xlsx_file)
             activity_kwargs["source_file_type"] = "spreadsheet"
             activities.append(Activity(**activity_kwargs))
