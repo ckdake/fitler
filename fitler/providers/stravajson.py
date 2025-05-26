@@ -27,7 +27,6 @@ class StravaJsonActivities(FitnessProvider):
                     distance=data.get("distance", 0) * 0.00062137,
                     strava_id=data.get("id"),
                     notes=data.get("name"),
-                    extra=data,
                 )
                 activities.append(activity)
         return activities
