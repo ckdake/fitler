@@ -18,7 +18,7 @@ dependencies = [
     "dateparser==1.2.0",
     "pytz==2024.1",
     "stravaio==0.0.9",
-    "requests==2.31.0",
+    "requests==2.32.4",
     "ridewithgps==0.0.5"
 ]
 
