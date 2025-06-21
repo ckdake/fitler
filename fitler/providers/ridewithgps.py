@@ -8,7 +8,7 @@ updating activities, and managing gear.
 import os
 from typing import List, Optional, Dict
 import dateparser
-from ridewithgps import RideWithGPS
+import ridewithgps
 
 from fitler.providers.base import FitnessProvider, Activity
 
@@ -19,7 +19,7 @@ class RideWithGPSActivities(FitnessProvider):
         self.password = os.environ["RIDEWITHGPS_PASSWORD"]
         self.apikey = os.environ["RIDEWITHGPS_KEY"]
 
-        self.client = RideWithGPS(apikey=self.apikey, cache=True)
+        self.client = ridewithgps.RideWithGPS(apikey=self.apikey, cache=True)
 
         user_info = self.client.authenticate(self.username, self.password)
         self.userid = user_info.get("id")
