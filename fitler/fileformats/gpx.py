@@ -4,6 +4,7 @@ This module provides functionality to parse GPX (GPS Exchange Format) files and
 extract relevant activity data such as start time and distance for use in the Fitler
 application.
 """
+
 import gpxpy
 
 

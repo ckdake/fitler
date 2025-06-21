@@ -13,6 +13,7 @@ import dateparser
 
 from fitler.providers.base import FitnessProvider, Activity
 
+
 class StravaJsonActivities(FitnessProvider):
     def __init__(self, folder):
         self.folder = folder
