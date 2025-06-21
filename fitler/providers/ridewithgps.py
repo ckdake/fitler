@@ -8,57 +8,40 @@ updating activities, and managing gear.
 import os
 from typing import List, Optional, Dict
 import dateparser
-import ridewithgps  # type: ignore
-import requests
+from ridewithgps import RideWithGPS
 
 from fitler.providers.base import FitnessProvider, Activity
 
 
 class RideWithGPSActivities(FitnessProvider):
     def __init__(self):
-        self.client = ridewithgps.RideWithGPS()
         self.username = os.environ["RIDEWITHGPS_EMAIL"]
         self.password = os.environ["RIDEWITHGPS_PASSWORD"]
         self.apikey = os.environ["RIDEWITHGPS_KEY"]
 
-        auth = self.client.call(
-            "/users/current.json",
-            {
-                "email": self.username,
-                "password": self.password,
-                "apikey": self.apikey,
-                "version": 2,
-            },
-        )
-        self.userid = auth["user"]["id"]
-        self.auth_token = auth["user"]["auth_token"]
+        self.client = RideWithGPS(apikey=self.apikey, cache=True)
+
+        user_info = self.client.authenticate(self.username, self.password)
+        self.userid = user_info.get("id")
 
     def fetch_activities(self) -> List[Activity]:
         activities = []
+        trips = self.client.list(f"/users/{self.userid}/trips")
         gear = self.get_gear()
-        api_activities = self.client.call(
-            f"/users/{self.userid}/trips.json",
-            {
-                "offset": 0,
-                "limit": 10000,
-                "apikey": self.apikey,
-                "version": 2,
-                "auth_token": self.auth_token,
-            },
-        )["results"]
-        for a in api_activities:
+        for trip in trips:
             try:
-                departed_at = a.get("departed_at")
+                departed_at = trip.get("departed_at")
                 parsed_date = dateparser.parse(departed_at)
                 start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
                 act = Activity(
                     start_time=departed_at,
-                    distance=a.get("distance", 0) * 0.00062137,  # meters to miles
+                    distance=trip.get("distance", 0) * 0.00062137,  # meters to miles
                     start_date=start_date,
-                    ridewithgps_id=a.get("id"),
-                    notes=a.get("name"),
-                    equipment=gear[a["gear_id"]] if a.get("gear_id") else "",
-                    # Add more fields as needed
+                    ridewithgps_id=trip.get("id"),
+                    notes=trip.get("name"),
+                    equipment=(
+                        gear.get(trip.get("gear_id"), "") if trip.get("gear_id") else ""
+                    ),
                 )
                 activities.append(act)
             except Exception as e:
@@ -66,71 +49,48 @@ class RideWithGPSActivities(FitnessProvider):
         return activities
 
     def create_activity(self, activity: Activity) -> str:
-        # Implements create_trip (upload a file to RideWithGPS)
+        """Create an activity on RideWithGPS (upload a file)."""
         if not activity.source_file:
             raise ValueError("No source file provided for activity upload.")
         with open(activity.source_file, "rb") as file_obj:
-            response = requests.post(
-                "https://ridewithgps.com/trips.json",
-                files={"file": file_obj},
-                data={
-                    "apikey": self.apikey,
-                    "version": 2,
-                    "auth_token": self.auth_token,
-                },
-            )
-        if response.status_code == 200:
-            trip = response.json().get("trip", {})
-            return str(trip.get("id"))
-
-        raise Exception(f"Failed to create trip: {response.text}")
+            # According to the ridewithgps package, use put for uploads
+            trip = self.client.put(path="/trips", files={"file": file_obj})
+        return str(trip.get("id"))
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
-        # Not implemented
-        raise NotImplementedError("RideWithGPS get_activity_by_id not implemented.")
+        trip = self.client.get(path=f"/trips/{activity_id}")
+        if not trip:
+            return None
+        gear = self.get_gear()
+        departed_at = trip.get("departed_at")
+        parsed_date = dateparser.parse(departed_at)
+        start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
+        return Activity(
+            start_time=departed_at,
+            distance=trip.get("distance", 0) * 0.00062137,
+            start_date=start_date,
+            ridewithgps_id=trip.get("id"),
+            notes=trip.get("name"),
+            equipment=gear.get(trip.get("gear_id"), "") if trip.get("gear_id") else "",
+        )
 
     def update_activity(self, activity_id: str, activity: Activity) -> bool:
-        # Implements set_trip_name pattern: update the name field of a trip/activity
         if not activity.name:
             raise ValueError("No name provided for activity update.")
-        response = self.client.call(
-            f"/trips/{activity_id}.json",
-            {
-                "apikey": self.apikey,
-                "version": 2,
-                "auth_token": self.auth_token,
-                "name": activity.name,
-            },
-            method="PUT",
+        updated_trip = self.client.put(
+            path=f"/trips/{activity_id}", params={"name": activity.name}
         )
-        return response.get("trip", {}).get("name") == activity.name
+        return updated_trip.get("name") == activity.name
 
     def get_gear(self) -> Dict[str, str]:
         gear = {}
-        gear_results = self.client.call(
-            f"/users/{self.userid}/gear.json",
-            {
-                "offset": 0,
-                "limit": 100,
-                "apikey": self.apikey,
-                "version": 2,
-                "auth_token": self.auth_token,
-            },
-        )["results"]
-        for g in gear_results:
-            gear[g["id"]] = g["nickname"]
+        gear_list = self.client.list(path=f"/users/{self.userid}/gear")
+        for g in gear_list:
+            gear[g["id"]] = g.get("nickname", "")
         return gear
 
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
-        # Implements set_trip_gear: set the gear for a trip/activity
-        response = self.client.call(
-            f"/trips/{activity_id}.json",
-            {
-                "apikey": self.apikey,
-                "version": 2,
-                "auth_token": self.auth_token,
-                "gear_id": gear_id,
-            },
-            method="PUT",
+        updated_trip = self.client.put(
+            path=f"/trips/{activity_id}", param={"gear_id": gear_id}
         )
-        return response.get("trip", {}).get("gear_id") == gear_id
+        return updated_trip.get("gear_id") == gear_id
