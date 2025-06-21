@@ -53,7 +53,9 @@ class SpreadsheetActivities(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
-            activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime("%Y-%m-%d")
+            activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime(
+                "%Y-%m-%d"
+            )
             if row[1]:
                 activity_kwargs["activity_type"] = row[1]
             if row[2]:
@@ -112,7 +114,9 @@ class SpreadsheetActivities(FitnessProvider):
 
         row = [cell.value for cell in sheet[row_idx]]
         activity_kwargs: Dict[str, Any] = {}
-        activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime("%Y-%m-%d") if row[0] else ""
+        activity_kwargs["start_time"] = (
+            dateparser.parse(str(row[0])).strftime("%Y-%m-%d") if row[0] else ""
+        )
         if row[1]:
             activity_kwargs["activity_type"] = row[1]
         if row[2]:
