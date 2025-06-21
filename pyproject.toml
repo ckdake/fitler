@@ -3,8 +3,7 @@ name = "fitler"
 version = "0.0.1"
 description = "Aggregate, sync, and analyze your fitness activity data."
 readme = "README.md"
-license = "CC BY-NC 4.0"
-license-files = ["LICENSE.txt"]
+license = { text = "CC-BY-NC-4.0" }
 authors = [
     { name = "Chris Kelly", email = "ckdake@ckdake.com" }
 ]
