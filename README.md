@@ -2,7 +2,13 @@
 
 Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness activity data from multiple sources (Strava, RideWithGPS, spreadsheets, and local files). It is designed to be self-contained, non-destructive, and extensible.
 
-[CAUTION: This is under active development. Do not use it without reading the entire sync_all.py command!]
+[CAUTION: This is under active development. Do not use it without reading every line of code!]
+
+[![black](https://github.com/ckdake/fitler/actions/workflows/black.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/black.yml)
+[![flake8](https://github.com/ckdake/fitler/actions/workflows/flake8.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/flake8.yml)
+[![mypy](https://github.com/ckdake/fitler/actions/workflows/mypy.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/mypy.yml)
+[![pylint](https://github.com/ckdake/fitler/actions/workflows/pylint.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/pylint.yml)
+[![pytest](https://github.com/ckdake/fitler/actions/workflows/pytest.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/pytest.yml)
 
 ---
 
