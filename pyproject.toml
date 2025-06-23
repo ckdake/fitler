@@ -14,7 +14,7 @@ dependencies = [
     "python-tcxparser==2.4.0",
     "fitparse==1.2.0",
     "openpyxl==3.1.2",
-    "dateparser==1.2.0",
+    "dateparser==1.2.1",
     "pytz==2025.2",
     "stravaio==0.0.9",
     "requests==2.32.4",
