@@ -41,8 +41,14 @@ def run():
         input("RideWithGPS API Key: ").strip() or "YOUR_RIDEWITHGPS_API_KEY"
     )
 
+    # Prompt for home timezone
+    print("\n--- Timezone Configuration ---")
+    print("Common timezones: US/Eastern, US/Central, US/Mountain, US/Pacific")
+    timezone = input("Home timezone (default: US/Eastern): ").strip()
+    config["home_timezone"] = timezone or "US/Eastern"
+
     # Prompt for debug mode
-    debug_input = input("Enable debug mode? (y/N): ").strip().lower()
+    debug_input = input("\nEnable debug mode? (y/N): ").strip().lower()
     config["debug"] = debug_input == "y"
 
     config_path = os.path.abspath(

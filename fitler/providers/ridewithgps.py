@@ -26,28 +26,22 @@ class RideWithGPSActivities(FitnessProvider):
         self.userid = getattr(user_info, "id", None)
 
     def _parse_ridewithgps_datetime(self, dt_val):
-        # Accept both ISO8601 and epoch seconds (as int/float/str)
-        import pytz
+        # RideWithGPS provides datetime strings in ISO8601 format with timezone
+        # e.g. '2025-01-02T19:55:14-05:00'
         from dateutil import parser as dateparser
         if not dt_val:
             return None
-        dt = None
-        # If it's an int or float or numeric string, treat as epoch seconds
         try:
-            if isinstance(dt_val, (int, float)) or (isinstance(dt_val, str) and dt_val.isdigit()):
-                # fromutctimestamp since epoch timestamps are UTC
-                dt = datetime.datetime.utcfromtimestamp(float(dt_val))
-                # Convert to local time
-                local_tz = datetime.datetime.now().astimezone().tzinfo
-                dt = dt.replace(tzinfo=datetime.timezone.utc).astimezone(local_tz)
-            else:
-                dt = dateparser.parse(str(dt_val))
-                if dt and dt.tzinfo is None:
-                    # If no timezone info, assume local
-                    dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
+            # Parse the ISO8601 string which includes timezone
+            dt = dateparser.parse(str(dt_val))
+            # At this point dt should have the correct timezone (-05:00)
+            if dt and dt.tzinfo is None:
+                # If somehow we get a naive datetime, assume local
+                dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
+            # Keep the parsed datetime in its original timezone
+            return dt
         except Exception:
             return None
-        return dt
 
     def fetch_activities(self) -> List[Activity]:
         activities = []
@@ -56,16 +50,18 @@ class RideWithGPSActivities(FitnessProvider):
         for trip in trips:
             try:
                 departed_at = getattr(trip, "departed_at", None)
-                start_date = None
-                parsed_date = self._parse_ridewithgps_datetime(departed_at) if departed_at is not None else None
-                if parsed_date:
-                    start_date = parsed_date.strftime("%Y-%m-%d")
+                dt = self._parse_ridewithgps_datetime(departed_at)
+                if dt:
+                    # Convert to UTC and get timestamp
+                    utc_dt = dt.astimezone(datetime.timezone.utc)
+                    timestamp = str(int(utc_dt.timestamp()))
+                else:
+                    timestamp = None
                 gear_id = getattr(trip, "gear_id", None)
                 gear_id_str = str(gear_id) if gear_id is not None else None
                 act = Activity(
-                    start_time=parsed_date.isoformat() if parsed_date else departed_at,
+                    departed_at=timestamp,
                     distance=getattr(trip, "distance", 0) * 0.00062137,  # meters to miles
-                    start_date=start_date,
                     ridewithgps_id=getattr(trip, "id", None),
                     notes=getattr(trip, "name", None),
                     equipment=(
@@ -91,14 +87,18 @@ class RideWithGPSActivities(FitnessProvider):
             return None
         gear = self.get_gear()
         departed_at = getattr(trip, "departed_at", None)
-        parsed_date = self._parse_ridewithgps_datetime(departed_at) if departed_at is not None else None
-        start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
+        dt = self._parse_ridewithgps_datetime(departed_at)
+        if dt:
+            # Convert to UTC and get timestamp
+            utc_dt = dt.astimezone(datetime.timezone.utc)
+            timestamp = str(int(utc_dt.timestamp()))
+        else:
+            timestamp = None
         gear_id = getattr(trip, "gear_id", None)
         gear_id_str = str(gear_id) if gear_id is not None else None
         return Activity(
-            start_time=parsed_date.isoformat() if parsed_date else departed_at,
+            departed_at=timestamp,
             distance=getattr(trip, "distance", 0) * 0.00062137,
-            start_date=start_date,
             ridewithgps_id=getattr(trip, "id", None),
             notes=getattr(trip, "name", None),
             equipment=gear.get(gear_id_str, "") if gear_id_str else "",
@@ -134,8 +134,15 @@ class RideWithGPSActivities(FitnessProvider):
         """
         all_activities = self.fetch_activities()
         filtered = []
+        year, month = map(int, year_month.split("-"))
         for act in all_activities:
-            date_str = getattr(act, "start_date", None) or getattr(act, "start_time", None)
-            if date_str and date_str.startswith(year_month):
-                filtered.append(act)
+            departed_at = getattr(act, "departed_at", None)
+            if departed_at:
+                try:
+                    # Convert GMT timestamp to local time for filtering
+                    dt = datetime.datetime.fromtimestamp(int(departed_at))
+                    if dt.year == year and dt.month == month:
+                        filtered.append(act)
+                except:
+                    continue
         return filtered

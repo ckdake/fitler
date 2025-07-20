@@ -71,6 +71,34 @@ class SpreadsheetActivities(FitnessProvider):
             dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
         return dt
 
+    def _convert_to_gmt_timestamp(self, dt_val):
+        """Convert a YYYY-MM-DD or datetime string to a GMT Unix timestamp.
+        Dates from spreadsheet are assumed to be in the configured home timezone."""
+        if not dt_val:
+            return None
+        try:
+            # Import here to avoid circular imports
+            from pathlib import Path
+            import json
+            from zoneinfo import ZoneInfo
+
+            # Get home timezone from config
+            config_path = Path("fitler_config.json")
+            with open(config_path) as f:
+                config = json.load(f)
+            home_tz = ZoneInfo(config.get('home_timezone', 'US/Eastern'))
+
+            # Parse the date string (assumes home timezone)
+            dt = dateparser.parse(str(dt_val))
+            if dt and dt.tzinfo is None:
+                # If no timezone, use configured home timezone
+                dt = dt.replace(tzinfo=home_tz)
+            # Convert to GMT/UTC and return Unix timestamp
+            utc_dt = dt.astimezone(datetime.timezone.utc)
+            return str(int(utc_dt.timestamp()))
+        except Exception:
+            return None
+
     def fetch_activities(self) -> List[Activity]:
         xlsx_file = Path("ActivityData", self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
@@ -84,14 +112,10 @@ class SpreadsheetActivities(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
-            # Parse date and set both start_time and start_date
-            parsed_date = self._parse_spreadsheet_datetime(row[0]) if row[0] else None
-            if parsed_date:
-                activity_kwargs["start_time"] = parsed_date.isoformat()
-                activity_kwargs["start_date"] = parsed_date.isoformat()
-            else:
-                activity_kwargs["start_time"] = ""
-                activity_kwargs["start_date"] = ""
+            # Convert date to GMT timestamp
+            departed_at = self._convert_to_gmt_timestamp(row[0])
+            activity_kwargs["departed_at"] = departed_at
+
             if row[1]:
                 activity_kwargs["activity_type"] = row[1]
             if row[2]:
@@ -146,9 +170,16 @@ class SpreadsheetActivities(FitnessProvider):
         all_activities = self.fetch_activities()
         filtered = []
         for act in all_activities:
-            date_str = getattr(act, "start_date", None) or getattr(act, "start_time", None)
-            if date_str and date_str.startswith(year_month):
-                filtered.append(act)
+            departed_at = getattr(act, "departed_at", None)
+            if departed_at:
+                try:
+                    # Convert GMT timestamp to local time for comparison
+                    dt = datetime.datetime.fromtimestamp(int(departed_at))
+                    date_str = dt.strftime("%Y-%m")
+                    if date_str == year_month:
+                        filtered.append(act)
+                except:
+                    continue
         return filtered
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
@@ -162,9 +193,8 @@ class SpreadsheetActivities(FitnessProvider):
 
         row = [cell.value for cell in sheet[row_idx]]
         activity_kwargs: Dict[str, Any] = {}
-        activity_kwargs["start_time"] = (
-            dateparser.parse(str(row[0])).strftime("%Y-%m-%d") if row[0] else ""
-        )
+        departed_at = self._convert_to_gmt_timestamp(row[0]) if row[0] else None
+        activity_kwargs["departed_at"] = departed_at
         if row[1]:
             activity_kwargs["activity_type"] = row[1]
         if row[2]:

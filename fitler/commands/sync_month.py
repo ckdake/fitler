@@ -6,8 +6,6 @@ from fitler.providers.strava import StravaActivities
 from fitler.providers.ridewithgps import RideWithGPSActivities
 # from fitler.providers.garmin import GarminActivities  # Uncomment if implemented
 from datetime import datetime, timezone
-from dateutil.parser import parse as dateparse
-from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 from tabulate import tabulate
 
@@ -31,14 +29,12 @@ def color_id(id_val, exists):
     else:
         return f"{yellow_bg}TBD{reset}"
 
-def to_utc(dt):
-    # If no timezone info, assume local
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=datetime.now().astimezone().tzinfo)
-    return dt
-
 def run(year_month):
     config = load_config()
+    # Get home timezone from config
+    from zoneinfo import ZoneInfo
+    home_tz = ZoneInfo(config.get('home_timezone', 'US/Eastern'))
+
     # Load activities from all providers
     spreadsheet_path = config.get("spreadsheet_path")
     spreadsheet = SpreadsheetActivities(spreadsheet_path)
@@ -61,59 +57,70 @@ def run(year_month):
     # garmin_acts = GarminActivities().fetch_activities_for_month(year_month)  # Uncomment if implemented
     garmin_acts = []  # Placeholder
     ridewithgps_acts = []
+
+    for env_var, key in [
+        ("RIDEWITHGPS_EMAIL", "ridewithgps_email"),
+        ("RIDEWITHGPS_PASSWORD", "ridewithgps_password"),
+        ("RIDEWITHGPS_KEY", "ridewithgps_key")
+    ]:
+        if not os.environ.get(env_var):
+            os.environ[env_var] = config.get(key, "")
     try:
         ridewithgps = RideWithGPSActivities()
         ridewithgps_acts = ridewithgps.fetch_activities_for_month(year_month)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"\nRideWithGPS: Error fetching activities: {e}")
 
     # Build a list of all activities by date/distance for matching
     all_acts = []
     for act in spreadsheet_acts:
-        dt = dateparse(getattr(act, 'start_time', getattr(act, 'start_date', '')))
-        dt = to_utc(dt)
+        ts = int(getattr(act, 'departed_at', 0) or 0)
         all_acts.append({
             'provider': 'spreadsheet',
             'id': getattr(act, 'spreadsheet_id', None),
-            'start': dt,
+            'timestamp': ts,
             'distance': getattr(act, 'distance', 0),
             'obj': act
         })
     for act in strava_acts:
-        dt = dateparse(getattr(act, 'start_time', getattr(act, 'start_date', '')))
-        dt = to_utc(dt)
+        ts = int(getattr(act, 'departed_at', 0) or 0)
         all_acts.append({
             'provider': 'strava',
             'id': getattr(act, 'strava_id', None),
-            'start': dt,
+            'timestamp': ts,
             'distance': getattr(act, 'distance', 0),
             'obj': act
         })
     for act in garmin_acts:
-        dt = dateparse(getattr(act, 'start_time', getattr(act, 'start_date', '')))
-        dt = to_utc(dt)
+        ts = int(getattr(act, 'departed_at', 0) or 0)
         all_acts.append({
             'provider': 'garmin',
             'id': getattr(act, 'garmin_id', None),
-            'start': dt,
+            'timestamp': ts,
             'distance': getattr(act, 'distance', 0),
             'obj': act
         })
     for act in ridewithgps_acts:
-        dt = dateparse(getattr(act, 'start_time', getattr(act, 'start_date', '')))
-        dt = to_utc(dt)
+        ts = int(getattr(act, 'departed_at', 0) or 0)
         all_acts.append({
             'provider': 'ridewithgps',
             'id': getattr(act, 'ridewithgps_id', None),
-            'start': dt,
+            'timestamp': ts,
             'distance': getattr(act, 'distance', 0),
             'obj': act
         })
 
     # Group by (date, distance) rounded to nearest 0.05 mile for fuzzy matching
     def keyfunc(act):
+        # Convert UTC timestamp to home timezone for grouping
+        if act['timestamp']:
+            utc = datetime.fromtimestamp(int(act['timestamp']), timezone.utc)
+            dt = utc.astimezone(home_tz)
+        else:
+            utc = datetime.fromtimestamp(0, timezone.utc)
+            dt = utc.astimezone(home_tz)
         return (
-            act['start'].replace(hour=0, minute=0, second=0, microsecond=0),
+            dt.replace(hour=0, minute=0, second=0, microsecond=0),
             round(act['distance'] / 0.05) * 0.05
         )
     grouped = defaultdict(list)
@@ -123,14 +130,18 @@ def run(year_month):
     # Build rows for the table
     rows = []
     for group in grouped.values():
-        # Find the earliest start time in the group for ordering
-        start = min(a['start'] for a in group)
+        # Find the earliest start time in the group for ordering, converting from UTC to home timezone
+        start = min(
+            datetime.fromtimestamp(int(a['timestamp']), timezone.utc).astimezone(home_tz) if a['timestamp']
+            else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+            for a in group
+        )
         ids = {'garmin': None, 'strava': None, 'spreadsheet': None, 'ridewithgps': None}
         names = {'garmin': '', 'strava': '', 'spreadsheet': '', 'ridewithgps': ''}
         dists = {'garmin': None, 'strava': None, 'spreadsheet': None, 'ridewithgps': None}
         for a in group:
             ids[a['provider']] = a['id']
-            names[a['provider']] = getattr(a['obj'], 'name', getattr(a['obj'], 'title', ''))
+            names[a['provider']] = getattr(a['obj'], 'name', getattr(a['obj'], 'notes', ''))
             dists[a['provider']] = a['distance']
         rows.append({
             'start': start,

@@ -32,8 +32,7 @@ class Activity:
         avg_cadence: Optional[float] = None,
         tags: Optional[List[str]] = None,
         group: Optional[List[str]] = None,
-        start_date: Optional[str] = None,
-        start_time: Optional[str] = None,
+        departed_at: Optional[str] = None,
         distance: Optional[float] = None,
         duration: Optional[float] = None,
         tss: Optional[float] = None,
@@ -63,8 +62,7 @@ class Activity:
         self.avg_cadence = avg_cadence
         self.tags = tags or []
         self.group = group or []
-        self.start_date = start_date
-        self.start_time = start_time
+        self.departed_at = departed_at
         self.distance = distance
         self.duration = duration
         self.tss = tss
