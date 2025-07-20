@@ -21,6 +21,9 @@ def main():
         "auth-strava", help="Authenticate with Strava and get an access token"
     )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
+    subparsers.add_parser(
+        "migrate", help="Create or update the database schema"
+    )
     show_month_parser = subparsers.add_parser(
         "show-month", help="Show all activities for a given month (YYYY-MM) from all sources"
     )
@@ -49,6 +52,9 @@ def main():
     elif args.command == "sync":
         from fitler.commands.sync_all import run
         run()
+    elif args.command == "migrate":
+        from fitler.metadata import ActivityMetadata
+        ActivityMetadata.migrate()
     elif args.command == "help" or args.command is None:
         print(
             """

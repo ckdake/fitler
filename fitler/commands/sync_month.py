@@ -1,9 +1,11 @@
 import os
 import json
 from pathlib import Path
+from typing import Dict, List, Optional
 from fitler.providers.spreadsheet import SpreadsheetActivities
 from fitler.providers.strava import StravaActivities
 from fitler.providers.ridewithgps import RideWithGPSActivities
+from fitler.metadata import ActivityMetadata, db
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
@@ -31,14 +33,7 @@ def color_id(id_val, exists):
     else:
         return f"{yellow_bg}TBD{reset}"
 
-def get_authoritative_provider(group, config):
-    """Determine which provider should be considered authoritative for this activity group."""
-    provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
-    # Return the first provider in priority order that has data
-    for provider in provider_order:
-        if any(a['provider'] == provider for a in group):
-            return provider
-    return None
+
 
 def color_text(text, is_auth, is_new, is_wrong):
     """Apply color highlighting to text based on its status."""
@@ -103,35 +98,75 @@ def run(year_month):
     except Exception as e:
         print(f"\nRideWithGPS: Error fetching activities: {e}")
 
-    # Build a list of all activities by date/distance for matching
+    # Ensure database connection is open
+    db.connect()
+    
+    # First, find or create ActivityMetadata records for each provider's activities
     all_acts = []
+    
+    def process_activity(act, provider: str):
+        # Get the timestamp and ID
+        ts = int(getattr(act, 'departed_at', 0) or 0)
+        provider_id = getattr(act, f'{provider}_id', None)
+        
+        # Try to find existing record by provider ID
+        metadata = None
+        lookup_id = provider_id
+        if provider == 'spreadsheet':
+            lookup_id = getattr(act, 'spreadsheet_id', None)
+        
+        if lookup_id:
+            try:
+                metadata = ActivityMetadata.select().where(getattr(ActivityMetadata, f'{provider}_id') == lookup_id).first()
+            except Exception:
+                pass
+        
+        # If not found by ID, create new record
+        if not metadata:
+            metadata = ActivityMetadata()
+            # Set basic fields
+            if ts:
+                dt = datetime.fromtimestamp(ts, timezone.utc)
+                eastern = dt.astimezone(home_tz)
+                metadata.start_time = eastern
+                metadata.date = eastern.date()
+            metadata.save()  # Save to create the record and get an ID
+            
+        # Convert activity data to dict for storage
+        act_data = {
+            'id': provider_id if provider != 'spreadsheet' else getattr(act, 'spreadsheet_id', None),
+            'name': getattr(act, 'name', getattr(act, 'notes', '')),
+            'notes': getattr(act, 'notes', ''),
+            'equipment': getattr(act, 'equipment', ''),
+            'distance': getattr(act, 'distance', 0),
+            'activity_type': getattr(act, 'activity_type', ''),
+            'start_time': datetime.fromtimestamp(ts, timezone.utc) if ts else None
+        }
+        
+        # Set the provider ID directly first
+        if provider_id:
+            setattr(metadata, f'{provider}_id', provider_id)
+            metadata.save()
+        
+        # Then update the rest of the metadata
+        metadata.update_from_provider(provider, act_data, config)
+        
+        return {
+            'provider': provider,
+            'id': provider_id,
+            'timestamp': ts,
+            'distance': getattr(act, 'distance', 0),
+            'obj': act,
+            'metadata': metadata
+        }
+    
+    # Process activities from each provider
     for act in spreadsheet_acts:
-        ts = int(getattr(act, 'departed_at', 0) or 0)
-        all_acts.append({
-            'provider': 'spreadsheet',
-            'id': getattr(act, 'spreadsheet_id', None),
-            'timestamp': ts,
-            'distance': getattr(act, 'distance', 0),
-            'obj': act
-        })
+        all_acts.append(process_activity(act, 'spreadsheet'))
     for act in strava_acts:
-        ts = int(getattr(act, 'departed_at', 0) or 0)
-        all_acts.append({
-            'provider': 'strava',
-            'id': getattr(act, 'strava_id', None),
-            'timestamp': ts,
-            'distance': getattr(act, 'distance', 0),
-            'obj': act
-        })
+        all_acts.append(process_activity(act, 'strava'))
     for act in ridewithgps_acts:
-        ts = int(getattr(act, 'departed_at', 0) or 0)
-        all_acts.append({
-            'provider': 'ridewithgps',
-            'id': getattr(act, 'ridewithgps_id', None),
-            'timestamp': ts,
-            'distance': getattr(act, 'distance', 0),
-            'obj': act
-        })
+        all_acts.append(process_activity(act, 'ridewithgps'))
 
     # Group by (date, distance) rounded to nearest 0.05 mile for fuzzy matching
     def keyfunc(act):
@@ -240,83 +275,89 @@ def run(year_month):
 
     # Print table header and rows using tabulate for alignment
     table = []
+    all_changes = []  # Collect all needed changes
+    
     for row in rows:
-        # Find the authoritative source for this group based on provider priority
-        group = [
-            {'provider': 'strava', 'timestamp': row['start'].timestamp(), 'obj': row['strava_obj'], 'id': row['strava']},
-            {'provider': 'spreadsheet', 'timestamp': row['start'].timestamp(), 'obj': row['spreadsheet_obj'], 'id': row['spreadsheet']},
-            {'provider': 'ridewithgps', 'timestamp': row['start'].timestamp(), 'obj': row['ridewithgps_obj'], 'id': row['ridewithgps']}
-        ]
-        auth_provider = get_authoritative_provider(group, config)
+        # Get the metadata object for this group by matching IDs
+        metadata = None
+        for act in all_acts:
+            if (act['provider'] == 'strava' and act['id'] == row['strava']) or \
+               (act['provider'] == 'spreadsheet' and act['id'] == row['spreadsheet']) or \
+               (act['provider'] == 'ridewithgps' and act['id'] == row['ridewithgps']):
+                metadata = act['metadata']
+                break
+        
+        if not metadata:
+            # If we couldn't find by ID, try matching by timestamp as fallback
+            metadata = next((act['metadata'] for act in all_acts 
+                           if act['timestamp'] == int(row['start'].timestamp())), None)
+        
+        if not metadata:
+            # If we still can't find it, create a new one
+            metadata = ActivityMetadata()
+            metadata.start_time = row['start']
+        
+        # Get the authoritative provider and data
+        auth_provider = metadata.get_authoritative_provider(
+            config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+        )
         
         # Get authoritative name and equipment if they exist
-        auth_name = None
-        auth_equipment = None
-        if auth_provider:
-            auth_obj = row[f'{auth_provider}_obj']
-            if auth_obj:
-                auth_name = getattr(auth_obj, 'name', getattr(auth_obj, 'notes', ''))
-                auth_equipment = getattr(auth_obj, 'equipment', '')
+        auth_data = metadata.get_provider_data(auth_provider) if auth_provider else None
+        auth_name = auth_data.get('name') if auth_data else None
+        auth_equipment = auth_data.get('equipment') if auth_data else None
+        
+        # Collect changes needed for this activity
+        changes = metadata.get_needed_changes(config)
+        if changes:
+            all_changes.extend(changes)
 
         dist = next((d for d in [row['strava_dist'], row['spreadsheet_dist'], row['ridewithgps_dist']] if d), '')
         
         # Helper function to determine text highlighting
         def highlight(provider, text, is_name=True):
-            if not text and provider != 'spreadsheet':
+            """Highlight text based on provider authority and data matching."""
+            if not metadata or (not text and provider != 'spreadsheet'):
                 return ''
-                
-            # Special handling when missing from spreadsheet
-            if not row['spreadsheet']:
-                # If this is the spreadsheet column, we should show what will be created
-                if provider == 'spreadsheet':
-                    # Get the best provider's data to show what will be created
-                    provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
-                    provider_order.remove('spreadsheet')
-                    for p in provider_order:
-                        if row[f'{p}_obj']:
-                            p_obj = row[f'{p}_obj']
-                            p_text = (getattr(p_obj, 'name', getattr(p_obj, 'notes', '')) if is_name 
-                                    else getattr(p_obj, 'equipment', ''))
-                            if p_text:
-                                # Show what will be created in yellow
-                                return color_text(p_text, False, True, False)
-                    return ''
-                
-                # For other providers when spreadsheet is missing
-                provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
-                provider_order.remove('spreadsheet')
-                
-                # Find the highest priority provider that has data
-                best_provider = None
-                for p in provider_order:
-                    if row[f'{p}_obj']:
-                        best_provider = p
-                        break
-                        
-                if provider == best_provider:
-                    # This is the highest priority provider with data - show in green
-                    return color_text(text, True, False, False)
-                elif row[f'{provider}_obj']:
-                    # This provider has data - check if it matches the best provider
-                    best_obj = row[f'{best_provider}_obj']
-                    best_text = (getattr(best_obj, 'name', getattr(best_obj, 'notes', '')) if is_name 
-                               else getattr(best_obj, 'equipment', ''))
-                    if text == best_text:
-                        # Data matches the authoritative source - show in green
-                        return color_text(text, True, False, False)
-                    else:
-                        # Data doesn't match - show in yellow
-                        return color_text(text, False, True, False)
-                return text
-                
-            # Normal handling when spreadsheet entry exists
-            obj = row[f'{provider}_obj']
-            has_auth = auth_provider is not None
-            is_auth = provider == auth_provider
-            is_wrong = (has_auth and not is_auth and obj is not None and 
-                      ((is_name and auth_name and text != auth_name) or 
-                       (not is_name and auth_equipment and text != auth_equipment)))
-            return color_text(text, is_auth, False, is_wrong)
+            
+            provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+            auth_provider = metadata.get_authoritative_provider(provider_order) if metadata else None
+            
+            # Get provider and authoritative data
+            provider_data = metadata.get_provider_data(provider) if metadata else None
+            auth_data = metadata.get_provider_data(auth_provider) if auth_provider and metadata else None
+            
+            # If this is the spreadsheet and it's missing
+            if provider == 'spreadsheet' and not getattr(metadata, 'spreadsheet_data', None):
+                # Show what will be created from the authoritative source
+                if auth_data:
+                    field = 'name' if is_name else 'equipment'
+                    return color_text(auth_data.get(field, ''), False, True, False)
+                return ''
+            
+            # Get the authoritative value for comparison
+            auth_value = None
+            if auth_data:
+                field = 'name' if is_name else 'equipment'
+                auth_value = auth_data.get(field)
+            
+            # If this is the authoritative provider
+            if provider == auth_provider:
+                return color_text(text, True, False, False)
+            
+            # If this provider matches the authoritative data
+            if auth_value and text == auth_value:
+                return color_text(text, True, False, False)
+            
+            # If this provider has data but doesn't match
+            if auth_value and text != auth_value:
+                return color_text(text, False, False, True)
+            
+            # If no authoritative source exists yet
+            if not auth_provider:
+                return color_text(text, False, True, False)
+            
+            return text
 
         table.append([
             row['start'].strftime('%Y-%m-%d %H:%M'),
@@ -349,3 +390,11 @@ def run(year_month):
     print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
     print(f"{yellow_bg}Yellow{reset} = New entry to be created")
     print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
+    
+    if all_changes:
+        print("\nChanges needed:")
+        for change in all_changes:
+            print(f"* {change}")
+            
+    # Close database connection
+    db.close()
