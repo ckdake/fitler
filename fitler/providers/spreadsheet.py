@@ -157,6 +157,8 @@ class SpreadsheetActivities(FitnessProvider):
                 activity_kwargs["ridewithgps_id"] = row[19]
             if row[20]:
                 activity_kwargs["notes"] = row[20]
+                # Use notes field as name if not empty
+                activity_kwargs["name"] = row[20]
             activity_kwargs["source_file"] = str(xlsx_file)
             activity_kwargs["source_file_type"] = "spreadsheet"
             activity_kwargs["spreadsheet_id"] = i + 1

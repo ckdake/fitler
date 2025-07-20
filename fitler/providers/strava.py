@@ -2,7 +2,7 @@
 
 This module defines the StravaActivities class, which provides an interface
 for interacting with Strava activity data, including fetching, creating,
-and updating activities, as well as managing gear.
+updating activities, and managing gear.
 """
 
 import os
@@ -20,10 +20,21 @@ from fitler.providers.base import FitnessProvider, Activity
 
 class StravaActivities(FitnessProvider):
     def __init__(self, token: str, refresh_token: Optional[str] = None, client_id: Optional[str] = None, client_secret: Optional[str] = None, token_expires: Optional[str] = None):
-        if os.environ.get("STRAVALIB_DEBUG") == "1":
+        # Initialize debug from environment and config
+        self.debug = os.environ.get("STRAVALIB_DEBUG") == "1"
+        if not self.debug:
+            try:
+                with open("fitler_config.json") as f:
+                    config = json.load(f)
+                    self.debug = config.get("debug", False)
+            except Exception:
+                pass
+
+        if self.debug:
             logging.basicConfig(level=logging.DEBUG)
             logging.getLogger("requests").setLevel(logging.DEBUG)
             logging.getLogger("stravalib").setLevel(logging.DEBUG)
+
         from stravalib import Client
         self.client = Client(access_token=token)
         if refresh_token:
@@ -101,11 +112,31 @@ class StravaActivities(FitnessProvider):
                 return None
             # Convert to GMT timestamp
             departed_at = self._get_gmt_timestamp(start_date_local)
+            
+                # Get gear details from Strava API
+            gear_id = getattr(activity, "gear_id", None)
+            gear_name = ""
+            if gear_id:
+                try:
+                    gear = self.client.get_gear(gear_id)
+                    if gear and hasattr(gear, 'name'):
+                        gear_name = str(gear.name)  # Convert to string in case it's a special type
+                        gear_name = self._clean_gear_name(gear_name)
+                except Exception as e:
+                    if self.debug:
+                        print(f"DEBUG: Error fetching gear details: {e}")
+
+            if self.debug:
+                print("\nDEBUG: Gear details:")
+                print(f"DEBUG:   gear_id = {gear_id}")
+                print(f"DEBUG:   final gear_name = {gear_name}\n")
+
             act = Activity(
                 name=name,
                 departed_at=departed_at,
                 distance=getattr(activity, "distance", 0) * 0.00062137,
-                strava_id=getattr(activity, "id", None)
+                strava_id=getattr(activity, "id", None),
+                equipment=gear_name
             )
             return act
         except Exception as e:
@@ -130,17 +161,20 @@ class StravaActivities(FitnessProvider):
         """
         from dateutil.relativedelta import relativedelta
         import pytz
-        debug = os.environ.get("STRAVALIB_DEBUG") == "1"
-
         year, month = map(int, year_month.split("-"))
         tz = pytz.UTC
         start_date = tz.localize(datetime.datetime(year, month, 1))
         end_date = start_date + relativedelta(months=1)
         activities = []
-        for a in self.client.get_activities(after=start_date, before=end_date):
+        # Use None for all optional params to ensure we get full activity details
+        for a in self.client.get_activities(
+            after=start_date, 
+            before=end_date,
+            limit=None
+        ):
             try:
                 start_date_local = getattr(a, "start_date_local", None)
-                if debug:
+                if self.debug:
                     print(f"DEBUG: id={getattr(a, 'id', None)}, name={getattr(a, 'name', None)}, start_date_local={start_date_local} type={type(start_date_local)}")
                 if not start_date_local:
                     continue
@@ -149,7 +183,7 @@ class StravaActivities(FitnessProvider):
                 elif isinstance(start_date_local, datetime.datetime):
                     parsed_date = start_date_local
                 else:
-                    if debug:
+                    if self.debug:
                         print(f"DEBUG: Unhandled start_date_local type: {type(start_date_local)}")
                     continue
                 
@@ -173,6 +207,35 @@ class StravaActivities(FitnessProvider):
                 # Still use the UTC date range for filtering
                 if not (start_date <= utc_dt < end_date):
                     continue
+                    
+                # In debug mode, dump all available activity attributes
+                if self.debug:
+                    print("\nDEBUG: Activity details:")
+                    for attr in dir(a):
+                        if not attr.startswith('_'):  # Skip internal attributes
+                            try:
+                                val = getattr(a, attr)
+                                print(f"DEBUG:   {attr} = {val} (type: {type(val)})")
+                            except Exception as e:
+                                print(f"DEBUG:   {attr} error: {e}")
+
+                # Get gear details from Strava API
+                gear_id = getattr(a, "gear_id", None)
+                gear_name = ""
+                if gear_id:
+                    try:
+                        gear = self.client.get_gear(gear_id)
+                        if gear and hasattr(gear, 'name'):
+                            gear_name = str(gear.name)  # Convert to string in case it's a special type
+                            gear_name = self._clean_gear_name(gear_name)
+                    except Exception as e:
+                        if self.debug:
+                            print(f"DEBUG: Error fetching gear details: {e}")
+
+                if self.debug:
+                    print("\nDEBUG: Gear details:")
+                    print(f"DEBUG:   gear_id = {gear_id}")
+                    print(f"DEBUG:   final gear_name = {gear_name}\n")
 
                 act = Activity(
                     name=getattr(a, "name", None),
@@ -180,10 +243,37 @@ class StravaActivities(FitnessProvider):
                     distance=getattr(a, "distance", 0) * 0.00062137,
                     strava_id=getattr(a, "id", None),
                     notes=getattr(a, "name", None),
+                    equipment=gear_name
                 )
                 activities.append(act)
             except Exception as e:
-                if debug:
+                if self.debug:
                     print(f"DEBUG: Exception processing activity: {e}")
                 continue
         return activities
+
+    def _clean_gear_name(self, gear_name: str) -> str:
+        """Clean up gear names that have duplication with year in them.
+        Example: "Altra Escalante 4 2025 Altra Escalante 4" -> "2025 Altra Escalante 4"
+        Does not modify names that already start with a year like "2006 Redline 925"
+        """
+        if not gear_name:
+            return gear_name
+            
+        # Check if the name already starts with a year (YYYY)
+        import re
+        if re.match(r'^\s*20\d{2}\b', gear_name):
+            return gear_name
+            
+        # Look for a year in the middle of the string
+        year_match = re.search(r'\b(20\d{2})\b', gear_name)
+        if year_match:
+            year = year_match.group(1)
+            # Split the string by the year
+            parts = gear_name.split(year)
+            if len(parts) == 2:
+                # Get the shorter part (assumes the duplicate is longer)
+                base_name = min(parts[0].strip(), parts[1].strip(), key=len)
+                # Return in format "YYYY Base Name"
+                return f"{year} {base_name}".strip()
+        return gear_name

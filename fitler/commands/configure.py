@@ -47,6 +47,15 @@ def run():
     timezone = input("Home timezone (default: US/Eastern): ").strip()
     config["home_timezone"] = timezone or "US/Eastern"
 
+    # Prompt for provider priority
+    print("\n--- Provider Priority Configuration ---")
+    print("This setting controls which provider's data takes precedence when")
+    print("there are conflicts in activity names or equipment.")
+    print("Available providers: spreadsheet, ridewithgps, strava")
+    print("Enter them in order of priority, comma-separated.")
+    provider_priority = input("Provider priority (default: spreadsheet,ridewithgps,strava): ").strip()
+    config["provider_priority"] = provider_priority or "spreadsheet,ridewithgps,strava"
+
     # Prompt for debug mode
     debug_input = input("\nEnable debug mode? (y/N): ").strip().lower()
     config["debug"] = debug_input == "y"

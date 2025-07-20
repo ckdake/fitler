@@ -4,7 +4,6 @@ from pathlib import Path
 from fitler.providers.spreadsheet import SpreadsheetActivities
 from fitler.providers.strava import StravaActivities
 from fitler.providers.ridewithgps import RideWithGPSActivities
-# from fitler.providers.garmin import GarminActivities  # Uncomment if implemented
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
@@ -14,6 +13,7 @@ CONFIG_PATH = Path("fitler_config.json")
 # ANSI color codes for terminal output
 green_bg = '\033[42m'
 yellow_bg = '\033[43m'
+red_bg = '\033[41m'
 reset = '\033[0m'
 
 def load_config():
@@ -21,6 +21,8 @@ def load_config():
         config = json.load(f)
     if "debug" not in config:
         config["debug"] = False
+    if "provider_priority" not in config:
+        config["provider_priority"] = "spreadsheet,ridewithgps,strava"
     return config
 
 def color_id(id_val, exists):
@@ -28,6 +30,25 @@ def color_id(id_val, exists):
         return f"{green_bg}{id_val}{reset}"
     else:
         return f"{yellow_bg}TBD{reset}"
+
+def get_authoritative_provider(group, config):
+    """Determine which provider should be considered authoritative for this activity group."""
+    provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+    # Return the first provider in priority order that has data
+    for provider in provider_order:
+        if any(a['provider'] == provider for a in group):
+            return provider
+    return None
+
+def color_text(text, is_auth, is_new, is_wrong):
+    """Apply color highlighting to text based on its status."""
+    if is_auth:  # Authoritative source
+        return f"{green_bg}{text}{reset}"
+    elif is_new:  # New activity to be created
+        return f"{yellow_bg}{text}{reset}"
+    elif is_wrong:  # Different from authoritative source
+        return f"{red_bg}{text}{reset}"
+    return text  # No highlighting needed
 
 def run(year_month):
     config = load_config()
@@ -54,8 +75,6 @@ def run(year_month):
             token_expires=strava_token_expires
         )
         strava_acts = strava.fetch_activities_for_month(year_month)
-    # garmin_acts = GarminActivities().fetch_activities_for_month(year_month)  # Uncomment if implemented
-    garmin_acts = []  # Placeholder
     ridewithgps_acts = []
 
     for env_var, key in [
@@ -87,15 +106,6 @@ def run(year_month):
         all_acts.append({
             'provider': 'strava',
             'id': getattr(act, 'strava_id', None),
-            'timestamp': ts,
-            'distance': getattr(act, 'distance', 0),
-            'obj': act
-        })
-    for act in garmin_acts:
-        ts = int(getattr(act, 'departed_at', 0) or 0)
-        all_acts.append({
-            'provider': 'garmin',
-            'id': getattr(act, 'garmin_id', None),
             'timestamp': ts,
             'distance': getattr(act, 'distance', 0),
             'obj': act
@@ -181,27 +191,27 @@ def run(year_month):
             else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
             for a in group
         )
-        ids = {'garmin': None, 'strava': None, 'spreadsheet': None, 'ridewithgps': None}
-        names = {'garmin': '', 'strava': '', 'spreadsheet': '', 'ridewithgps': ''}
-        dists = {'garmin': None, 'strava': None, 'spreadsheet': None, 'ridewithgps': None}
+        ids = {'strava': None, 'spreadsheet': None, 'ridewithgps': None}
+        names = {'strava': '', 'spreadsheet': '', 'ridewithgps': ''}
+        dists = {'strava': None, 'spreadsheet': None, 'ridewithgps': None}
         for a in group:
             ids[a['provider']] = a['id']
             names[a['provider']] = getattr(a['obj'], 'name', getattr(a['obj'], 'notes', ''))
             dists[a['provider']] = a['distance']
         rows.append({
             'start': start,
-            'garmin': ids['garmin'],
             'strava': ids['strava'],
             'spreadsheet': ids['spreadsheet'],
             'ridewithgps': ids['ridewithgps'],
-            'garmin_name': names['garmin'],
             'strava_name': names['strava'],
             'spreadsheet_name': names['spreadsheet'],
             'ridewithgps_name': names['ridewithgps'],
-            'garmin_dist': dists['garmin'],
             'strava_dist': dists['strava'],
             'spreadsheet_dist': dists['spreadsheet'],
-            'ridewithgps_dist': dists['ridewithgps']
+            'ridewithgps_dist': dists['ridewithgps'],
+            'strava_obj': next((a['obj'] for a in group if a['provider'] == 'strava'), None),
+            'spreadsheet_obj': next((a['obj'] for a in group if a['provider'] == 'spreadsheet'), None),
+            'ridewithgps_obj': next((a['obj'] for a in group if a['provider'] == 'ridewithgps'), None)
         })
     # Sort by start time
     rows.sort(key=lambda r: r['start'])
@@ -209,19 +219,64 @@ def run(year_month):
     # Print table header and rows using tabulate for alignment
     table = []
     for row in rows:
-        dist = next((d for d in [row['garmin_dist'], row['strava_dist'], row['spreadsheet_dist'], row['ridewithgps_dist']] if d), '')
-        name = next((n for n in [row['garmin_name'], row['strava_name'], row['spreadsheet_name'], row['ridewithgps_name']] if n), '')
+        # Find the authoritative source for this group based on provider priority
+        group = [
+            {'provider': 'strava', 'timestamp': row['start'].timestamp(), 'obj': row['strava_obj'], 'id': row['strava']},
+            {'provider': 'spreadsheet', 'timestamp': row['start'].timestamp(), 'obj': row['spreadsheet_obj'], 'id': row['spreadsheet']},
+            {'provider': 'ridewithgps', 'timestamp': row['start'].timestamp(), 'obj': row['ridewithgps_obj'], 'id': row['ridewithgps']}
+        ]
+        auth_provider = get_authoritative_provider(group, config)
+        
+        # Get authoritative name and equipment if they exist
+        auth_name = None
+        auth_equipment = None
+        if auth_provider:
+            auth_obj = row[f'{auth_provider}_obj']
+            if auth_obj:
+                auth_name = getattr(auth_obj, 'name', getattr(auth_obj, 'notes', ''))
+                auth_equipment = getattr(auth_obj, 'equipment', '')
+
+        dist = next((d for d in [row['strava_dist'], row['spreadsheet_dist'], row['ridewithgps_dist']] if d), '')
+        
+        # Helper function to determine text highlighting
+        def highlight(provider, text, is_name=True):
+            if not text:
+                return ''
+            obj = row[f'{provider}_obj']
+            has_auth = auth_provider is not None
+            is_auth = provider == auth_provider
+            is_new = obj is not None and not any(
+                row[f'{p}_obj'] for p in ['strava', 'spreadsheet', 'ridewithgps']
+                if p != provider and p == auth_provider
+            )
+            is_wrong = (has_auth and not is_auth and obj is not None and 
+                      ((is_name and auth_name and text != auth_name) or 
+                       (not is_name and auth_equipment and text != auth_equipment)))
+            return color_text(text, is_auth, is_new, is_wrong)
+
         table.append([
             row['start'].strftime('%Y-%m-%d %H:%M'),
-            color_id(row['garmin'], row['garmin'] is not None),
             color_id(row['strava'], row['strava'] is not None),
+            highlight('strava', row['strava_name'] or ''),
+            highlight('strava', getattr(row['strava_obj'], 'equipment', '') if row.get('strava_obj') else '', False),
             color_id(row['spreadsheet'], row['spreadsheet'] is not None),
+            highlight('spreadsheet', row['spreadsheet_name'] or ''),
+            highlight('spreadsheet', getattr(row['spreadsheet_obj'], 'equipment', '') if row.get('spreadsheet_obj') else '', False),
             color_id(row['ridewithgps'], row['ridewithgps'] is not None),
-            dist,
-            name
+            highlight('ridewithgps', row['ridewithgps_name'] or ''),
+            highlight('ridewithgps', getattr(row['ridewithgps_obj'], 'equipment', '') if row.get('ridewithgps_obj') else '', False),
+            dist
         ])
+
     headers = [
-        'Start', 'Garmin ID', 'Strava ID', 'Spreadsheet ID', 'RideWithGPS ID', 'Distance (mi)', 'Name'
+        'Start',
+        'Strava ID', 'Strava Name', 'Strava Equip',
+        'Sheet ID', 'Sheet Name', 'Sheet Equip',
+        'RWGPS ID', 'RWGPS Name', 'RWGPS Equip',
+        'Distance (mi)'
     ]
-    print(tabulate(table, headers=headers, tablefmt='plain', stralign='left', numalign='right', colalign=("left", "left", "left", "left", "left", "right", "left")))
-    print("\nLegend: \033[42mID exists\033[0m, \033[43mTBD = needs to be created\033[0m")
+    print(tabulate(table, headers=headers, tablefmt='plain', stralign='left', numalign='left', colalign=("left",) * len(headers)))
+    print("\nLegend:")
+    print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
+    print(f"{yellow_bg}Yellow{reset} = New entry to be created")
+    print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")

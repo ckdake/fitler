@@ -63,6 +63,7 @@ class RideWithGPSActivities(FitnessProvider):
                     departed_at=timestamp,
                     distance=getattr(trip, "distance", 0) * 0.00062137,  # meters to miles
                     ridewithgps_id=getattr(trip, "id", None),
+                    name=getattr(trip, "name", None),
                     notes=getattr(trip, "name", None),
                     equipment=(
                         gear.get(gear_id_str, "") if gear_id_str else ""
