@@ -50,6 +50,19 @@ def color_text(text, is_auth, is_new, is_wrong):
         return f"{red_bg}{text}{reset}"
     return text  # No highlighting needed
 
+def highlight_provider_id(sheet_id, actual_id, provider):
+    """Highlight provider IDs based on their status in the spreadsheet."""
+    if not sheet_id and actual_id:
+        # Missing in spreadsheet but exists in provider
+        return f"{yellow_bg}{actual_id}{reset}"
+    elif sheet_id and actual_id and str(sheet_id) != str(actual_id):
+        # Present in spreadsheet but doesn't match
+        return f"{red_bg}{sheet_id}{reset}"
+    elif sheet_id:
+        # Present and correct
+        return str(sheet_id)
+    return ""  # No ID available
+
 def run(year_month):
     config = load_config()
     # Get home timezone from config
@@ -198,6 +211,12 @@ def run(year_month):
             ids[a['provider']] = a['id']
             names[a['provider']] = getattr(a['obj'], 'name', getattr(a['obj'], 'notes', ''))
             dists[a['provider']] = a['distance']
+        spreadsheet_obj = next((a['obj'] for a in group if a['provider'] == 'spreadsheet'), None)
+        # Get provider IDs from spreadsheet if they exist
+        sheet_strava_id = getattr(spreadsheet_obj, 'strava_id', '') if spreadsheet_obj else ''
+        sheet_garmin_id = getattr(spreadsheet_obj, 'garmin_id', '') if spreadsheet_obj else ''
+        sheet_ridewithgps_id = getattr(spreadsheet_obj, 'ridewithgps_id', '') if spreadsheet_obj else ''
+        
         rows.append({
             'start': start,
             'strava': ids['strava'],
@@ -210,8 +229,11 @@ def run(year_month):
             'spreadsheet_dist': dists['spreadsheet'],
             'ridewithgps_dist': dists['ridewithgps'],
             'strava_obj': next((a['obj'] for a in group if a['provider'] == 'strava'), None),
-            'spreadsheet_obj': next((a['obj'] for a in group if a['provider'] == 'spreadsheet'), None),
-            'ridewithgps_obj': next((a['obj'] for a in group if a['provider'] == 'ridewithgps'), None)
+            'spreadsheet_obj': spreadsheet_obj,
+            'ridewithgps_obj': next((a['obj'] for a in group if a['provider'] == 'ridewithgps'), None),
+            'sheet_strava_id': sheet_strava_id,
+            'sheet_garmin_id': sheet_garmin_id,
+            'sheet_ridewithgps_id': sheet_ridewithgps_id
         })
     # Sort by start time
     rows.sort(key=lambda r: r['start'])
@@ -240,19 +262,61 @@ def run(year_month):
         
         # Helper function to determine text highlighting
         def highlight(provider, text, is_name=True):
-            if not text:
+            if not text and provider != 'spreadsheet':
                 return ''
+                
+            # Special handling when missing from spreadsheet
+            if not row['spreadsheet']:
+                # If this is the spreadsheet column, we should show what will be created
+                if provider == 'spreadsheet':
+                    # Get the best provider's data to show what will be created
+                    provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+                    provider_order.remove('spreadsheet')
+                    for p in provider_order:
+                        if row[f'{p}_obj']:
+                            p_obj = row[f'{p}_obj']
+                            p_text = (getattr(p_obj, 'name', getattr(p_obj, 'notes', '')) if is_name 
+                                    else getattr(p_obj, 'equipment', ''))
+                            if p_text:
+                                # Show what will be created in yellow
+                                return color_text(p_text, False, True, False)
+                    return ''
+                
+                # For other providers when spreadsheet is missing
+                provider_order = config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+                provider_order.remove('spreadsheet')
+                
+                # Find the highest priority provider that has data
+                best_provider = None
+                for p in provider_order:
+                    if row[f'{p}_obj']:
+                        best_provider = p
+                        break
+                        
+                if provider == best_provider:
+                    # This is the highest priority provider with data - show in green
+                    return color_text(text, True, False, False)
+                elif row[f'{provider}_obj']:
+                    # This provider has data - check if it matches the best provider
+                    best_obj = row[f'{best_provider}_obj']
+                    best_text = (getattr(best_obj, 'name', getattr(best_obj, 'notes', '')) if is_name 
+                               else getattr(best_obj, 'equipment', ''))
+                    if text == best_text:
+                        # Data matches the authoritative source - show in green
+                        return color_text(text, True, False, False)
+                    else:
+                        # Data doesn't match - show in yellow
+                        return color_text(text, False, True, False)
+                return text
+                
+            # Normal handling when spreadsheet entry exists
             obj = row[f'{provider}_obj']
             has_auth = auth_provider is not None
             is_auth = provider == auth_provider
-            is_new = obj is not None and not any(
-                row[f'{p}_obj'] for p in ['strava', 'spreadsheet', 'ridewithgps']
-                if p != provider and p == auth_provider
-            )
             is_wrong = (has_auth and not is_auth and obj is not None and 
                       ((is_name and auth_name and text != auth_name) or 
                        (not is_name and auth_equipment and text != auth_equipment)))
-            return color_text(text, is_auth, is_new, is_wrong)
+            return color_text(text, is_auth, False, is_wrong)
 
         table.append([
             row['start'].strftime('%Y-%m-%d %H:%M'),
@@ -265,7 +329,11 @@ def run(year_month):
             color_id(row['ridewithgps'], row['ridewithgps'] is not None),
             highlight('ridewithgps', row['ridewithgps_name'] or ''),
             highlight('ridewithgps', getattr(row['ridewithgps_obj'], 'equipment', '') if row.get('ridewithgps_obj') else '', False),
-            dist
+            dist,
+            # Add provider IDs from spreadsheet with highlighting
+            highlight_provider_id(row['sheet_strava_id'], row['strava'], 'strava'),
+            highlight_provider_id(row['sheet_garmin_id'], None, 'garmin'),  # Garmin data not available yet
+            highlight_provider_id(row['sheet_ridewithgps_id'], row['ridewithgps'], 'ridewithgps')
         ])
 
     headers = [
@@ -273,7 +341,8 @@ def run(year_month):
         'Strava ID', 'Strava Name', 'Strava Equip',
         'Sheet ID', 'Sheet Name', 'Sheet Equip',
         'RWGPS ID', 'RWGPS Name', 'RWGPS Equip',
-        'Distance (mi)'
+        'Distance (mi)',
+        'Sheet: Strava ID', 'Sheet: Garmin ID', 'Sheet: RWGPS ID'
     ]
     print(tabulate(table, headers=headers, tablefmt='plain', stralign='left', numalign='left', colalign=("left",) * len(headers)))
     print("\nLegend:")
