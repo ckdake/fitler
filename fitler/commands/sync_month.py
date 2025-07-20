@@ -119,13 +119,58 @@ def run(year_month):
         else:
             utc = datetime.fromtimestamp(0, timezone.utc)
             dt = utc.astimezone(home_tz)
-        return (
-            dt.replace(hour=0, minute=0, second=0, microsecond=0),
-            round(act['distance'] / 0.05) * 0.05
+
+        # For date matching, always use midnight
+        date_key = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        # Round distance to nearest 0.5 mile for more flexible matching
+        # This means activities within 0.5 miles of each other will match
+        distance_key = round(act['distance'] / 0.5) * 0.5
+
+        # If this is a spreadsheet activity (which only has date precision)
+        # or if the time is exactly midnight (suggesting date-only precision)
+        is_date_only = (
+            act['provider'] == 'spreadsheet' or 
+            (dt.hour == 0 and dt.minute == 0 and dt.second == 0)
         )
-    grouped = defaultdict(list)
+
+        return (date_key, distance_key, is_date_only)
+    # First, group by date and distance
+    initial_groups = defaultdict(list)
     for act in all_acts:
-        grouped[keyfunc(act)].append(act)
+        date_key, distance_key, is_date_only = keyfunc(act)
+        initial_groups[(date_key, distance_key)].append(act)
+    
+    # Then merge groups that are on the same day if any activity in the group is date-only
+    grouped = defaultdict(list)
+    processed_keys = set()
+    
+    # Sort keys by date and distance for consistent merging
+    sorted_keys = sorted(initial_groups.keys())
+    
+    for key in sorted_keys:
+        if key in processed_keys:
+            continue
+            
+        date_key, distance_key = key
+        merged_group = initial_groups[key]
+        processed_keys.add(key)
+        
+        # If any activity in this group is date-only precision
+        if any(keyfunc(act)[2] for act in merged_group):
+            # Look for other groups on the same day with similar distances
+            for other_key in sorted_keys:
+                if other_key in processed_keys:
+                    continue
+                    
+                other_date, other_distance = other_key
+                if (other_date == date_key and 
+                    abs(other_distance - distance_key) <= 0.5):
+                    merged_group.extend(initial_groups[other_key])
+                    processed_keys.add(other_key)
+        
+        if merged_group:  # Only add non-empty groups
+            grouped[key] = merged_group
 
     # Build rows for the table
     rows = []

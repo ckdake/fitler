@@ -19,7 +19,8 @@ dependencies = [
     "requests==2.32.4",
     "pyrwgps==0.0.2",
     "python-dotenv==1.0.1",
-    "stravalib==2.4"
+    "stravalib==2.4",
+    "tabulate==0.9.9"
 ]
 
 [project.optional-dependencies]
