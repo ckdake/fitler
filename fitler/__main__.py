@@ -7,6 +7,9 @@ access help/documentation.
 """
 
 import argparse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def main():
@@ -18,6 +21,10 @@ def main():
         "auth-strava", help="Authenticate with Strava and get an access token"
     )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
+    show_month_parser = subparsers.add_parser(
+        "show-month", help="Show all activities for a given month (YYYY-MM) from all sources"
+    )
+    show_month_parser.add_argument("year_month", type=str, help="Year and month in YYYY-MM format")
     subparsers.add_parser("sync", help="Sync and match activities from all sources")
     subparsers.add_parser("help", help="Show usage and documentation")
 
@@ -25,15 +32,14 @@ def main():
 
     if args.command == "auth-strava":
         from fitler.commands.auth_strava import run
-
         run()
     elif args.command == "configure":
         from fitler.commands.configure import run
-
-        run()
+    elif args.command == "show-month":
+        from fitler.commands.show_month import run
+        run(args.year_month)
     elif args.command == "sync":
         from fitler.commands.sync_all import run
-
         run()
     elif args.command == "help" or args.command is None:
         print(
@@ -46,6 +52,7 @@ Usage:
 Commands:
     auth-strava   Authenticate with Strava and get an access token
     configure     Configure Fitler for your environment (paths, API keys, etc)
+    show-month    Show all activities for a given month (YYYY-MM) from all sources
     sync          Sync and match activities from all sources
     help          Show this help and usage documentation
 

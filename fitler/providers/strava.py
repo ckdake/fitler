@@ -9,6 +9,8 @@ import time
 from typing import List, Optional, Dict
 import dateparser
 import stravaio  # type: ignore
+import calendar
+import datetime
 
 from fitler.providers.base import FitnessProvider, Activity
 
@@ -55,8 +57,8 @@ class StravaActivities(FitnessProvider):
                 # am_dict['avg_heart_rate'] = avg_heart_rate
                 activities.append(act)
                 time.sleep(2)
-            except Exception as e:
-                print("Exception fetching Strava Activity:", e)
+            except Exception:
+                continue
         return activities
 
     def create_activity(self, activity: Activity) -> str:
@@ -74,8 +76,7 @@ class StravaActivities(FitnessProvider):
                 strava_id=activity_dict.get("id"),
                 notes=activity_dict.get("name"),
             )
-        except Exception as e:
-            print("Exception fetching Strava Activity by ID:", e)
+        except Exception:
             return None
 
     def update_activity(self, activity_id: str, activity: Activity) -> bool:
@@ -89,3 +90,47 @@ class StravaActivities(FitnessProvider):
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         # Not implemented for Strava
         raise NotImplementedError("Strava set_gear not implemented.")
+
+    def fetch_activities_for_month(self, year_month: str) -> List[Activity]:
+        """
+        Return activities for the given year_month (YYYY-MM) using Strava API filters and manual pagination.
+        """
+        year, month = map(int, year_month.split("-"))
+        start_date = datetime.datetime(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = datetime.datetime(year, month, last_day, 23, 59, 59)
+        after = int(start_date.timestamp())
+        activities = []
+        fetched = 0
+        while True:
+            # The stravaio API only supports 'after', so we fetch in batches of 30
+            list_activities = self.client.get_logged_in_athlete_activities(after=after)
+            batch = list(list_activities)[fetched:fetched+30]
+            if not batch:
+                break
+            for a in batch:
+                try:
+                    start_date_local = getattr(a, "start_date_local", None)
+                    if not start_date_local:
+                        continue
+                    parsed_date = dateparser.parse(start_date_local)
+                    if not parsed_date or parsed_date > end_date:
+                        continue
+                    if parsed_date < start_date:
+                        return activities
+                    start_date_str = parsed_date.strftime("%Y-%m-%d")
+                    act = Activity(
+                        name=getattr(a, "name", None),
+                        start_date=start_date_str,
+                        start_time=start_date_local,
+                        distance=getattr(a, "distance", 0) * 0.00062137,
+                        strava_id=getattr(a, "id", None),
+                        notes=getattr(a, "name", None),
+                    )
+                    activities.append(act)
+                except Exception:
+                    continue
+            if len(batch) < 30:
+                break
+            fetched += 30
+        return activities

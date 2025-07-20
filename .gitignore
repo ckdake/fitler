@@ -13,3 +13,4 @@ metadata.sqlite3
 fitler.egg-info
 .mypy_cache
 fitler_config.json
+.env

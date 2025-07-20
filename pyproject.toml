@@ -18,7 +18,8 @@ dependencies = [
     "pytz==2025.2",
     "stravaio==0.0.9",
     "requests==2.32.4",
-    "ridewithgps==0.0.6"
+    "pyrwgps==0.0.2",
+    "python-dotenv==1.0.1"
 ]
 
 [project.optional-dependencies]

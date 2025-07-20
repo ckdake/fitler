@@ -53,9 +53,14 @@ class SpreadsheetActivities(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
-            activity_kwargs["start_time"] = dateparser.parse(str(row[0])).strftime(
-                "%Y-%m-%d"
-            )
+            # Parse date and set both start_time and start_date
+            parsed_date = dateparser.parse(str(row[0])) if row[0] else None
+            if parsed_date:
+                activity_kwargs["start_time"] = parsed_date.strftime("%Y-%m-%d")
+                activity_kwargs["start_date"] = parsed_date.strftime("%Y-%m-%d")
+            else:
+                activity_kwargs["start_time"] = ""
+                activity_kwargs["start_date"] = ""
             if row[1]:
                 activity_kwargs["activity_type"] = row[1]
             if row[2]:
@@ -102,6 +107,18 @@ class SpreadsheetActivities(FitnessProvider):
             activity_kwargs["spreadsheet_id"] = i + 1
             activities.append(Activity(**activity_kwargs))
         return activities
+
+    def fetch_activities_for_month(self, year_month: str) -> List[Activity]:
+        """
+        Return activities for the given year_month (YYYY-MM).
+        """
+        all_activities = self.fetch_activities()
+        filtered = []
+        for act in all_activities:
+            date_str = getattr(act, "start_date", None) or getattr(act, "start_time", None)
+            if date_str and date_str.startswith(year_month):
+                filtered.append(act)
+        return filtered
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
         xlsx_file = Path("ActivityData", self.path)
