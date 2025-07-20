@@ -29,6 +29,21 @@ class SpreadsheetActivities(FitnessProvider):
     def _hms_to_seconds(self, hms: Optional[str]) -> Optional[float]:
         if not hms:
             return None
+        # Accept numeric types directly
+        if isinstance(hms, (int, float)):
+            return float(hms)
+        try:
+            import decimal
+            if isinstance(hms, decimal.Decimal):
+                return float(hms)
+        except ImportError:
+            pass
+        # Accept string types only
+        if not isinstance(hms, str):
+            return None
+        # Ignore openpyxl types that are not string or numeric
+        if hasattr(hms, 'value') or hasattr(hms, 'is_date'):
+            return None
         try:
             t = datetime.datetime.strptime(hms, "%H:%M:%S")
             return t.hour * 3600 + t.minute * 60 + t.second
@@ -39,6 +54,22 @@ class SpreadsheetActivities(FitnessProvider):
                 return t.minute * 60 + t.second
             except Exception:
                 return None
+
+    def _parse_spreadsheet_datetime(self, dt_val):
+        # Spreadsheet times are in local time
+        if not dt_val:
+            return None
+        # Try to parse as datetime
+        dt = None
+        try:
+            dt = dateparser.parse(str(dt_val))
+        except Exception:
+            return None
+        # Attach local timezone if naive
+        if dt and dt.tzinfo is None:
+            # Use the system's local timezone
+            dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
+        return dt
 
     def fetch_activities(self) -> List[Activity]:
         xlsx_file = Path("ActivityData", self.path)
@@ -54,10 +85,10 @@ class SpreadsheetActivities(FitnessProvider):
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
             # Parse date and set both start_time and start_date
-            parsed_date = dateparser.parse(str(row[0])) if row[0] else None
+            parsed_date = self._parse_spreadsheet_datetime(row[0]) if row[0] else None
             if parsed_date:
-                activity_kwargs["start_time"] = parsed_date.strftime("%Y-%m-%d")
-                activity_kwargs["start_date"] = parsed_date.strftime("%Y-%m-%d")
+                activity_kwargs["start_time"] = parsed_date.isoformat()
+                activity_kwargs["start_date"] = parsed_date.isoformat()
             else:
                 activity_kwargs["start_time"] = ""
                 activity_kwargs["start_date"] = ""

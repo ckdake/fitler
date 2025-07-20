@@ -33,10 +33,11 @@ def run(year_month):
         logging.basicConfig(level=logging.DEBUG, force=True)
     else:
         logging.basicConfig(level=logging.WARNING, force=True)
-    # spreadsheet_path = config.get("spreadsheet_path")
-    # spreadsheet = SpreadsheetActivities(spreadsheet_path)
-    # spreadsheet_acts = spreadsheet.fetch_activities_for_month(year_month)
-    # print_activities("Spreadsheet", spreadsheet_acts, "spreadsheet_id")
+
+    spreadsheet_path = config.get("spreadsheet_path")
+    spreadsheet = SpreadsheetActivities(spreadsheet_path)
+    spreadsheet_acts = spreadsheet.fetch_activities_for_month(year_month)
+    print_activities("Spreadsheet", spreadsheet_acts, "spreadsheet_id")
 
     strava_token = os.environ.get("STRAVA_ACCESS_TOKEN")
     strava_refresh = os.environ.get("STRAVA_REFRESH_TOKEN")
