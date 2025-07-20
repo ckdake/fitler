@@ -16,10 +16,10 @@ dependencies = [
     "openpyxl==3.1.2",
     "dateparser==1.2.0",
     "pytz==2025.2",
-    "stravaio==0.0.9",
     "requests==2.32.4",
     "pyrwgps==0.0.2",
-    "python-dotenv==1.0.1"
+    "python-dotenv==1.0.1",
+    "stravalib==2.4"
 ]
 
 [project.optional-dependencies]

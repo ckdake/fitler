@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 from pathlib import Path
 from fitler.providers.spreadsheet import SpreadsheetActivities
 from fitler.providers.strava import StravaActivities
@@ -9,7 +10,10 @@ CONFIG_PATH = Path("fitler_config.json")
 
 def load_config():
     with open(CONFIG_PATH) as f:
-        return json.load(f)
+        config = json.load(f)
+    if "debug" not in config:
+        config["debug"] = False
+    return config
 
 def print_activities(provider_name, activities, id_field):
     print(f"\n{provider_name} (for selected month):")
@@ -24,29 +28,44 @@ def print_activities(provider_name, activities, id_field):
 
 def run(year_month):
     config = load_config()
-    spreadsheet_path = config.get("spreadsheet_path")
-    spreadsheet = SpreadsheetActivities(spreadsheet_path)
-    spreadsheet_acts = spreadsheet.fetch_activities_for_month(year_month)
-    print_activities("Spreadsheet", spreadsheet_acts, "spreadsheet_id")
+    if config.get("debug", False):
+        os.environ["STRAVALIB_DEBUG"] = "1"
+        logging.basicConfig(level=logging.DEBUG, force=True)
+    else:
+        logging.basicConfig(level=logging.WARNING, force=True)
+    # spreadsheet_path = config.get("spreadsheet_path")
+    # spreadsheet = SpreadsheetActivities(spreadsheet_path)
+    # spreadsheet_acts = spreadsheet.fetch_activities_for_month(year_month)
+    # print_activities("Spreadsheet", spreadsheet_acts, "spreadsheet_id")
 
     strava_token = os.environ.get("STRAVA_ACCESS_TOKEN")
+    strava_refresh = os.environ.get("STRAVA_REFRESH_TOKEN")
+    strava_client_id = os.environ.get("STRAVA_CLIENT_ID")
+    strava_client_secret = os.environ.get("STRAVA_CLIENT_SECRET")
+    strava_token_expires = os.environ.get("STRAVA_TOKEN_EXPIRES")
     if strava_token:
-        strava = StravaActivities(strava_token)
+        strava = StravaActivities(
+            strava_token,
+            refresh_token=strava_refresh,
+            client_id=strava_client_id,
+            client_secret=strava_client_secret,
+            token_expires=strava_token_expires
+        )
         strava_acts = strava.fetch_activities_for_month(year_month)
         print_activities("Strava", strava_acts, "strava_id")
     else:
         print("\nStrava: STRAVA_ACCESS_TOKEN not set in environment, skipping.")
 
-    # for env_var, key in [
-    #     ("RIDEWITHGPS_EMAIL", "ridewithgps_email"),
-    #     ("RIDEWITHGPS_PASSWORD", "ridewithgps_password"),
-    #     ("RIDEWITHGPS_KEY", "ridewithgps_key")
-    # ]:
-    #     if not os.environ.get(env_var):
-    #         os.environ[env_var] = config.get(key, "")
-    # try:
-    #     rwgps = RideWithGPSActivities()
-    #     rwgps_acts = rwgps.fetch_activities_for_month(year_month)
-    #     print_activities("RideWithGPS", rwgps_acts, "ridewithgps_id")
-    # except Exception as e:
-    #     print(f"\nRideWithGPS: Error fetching activities: {e}")
+    for env_var, key in [
+        ("RIDEWITHGPS_EMAIL", "ridewithgps_email"),
+        ("RIDEWITHGPS_PASSWORD", "ridewithgps_password"),
+        ("RIDEWITHGPS_KEY", "ridewithgps_key")
+    ]:
+        if not os.environ.get(env_var):
+            os.environ[env_var] = config.get(key, "")
+    try:
+        rwgps = RideWithGPSActivities()
+        rwgps_acts = rwgps.fetch_activities_for_month(year_month)
+        print_activities("RideWithGPS", rwgps_acts, "ridewithgps_id")
+    except Exception as e:
+        print(f"\nRideWithGPS: Error fetching activities: {e}")

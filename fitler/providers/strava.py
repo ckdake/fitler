@@ -5,10 +5,11 @@ for interacting with Strava activity data, including fetching, creating,
 and updating activities, as well as managing gear.
 """
 
+import os
 import time
+import logging
 from typing import List, Optional, Dict
 import dateparser
-import stravaio  # type: ignore
 import calendar
 import datetime
 
@@ -16,47 +17,40 @@ from fitler.providers.base import FitnessProvider, Activity
 
 
 class StravaActivities(FitnessProvider):
-    def __init__(self, token: str):
-        self.client = stravaio.StravaIO(access_token=token)
+    def __init__(self, token: str, refresh_token: Optional[str] = None, client_id: Optional[str] = None, client_secret: Optional[str] = None, token_expires: Optional[str] = None):
+        if os.environ.get("STRAVALIB_DEBUG") == "1":
+            logging.basicConfig(level=logging.DEBUG)
+            logging.getLogger("requests").setLevel(logging.DEBUG)
+            logging.getLogger("stravalib").setLevel(logging.DEBUG)
+        from stravalib import Client
+        self.client = Client(access_token=token)
+        if refresh_token:
+            self.client.refresh_token = refresh_token
+        if client_id:
+            self.client._client_id = int(client_id)
+        if client_secret:
+            self.client._client_secret = client_secret
+        if token_expires:
+            self.client.token_expires = int(token_expires)
 
     def fetch_activities(self) -> List[Activity]:
         activities = []
-        list_activities = self.client.get_logged_in_athlete_activities()
-        for a in list_activities:
+        for a in self.client.get_activities():
             try:
-                activity = self.client.get_activity_by_id(a.id)
-                activity_dict = activity.to_dict()
-                parsed_date = dateparser.parse(activity_dict.get("start_date_local"))
+                start_date_local = getattr(a, "start_date_local", None)
+                if not start_date_local:
+                    continue
+                parsed_date = dateparser.parse(start_date_local)
                 start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
                 act = Activity(
-                    name=activity_dict.get("name"),
+                    name=getattr(a, "name", None),
                     start_date=start_date,
-                    start_time=activity_dict.get("start_date_local"),
-                    distance=activity_dict.get("distance", 0)
-                    * 0.00062137,  # meters to miles
-                    strava_id=activity_dict.get("id"),
-                    notes=activity_dict.get("name"),
+                    start_time=start_date_local,
+                    distance=getattr(a, "distance", 0) * 0.00062137,
+                    strava_id=getattr(a, "id", None),
+                    notes=getattr(a, "name", None),
                 )
-                # am_dict['activity_type'] = activity_type
-                # am_dict['location_name'] = location_name
-                # am_dict['city'] = city  ---> get from start_latlng
-                # am_dict['state'] = state  ---> get from start_latlng
-                # am_dict['temperature'] = temperature
-                # am_dict['equipment'] = equipment
-                #     ---> get from gear_id and join
-                # am_dict['duration_hms'] = duration_hms
-                #     ---> get from elapsed_time in s
-                # source data is in meters, convert to miles
-                # am_dict['max_speed'] = max_speed
-                #     --->  convert from m/s to mph
-                # am_dict['avg_heart_rate'] = avg_heart_rate
-                #  am_dict['calories'] = calories
-                # am_dict['max_elevation'] = max_elevation
-                # am_dict['total_elevation_gain'] = total_elevation_gain
-                # am_dict['with_names'] = with_names
-                # am_dict['avg_heart_rate'] = avg_heart_rate
                 activities.append(act)
-                time.sleep(2)
             except Exception:
                 continue
         return activities
@@ -66,18 +60,8 @@ class StravaActivities(FitnessProvider):
         raise NotImplementedError("Strava create_activity not implemented.")
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
-        try:
-            activity = self.client.get_activity_by_id(activity_id)
-            activity_dict = activity.to_dict()
-            return Activity(
-                name=activity_dict.get("name"),
-                start_time=activity_dict.get("start_date_local"),
-                distance=activity_dict.get("distance", 0) * 0.00062137,
-                strava_id=activity_dict.get("id"),
-                notes=activity_dict.get("name"),
-            )
-        except Exception:
-            return None
+        # Not implemented for stravalib
+        return None
 
     def update_activity(self, activity_id: str, activity: Activity) -> bool:
         # Not implemented for Strava
@@ -93,44 +77,48 @@ class StravaActivities(FitnessProvider):
 
     def fetch_activities_for_month(self, year_month: str) -> List[Activity]:
         """
-        Return activities for the given year_month (YYYY-MM) using Strava API filters and manual pagination.
+        Return activities for the given year_month (YYYY-MM) using Stravalib API filters and pagination.
         """
+        from dateutil.relativedelta import relativedelta
+        import pytz
+        debug = os.environ.get("STRAVALIB_DEBUG") == "1"
+
         year, month = map(int, year_month.split("-"))
-        start_date = datetime.datetime(year, month, 1)
-        last_day = calendar.monthrange(year, month)[1]
-        end_date = datetime.datetime(year, month, last_day, 23, 59, 59)
-        after = int(start_date.timestamp())
+        tz = pytz.UTC
+        start_date = tz.localize(datetime.datetime(year, month, 1))
+        end_date = start_date + relativedelta(months=1)
         activities = []
-        fetched = 0
-        while True:
-            # The stravaio API only supports 'after', so we fetch in batches of 30
-            list_activities = self.client.get_logged_in_athlete_activities(after=after)
-            batch = list(list_activities)[fetched:fetched+30]
-            if not batch:
-                break
-            for a in batch:
-                try:
-                    start_date_local = getattr(a, "start_date_local", None)
-                    if not start_date_local:
-                        continue
-                    parsed_date = dateparser.parse(start_date_local)
-                    if not parsed_date or parsed_date > end_date:
-                        continue
-                    if parsed_date < start_date:
-                        return activities
-                    start_date_str = parsed_date.strftime("%Y-%m-%d")
-                    act = Activity(
-                        name=getattr(a, "name", None),
-                        start_date=start_date_str,
-                        start_time=start_date_local,
-                        distance=getattr(a, "distance", 0) * 0.00062137,
-                        strava_id=getattr(a, "id", None),
-                        notes=getattr(a, "name", None),
-                    )
-                    activities.append(act)
-                except Exception:
+        for a in self.client.get_activities(after=start_date, before=end_date):
+            try:
+                start_date_local = getattr(a, "start_date_local", None)
+                if debug:
+                    print(f"DEBUG: id={getattr(a, 'id', None)}, name={getattr(a, 'name', None)}, start_date_local={start_date_local} type={type(start_date_local)}")
+                if not start_date_local:
                     continue
-            if len(batch) < 30:
-                break
-            fetched += 30
+                if isinstance(start_date_local, str):
+                    parsed_date = dateparser.parse(start_date_local)
+                    start_time_str = start_date_local
+                elif isinstance(start_date_local, datetime.datetime):
+                    parsed_date = start_date_local
+                    start_time_str = start_date_local.isoformat()
+                else:
+                    if debug:
+                        print(f"DEBUG: Unhandled start_date_local type: {type(start_date_local)}")
+                    continue
+                if not parsed_date or not (start_date <= parsed_date < end_date):
+                    continue
+                start_date_str = parsed_date.strftime("%Y-%m-%d")
+                act = Activity(
+                    name=getattr(a, "name", None),
+                    start_date=start_date_str,
+                    start_time=start_time_str,
+                    distance=getattr(a, "distance", 0) * 0.00062137,
+                    strava_id=getattr(a, "id", None),
+                    notes=getattr(a, "name", None),
+                )
+                activities.append(act)
+            except Exception as e:
+                if debug:
+                    print(f"DEBUG: Exception processing activity: {e}")
+                continue
         return activities

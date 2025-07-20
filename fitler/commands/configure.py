@@ -41,6 +41,10 @@ def run():
         input("RideWithGPS API Key: ").strip() or "YOUR_RIDEWITHGPS_API_KEY"
     )
 
+    # Prompt for debug mode
+    debug_input = input("Enable debug mode? (y/N): ").strip().lower()
+    config["debug"] = debug_input == "y"
+
     config_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "../../fitler_config.json")
     )
