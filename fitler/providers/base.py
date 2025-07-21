@@ -80,9 +80,19 @@ class FitnessProvider(ABC):
     Abstract base class for all fitness service providers.
     """
 
+    @property
     @abstractmethod
-    def fetch_activities(self) -> List[Activity]:
-        """Fetch and return a list of Activity objects from the provider."""
+    def provider_name(self) -> str:
+        """Return the name of this provider."""
+        pass
+
+    @abstractmethod
+    def sync_activities(self, date_filter: str) -> List[Activity]:
+        """
+        Sync activities for a given month filter in YYYY-MM format.
+        Returns a list of synced Activity objects.
+        """
+        pass
 
     @abstractmethod
     def create_activity(self, activity: Activity) -> str:
