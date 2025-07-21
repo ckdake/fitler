@@ -33,6 +33,6 @@
 	// "remoteUser": "root"
 
 	"mounts": [
-		"source=${localEnv:HOME}/Documents/exerciselog.xlsx,target=/home/vscode/exerciselog.xlsx,type=bind,consistency=cached,readonly"
+		"source=${localEnv:HOME}/Documents/exerciselog.xlsx,target=/home/vscode/exerciselog.xlsx,type=bind,consistency=cached"
 	]
 }
