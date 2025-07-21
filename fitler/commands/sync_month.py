@@ -1,9 +1,36 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, NamedTuple
+from enum import Enum
 from fitler.metadata import ActivityMetadata
 from fitler.core import Fitler
 from datetime import datetime, timezone
+import dateparser
 from collections import defaultdict
 from tabulate import tabulate
+
+class ChangeType(Enum):
+    UPDATE_NAME = "Update Name"
+    UPDATE_EQUIPMENT = "Update Equipment"
+    ADD_ACTIVITY = "Add Activity"
+    LINK_ACTIVITY = "Link Activity"
+
+class ActivityChange(NamedTuple):
+    change_type: ChangeType
+    provider: str
+    activity_id: str
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    source_provider: Optional[str] = None
+    
+    def __str__(self) -> str:
+        if self.change_type == ChangeType.UPDATE_NAME:
+            return f"Update {self.provider} name for activity {self.activity_id} from '{self.old_value}' to '{self.new_value}'"
+        elif self.change_type == ChangeType.UPDATE_EQUIPMENT:
+            return f"Update {self.provider} equipment for activity {self.activity_id} from '{self.old_value}' to '{self.new_value}'"
+        elif self.change_type == ChangeType.ADD_ACTIVITY:
+            return f"Add activity '{self.new_value}' to {self.provider} (from {self.source_provider} activity {self.activity_id})"
+        elif self.change_type == ChangeType.LINK_ACTIVITY:
+            return f"Link {self.provider} activity {self.activity_id} with {self.source_provider} activity {self.new_value}"
+        return "Unknown change"
 
 # ANSI color codes for terminal output
 green_bg = '\033[42m'
@@ -16,8 +43,6 @@ def color_id(id_val, exists):
         return f"{green_bg}{id_val}{reset}"
     else:
         return f"{yellow_bg}TBD{reset}"
-
-
 
 def color_text(text, is_auth, is_new, is_wrong):
     """Apply color highlighting to text based on its status."""
@@ -43,86 +68,25 @@ def highlight_provider_id(sheet_id, actual_id, provider):
     return ""  # No ID available
 
 def run(year_month):
-    # Initialize Fitler
     with Fitler() as fitler:
-        # Get all activities
-        activities = fitler.fetch_activities_for_month(year_month)
-        spreadsheet_acts = activities['spreadsheet']
-        strava_acts = activities['strava']
-        ridewithgps_acts = activities['ridewithgps']
-        
-        # Use fitler's config and timezone
+        activities = fitler.provider_sync(year_month)
+            
+        spreadsheet_acts = activities.get('spreadsheet', [])
+        strava_acts = activities.get('strava', [])
+        ridewithgps_acts = activities.get('ridewithgps', [])
+
         config = fitler.config
         home_tz = fitler.home_tz
 
-    # Database connection is managed by Fitler class
-    
-    # First, find or create ActivityMetadata records for each provider's activities
     all_acts = []
-    
-    def process_activity(act, provider: str):
-        # Get the timestamp and ID
-        ts = int(getattr(act, 'departed_at', 0) or 0)
-        provider_id = getattr(act, f'{provider}_id', None)
-        
-        # Try to find existing record by provider ID
-        metadata = None
-        lookup_id = provider_id
-        if provider == 'spreadsheet':
-            lookup_id = getattr(act, 'spreadsheet_id', None)
-        
-        if lookup_id:
-            try:
-                metadata = ActivityMetadata.select().where(getattr(ActivityMetadata, f'{provider}_id') == lookup_id).first()
-            except Exception:
-                pass
-        
-        # If not found by ID, create new record
-        if not metadata:
-            metadata = ActivityMetadata()
-            # Set basic fields
-            if ts:
-                dt = datetime.fromtimestamp(ts, timezone.utc)
-                eastern = dt.astimezone(home_tz)
-                metadata.start_time = eastern
-                metadata.date = eastern.date()
-            metadata.save()  # Save to create the record and get an ID
-            
-        # Convert activity data to dict for storage
-        act_data = {
-            'id': provider_id if provider != 'spreadsheet' else getattr(act, 'spreadsheet_id', None),
-            'name': getattr(act, 'name', getattr(act, 'notes', '')),
-            'notes': getattr(act, 'notes', ''),
-            'equipment': getattr(act, 'equipment', ''),
-            'distance': getattr(act, 'distance', 0),
-            'activity_type': getattr(act, 'activity_type', ''),
-            'start_time': datetime.fromtimestamp(ts, timezone.utc) if ts else None
-        }
-        
-        # Set the provider ID directly first
-        if provider_id:
-            setattr(metadata, f'{provider}_id', provider_id)
-            metadata.save()
-        
-        # Then update the rest of the metadata
-        metadata.update_from_provider(provider, act_data, config)
-        
-        return {
-            'provider': provider,
-            'id': provider_id,
-            'timestamp': ts,
-            'distance': getattr(act, 'distance', 0),
-            'obj': act,
-            'metadata': metadata
-        }
     
     # Process activities from each provider
     for act in spreadsheet_acts:
-        all_acts.append(process_activity(act, 'spreadsheet'))
+        all_acts.append(fitler._process_activity(act, 'spreadsheet'))
     for act in strava_acts:
-        all_acts.append(process_activity(act, 'strava'))
+        all_acts.append(fitler._process_activity(act, 'strava'))
     for act in ridewithgps_acts:
-        all_acts.append(process_activity(act, 'ridewithgps'))
+        all_acts.append(fitler._process_activity(act, 'ridewithgps'))
 
     # Group by (date, distance) rounded to nearest 0.05 mile for fuzzy matching
     def keyfunc(act):
@@ -233,6 +197,10 @@ def run(year_month):
     table = []
     all_changes = []  # Collect all needed changes
     
+    if not rows:
+        print(f"\nNo activities found for {year_month}")
+        return
+        
     for row in rows:
         # Get the metadata object for this group by matching IDs
         metadata = None
@@ -264,9 +232,91 @@ def run(year_month):
         auth_equipment = auth_data.get('equipment') if auth_data else None
         
         # Collect changes needed for this activity
-        changes = metadata.get_needed_changes(config)
-        if changes:
-            all_changes.extend(changes)
+        activity_changes = []
+        
+        # Get authoritative provider's data
+        auth_provider = metadata.get_authoritative_provider(
+            config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
+        )
+        auth_data = metadata.get_provider_data(auth_provider) if auth_provider else None
+
+        # Check each provider for needed changes
+        for provider in ['strava', 'ridewithgps', 'spreadsheet']:
+            provider_data = metadata.get_provider_data(provider)
+            provider_id = getattr(metadata, f'{provider}_id', None)
+
+            # Only proceed with change detection if we have an authoritative source and this isn't it
+            if not auth_provider or provider == auth_provider:
+                continue
+
+            # Get the activity objects from the row for this provider
+            activity_obj = row.get(f'{provider}_obj')
+            
+            # For spreadsheet provider ID checks
+            if provider == 'spreadsheet':
+                # Check if spreadsheet's stored provider IDs match actual IDs
+                actual_strava_id = row.get('strava')
+                actual_rwgps_id = row.get('ridewithgps')
+                sheet_strava_id = row.get('sheet_strava_id')
+                sheet_rwgps_id = row.get('sheet_ridewithgps_id')
+                
+                if actual_strava_id and str(actual_strava_id) != str(sheet_strava_id or ''):
+                    activity_changes.append(ActivityChange(
+                        change_type=ChangeType.LINK_ACTIVITY,
+                        provider='spreadsheet',
+                        activity_id=str(row['spreadsheet']),
+                        new_value=str(actual_strava_id),
+                        source_provider='strava'
+                    ))
+                
+                # Check for RWGPS ID mismatches
+                # The spreadsheet might have a wrong ID or an ID when there shouldn't be one
+                if str(actual_rwgps_id or '') != str(sheet_rwgps_id or ''):
+                    activity_changes.append(ActivityChange(
+                        change_type=ChangeType.LINK_ACTIVITY,
+                        provider='spreadsheet',
+                        activity_id=str(row['spreadsheet']),
+                        new_value=str(actual_rwgps_id or ''),
+                        source_provider='ridewithgps'
+                    ))
+
+            # Get the data for comparison
+            auth_equipment = auth_data.get('equipment', '') if auth_data else ''
+            provider_equipment = getattr(activity_obj, 'equipment', '') if activity_obj else ''
+
+            # Check if equipment needs updating
+            if auth_equipment and provider_equipment and auth_equipment != provider_equipment:
+                activity_changes.append(ActivityChange(
+                    change_type=ChangeType.UPDATE_EQUIPMENT,
+                    provider=provider,
+                    activity_id=str(row[provider]),
+                    old_value=provider_equipment,
+                    new_value=auth_equipment
+                ))
+
+            if provider_data and auth_data and provider != auth_provider:
+                # Check if name needs updating
+                if provider_data.get('name') != auth_data.get('name'):
+                    activity_changes.append(ActivityChange(
+                        change_type=ChangeType.UPDATE_NAME,
+                        provider=provider,
+                        activity_id=provider_id or '',
+                        old_value=provider_data.get('name', ''),
+                        new_value=auth_data.get('name', '')
+                    ))
+                
+                # Check if equipment needs updating
+                if provider_data.get('equipment') != auth_data.get('equipment'):
+                    activity_changes.append(ActivityChange(
+                        change_type=ChangeType.UPDATE_EQUIPMENT,
+                        provider=provider,
+                        activity_id=provider_id or '',
+                        old_value=provider_data.get('equipment', ''),
+                        new_value=auth_data.get('equipment', '')
+                    ))
+
+        if activity_changes:
+            all_changes.extend(activity_changes)
 
         dist = next((d for d in [row['strava_dist'], row['spreadsheet_dist'], row['ridewithgps_dist']] if d), '')
         
@@ -348,8 +398,16 @@ def run(year_month):
     print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
     
     if all_changes:
-        print("\nChanges needed:")
+        # Group changes by type for better readability
+        changes_by_type = defaultdict(list)
         for change in all_changes:
-            print(f"* {change}")
+            changes_by_type[change.change_type].append(change)
+
+        print("\nChanges needed:")
+        for change_type in ChangeType:
+            if changes_by_type[change_type]:
+                print(f"\n{change_type.value}s:")
+                for change in changes_by_type[change_type]:
+                    print(f"* {change}")
             
     # Database connection is managed by Fitler class

@@ -22,7 +22,7 @@ def main():
     )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
     subparsers.add_parser(
-        "migrate", help="Create or update the database schema"
+        "migrate", help="Initialize or upgrade the database. Run this after installation or updates."
     )
     show_month_parser = subparsers.add_parser(
         "show-month", help="Show all activities for a given month (YYYY-MM) from all sources"
@@ -53,8 +53,8 @@ def main():
         from fitler.commands.sync_all import run
         run()
     elif args.command == "migrate":
-        from fitler.metadata import ActivityMetadata
-        ActivityMetadata.migrate()
+        from fitler.commands.migrate import run
+        run()
     elif args.command == "help" or args.command is None:
         print(
             """
@@ -72,9 +72,10 @@ Commands:
     help          Show this help and usage documentation
 
 Setup:
-    1. Run 'python -m fitler configure' to set up paths and API credentials.
-    2. Authenticate with Strava using 'python -m fitler auth-strava'.
-    3. Sync your activities with 'python -m fitler sync'.
+    1. Run 'python -m fitler migrate' to initialize the database.
+    2. Run 'python -m fitler configure' to set up paths and API credentials.
+    3. Authenticate with Strava using 'python -m fitler auth-strava'.
+    4. Sync your activities with 'python -m fitler sync'.
 
 See README.md for more details.
 """

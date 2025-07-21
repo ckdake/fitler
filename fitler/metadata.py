@@ -6,7 +6,6 @@ import pytz
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 from peewee import (
-    SqliteDatabase,
     Model,
     DateTimeField,
     CharField,
@@ -17,7 +16,7 @@ from peewee import (
     TextField,
 )
 
-db = SqliteDatabase("metadata.sqlite3")
+from .database import db
 
 class ActivityMetadata(Model):
     # Core activity data
@@ -190,9 +189,4 @@ class ActivityMetadata(Model):
             data[field.name] = value
         return json.dumps(data, sort_keys=True, indent=4)
 
-    @classmethod
-    def migrate(cls) -> None:
-        """Create or update the database schema."""
-        db.connect()
-        db.create_tables([cls])
-        db.close()
+    # Database migration is now handled by core.migrate_tables()

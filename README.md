@@ -46,7 +46,7 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
 4. **Set up environment variables:**
    Create a `.env` file in the project root with the following variables:
    ```sh
-   # Strava API credentials (required for Strava integration)
+   # Strava API credentials (required for Strava integration, generate with the auth-strava command)
    STRAVA_CLIENT_ID=your_client_id
    STRAVA_CLIENT_SECRET=your_client_secret
    STRAVA_ACCESS_TOKEN=your_access_token

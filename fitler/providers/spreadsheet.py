@@ -100,7 +100,7 @@ class SpreadsheetActivities(FitnessProvider):
             return None
 
     def fetch_activities(self) -> List[Activity]:
-        xlsx_file = Path("ActivityData", self.path)
+        xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
 
@@ -185,7 +185,7 @@ class SpreadsheetActivities(FitnessProvider):
         return filtered
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
-        xlsx_file = Path("ActivityData", self.path)
+        xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
 
