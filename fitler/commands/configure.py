@@ -18,28 +18,8 @@ def run():
     ).strip()
     config["activity_file_glob"] = file_glob
 
-    # Placeholders for Strava API credentials
-    print("\n--- Strava API Credentials ---")
-    print("You can fill these in later if you don't have them now.")
-    config["strava_client_id"] = (
-        input("Strava Client ID: ").strip() or "YOUR_STRAVA_CLIENT_ID"
-    )
-    config["strava_client_secret"] = (
-        input("Strava Client Secret: ").strip() or "YOUR_STRAVA_CLIENT_SECRET"
-    )
-
-    # Placeholders for RideWithGPS API credentials
-    print("\n--- RideWithGPS API Credentials ---")
-    print("You can fill these in later if you don't have them now.")
-    config["ridewithgps_email"] = (
-        input("RideWithGPS Email: ").strip() or "YOUR_RIDEWITHGPS_EMAIL"
-    )
-    config["ridewithgps_password"] = (
-        input("RideWithGPS Password: ").strip() or "YOUR_RIDEWITHGPS_PASSWORD"
-    )
-    config["ridewithgps_key"] = (
-        input("RideWithGPS API Key: ").strip() or "YOUR_RIDEWITHGPS_API_KEY"
-    )
+    print("\nNote: Strava and RideWithGPS credentials should be set in .env file.")
+    print("See README.md for details on setting up provider credentials.\n")
 
     # Prompt for home timezone
     print("\n--- Timezone Configuration ---")

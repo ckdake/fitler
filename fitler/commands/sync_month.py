@@ -1,31 +1,15 @@
-import os
-import json
-from pathlib import Path
 from typing import Dict, List, Optional
-from fitler.providers.spreadsheet import SpreadsheetActivities
-from fitler.providers.strava import StravaActivities
-from fitler.providers.ridewithgps import RideWithGPSActivities
-from fitler.metadata import ActivityMetadata, db
+from fitler.metadata import ActivityMetadata
+from fitler.core import Fitler
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
-
-CONFIG_PATH = Path("fitler_config.json")
 
 # ANSI color codes for terminal output
 green_bg = '\033[42m'
 yellow_bg = '\033[43m'
 red_bg = '\033[41m'
 reset = '\033[0m'
-
-def load_config():
-    with open(CONFIG_PATH) as f:
-        config = json.load(f)
-    if "debug" not in config:
-        config["debug"] = False
-    if "provider_priority" not in config:
-        config["provider_priority"] = "spreadsheet,ridewithgps,strava"
-    return config
 
 def color_id(id_val, exists):
     if exists:
@@ -59,47 +43,19 @@ def highlight_provider_id(sheet_id, actual_id, provider):
     return ""  # No ID available
 
 def run(year_month):
-    config = load_config()
-    # Get home timezone from config
-    from zoneinfo import ZoneInfo
-    home_tz = ZoneInfo(config.get('home_timezone', 'US/Eastern'))
+    # Initialize Fitler
+    with Fitler() as fitler:
+        # Get all activities
+        activities = fitler.fetch_activities_for_month(year_month)
+        spreadsheet_acts = activities['spreadsheet']
+        strava_acts = activities['strava']
+        ridewithgps_acts = activities['ridewithgps']
+        
+        # Use fitler's config and timezone
+        config = fitler.config
+        home_tz = fitler.home_tz
 
-    # Load activities from all providers
-    spreadsheet_path = config.get("spreadsheet_path")
-    spreadsheet = SpreadsheetActivities(spreadsheet_path)
-    spreadsheet_acts = spreadsheet.fetch_activities_for_month(year_month)
-    strava_token = os.environ.get("STRAVA_ACCESS_TOKEN")
-    strava_refresh = os.environ.get("STRAVA_REFRESH_TOKEN")
-    strava_client_id = os.environ.get("STRAVA_CLIENT_ID")
-    strava_client_secret = os.environ.get("STRAVA_CLIENT_SECRET")
-    strava_token_expires = os.environ.get("STRAVA_TOKEN_EXPIRES")
-    strava_acts = []
-    if strava_token:
-        strava = StravaActivities(
-            strava_token,
-            refresh_token=strava_refresh,
-            client_id=strava_client_id,
-            client_secret=strava_client_secret,
-            token_expires=strava_token_expires
-        )
-        strava_acts = strava.fetch_activities_for_month(year_month)
-    ridewithgps_acts = []
-
-    for env_var, key in [
-        ("RIDEWITHGPS_EMAIL", "ridewithgps_email"),
-        ("RIDEWITHGPS_PASSWORD", "ridewithgps_password"),
-        ("RIDEWITHGPS_KEY", "ridewithgps_key")
-    ]:
-        if not os.environ.get(env_var):
-            os.environ[env_var] = config.get(key, "")
-    try:
-        ridewithgps = RideWithGPSActivities()
-        ridewithgps_acts = ridewithgps.fetch_activities_for_month(year_month)
-    except Exception as e:
-        print(f"\nRideWithGPS: Error fetching activities: {e}")
-
-    # Ensure database connection is open
-    db.connect()
+    # Database connection is managed by Fitler class
     
     # First, find or create ActivityMetadata records for each provider's activities
     all_acts = []
@@ -396,5 +352,4 @@ def run(year_month):
         for change in all_changes:
             print(f"* {change}")
             
-    # Close database connection
-    db.close()
+    # Database connection is managed by Fitler class

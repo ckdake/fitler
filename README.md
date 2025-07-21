@@ -43,7 +43,25 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
     pip install -e .
     ```
 
-4. **Prepare your data:**
+4. **Set up environment variables:**
+   Create a `.env` file in the project root with the following variables:
+   ```sh
+   # Strava API credentials (required for Strava integration)
+   STRAVA_CLIENT_ID=your_client_id
+   STRAVA_CLIENT_SECRET=your_client_secret
+   STRAVA_ACCESS_TOKEN=your_access_token
+   STRAVA_REFRESH_TOKEN=your_refresh_token
+   STRAVA_TOKEN_EXPIRES=token_expiration_timestamp
+
+   # RideWithGPS credentials (required for RWGPS integration)
+   RIDEWITHGPS_EMAIL=your_email
+   RIDEWITHGPS_PASSWORD=your_password
+   RIDEWITHGPS_KEY=your_api_key
+   ```
+   Note: You can get Strava API credentials by creating an application at https://www.strava.com/settings/api
+   and RideWithGPS credentials at https://ridewithgps.com/api
+
+5. **Prepare your data:**
     - Place your exported Strava activity files in a folder such as `export_12345/` in the repo root.
     - If you're not using Strava export, place your files in `export_12345/activities/` in the repo root.
     - (Optional) Place your exercise spreadsheet at `~/Documents/exerciselog.xlsx`.
