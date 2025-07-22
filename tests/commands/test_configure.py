@@ -13,11 +13,9 @@ def test_run_creates_config_file(monkeypatch):
         [
             "/tmp/fake_spreadsheet.xlsx",
             "./fake_glob/*",
-            "12345",  # Strava Client ID
-            "secret",  # Strava Client Secret
-            "user@example.com",  # RideWithGPS Email
-            "password",  # RideWithGPS Password
-            "apikey",  # RideWithGPS API Key
+            "US/Pacific",  # Home timezone
+            "spreadsheet,strava,ridewithgps",  # Provider priority
+            "y",  # Debug mode
         ]
     )
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
@@ -34,8 +32,6 @@ def test_run_creates_config_file(monkeypatch):
             config = json.load(f)
         assert config["spreadsheet_path"] == "/tmp/fake_spreadsheet.xlsx"
         assert config["activity_file_glob"] == "./fake_glob/*"
-        assert config["strava_client_id"] == "12345"
-        assert config["strava_client_secret"] == "secret"
-        assert config["ridewithgps_email"] == "user@example.com"
-        assert config["ridewithgps_password"] == "password"
-        assert config["ridewithgps_key"] == "apikey"
+        assert config["home_timezone"] == "US/Pacific"
+        assert config["provider_priority"] == "spreadsheet,strava,ridewithgps"
+        assert config["debug"] == True

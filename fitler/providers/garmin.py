@@ -2,6 +2,8 @@
 
 This module defines the GarminProvider class, which provides a stub interface
 for interacting with Garmin activity data. Currently not implemented.
+
+TODO: implement using https://pypi.org/project/garminconnect/, including adding an auth_garmin.py helper command (like auth_strava.py)
 """
 
 import os

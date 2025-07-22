@@ -27,7 +27,8 @@ def test_activity_file_parses_gpx(tmp_path):
     af = ActivityFile(gpx_file)
     metadata = af.parse()
     assert metadata is not None
-    assert metadata.start_time.startswith("2024-05-27T")
+    # start_time is now stored as Unix timestamp string
+    assert metadata.start_time.isdigit()
     assert metadata.source == "File"
 
 
