@@ -53,7 +53,7 @@ class TestFitlerCore:
                 assert fitler.config["debug"] == False
                 assert (
                     fitler.config["provider_priority"]
-                    == "spreadsheet,ridewithgps,strava"
+                    == "spreadsheet,ridewithgps,strava,garmin"
                 )
 
     def test_enabled_providers_empty(self, tmp_path):

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from .providers.spreadsheet import SpreadsheetProvider
 from .providers.strava import StravaProvider
 from .providers.ridewithgps import RideWithGPSProvider
+from .providers.garmin import GarminProvider
 from .activity import Activity
 from .database import db
 
@@ -30,6 +31,7 @@ class Fitler:
         self._spreadsheet = None
         self._strava = None
         self._ridewithgps = None
+        self._garmin = None
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from fitler_config.json."""
@@ -39,7 +41,7 @@ class Fitler:
         if "debug" not in config:
             config["debug"] = False
         if "provider_priority" not in config:
-            config["provider_priority"] = "spreadsheet,ridewithgps,strava"
+            config["provider_priority"] = "spreadsheet,ridewithgps,strava,garmin"
 
         return config
 
@@ -81,6 +83,14 @@ class Fitler:
         return self._ridewithgps
 
     @property
+    def garmin(self) -> Optional[GarminProvider]:
+        """Get the Garmin provider, initializing it if needed."""
+        if not self._garmin:
+            if os.environ.get("GARMINTOKENS"):
+                self._garmin = GarminProvider()
+        return self._garmin
+
+    @property
     def enabled_providers(self) -> List[str]:
         """Get list of enabled providers."""
         providers = []
@@ -90,6 +100,8 @@ class Fitler:
             providers.append("strava")
         if self.ridewithgps:
             providers.append("ridewithgps")
+        if self.garmin:
+            providers.append("garmin")
         return providers
 
     def pull_activities(self, year_month: str) -> Dict[str, List[Activity]]:

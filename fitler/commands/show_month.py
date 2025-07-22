@@ -52,19 +52,16 @@ def run(year_month):
         print("Please provide a year and month in YYYY-MM format")
         return
 
-    # Initialize Fitler
     with Fitler() as fitler:
-        # Pull all activities for the month
         activities = fitler.pull_activities(year_month)
 
-        # Use fitler's config and timezone
         home_tz = fitler.home_tz
 
-        # Print activities from each enabled provider
         provider_configs = {
             "spreadsheet": ("Spreadsheet", "spreadsheet_id"),
             "strava": ("Strava", "strava_id"),
             "ridewithgps": ("RideWithGPS", "ridewithgps_id"),
+            "garmin": ("Garmin", "garmin_id"),
         }
 
         for provider_key, (display_name, id_field) in provider_configs.items():

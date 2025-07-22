@@ -127,6 +127,7 @@ def run(year_month):
         spreadsheet_acts = activities.get("spreadsheet", [])
         strava_acts = activities.get("strava", [])
         ridewithgps_acts = activities.get("ridewithgps", [])
+        garmin_acts = activities.get("garmin", [])
 
         config = fitler.config
         home_tz = fitler.home_tz
@@ -140,6 +141,8 @@ def run(year_month):
         all_acts.append(process_activity_for_display(act, "strava"))
     for act in ridewithgps_acts:
         all_acts.append(process_activity_for_display(act, "ridewithgps"))
+    for act in garmin_acts:
+        all_acts.append(process_activity_for_display(act, "garmin"))
 
     # Group by (date, distance) rounded to nearest 0.05 mile for fuzzy matching
     def keyfunc(act):
@@ -217,9 +220,14 @@ def run(year_month):
             )
             for a in group
         )
-        ids = {"strava": None, "spreadsheet": None, "ridewithgps": None}
-        names = {"strava": "", "spreadsheet": "", "ridewithgps": ""}
-        dists = {"strava": None, "spreadsheet": None, "ridewithgps": None}
+        ids = {"strava": None, "spreadsheet": None, "ridewithgps": None, "garmin": None}
+        names = {"strava": "", "spreadsheet": "", "ridewithgps": "", "garmin": ""}
+        dists = {
+            "strava": None,
+            "spreadsheet": None,
+            "ridewithgps": None,
+            "garmin": None,
+        }
         for a in group:
             ids[a["provider"]] = a["id"]
             names[a["provider"]] = getattr(
@@ -246,18 +254,24 @@ def run(year_month):
                 "strava": ids["strava"],
                 "spreadsheet": ids["spreadsheet"],
                 "ridewithgps": ids["ridewithgps"],
+                "garmin": ids["garmin"],
                 "strava_name": names["strava"],
                 "spreadsheet_name": names["spreadsheet"],
                 "ridewithgps_name": names["ridewithgps"],
+                "garmin_name": names["garmin"],
                 "strava_dist": dists["strava"],
                 "spreadsheet_dist": dists["spreadsheet"],
                 "ridewithgps_dist": dists["ridewithgps"],
+                "garmin_dist": dists["garmin"],
                 "strava_obj": next(
                     (a["obj"] for a in group if a["provider"] == "strava"), None
                 ),
                 "spreadsheet_obj": spreadsheet_obj,
                 "ridewithgps_obj": next(
                     (a["obj"] for a in group if a["provider"] == "ridewithgps"), None
+                ),
+                "garmin_obj": next(
+                    (a["obj"] for a in group if a["provider"] == "garmin"), None
                 ),
                 "sheet_strava_id": sheet_strava_id,
                 "sheet_garmin_id": sheet_garmin_id,
@@ -287,6 +301,7 @@ def run(year_month):
                 or (
                     act["provider"] == "ridewithgps" and act["id"] == row["ridewithgps"]
                 )
+                or (act["provider"] == "garmin" and act["id"] == row["garmin"])
             ):
                 metadata = act["metadata"]
                 break
@@ -328,7 +343,7 @@ def run(year_month):
         auth_data = metadata.get_provider_data(auth_provider) if auth_provider else None
 
         # Check each provider for needed changes
-        for provider in ["strava", "ridewithgps", "spreadsheet"]:
+        for provider in ["strava", "ridewithgps", "spreadsheet", "garmin"]:
             # Only proceed with change detection if we have an authoritative
             # source and this isn't it
             if not auth_provider or provider == auth_provider:
@@ -512,12 +527,21 @@ def run(year_month):
                     ),
                     False,
                 ),
+                color_id(row["garmin"], row["garmin"] is not None),
+                highlight("garmin", row["garmin_name"] or ""),
+                highlight(
+                    "garmin",
+                    (
+                        getattr(row["garmin_obj"], "equipment", "")
+                        if row.get("garmin_obj")
+                        else ""
+                    ),
+                    False,
+                ),
                 dist,
                 # Add provider IDs from spreadsheet with highlighting
                 highlight_provider_id(row["sheet_strava_id"], row["strava"], "strava"),
-                highlight_provider_id(
-                    row["sheet_garmin_id"], None, "garmin"
-                ),  # Garmin data not available yet
+                highlight_provider_id(row["sheet_garmin_id"], row["garmin"], "garmin"),
                 highlight_provider_id(
                     row["sheet_ridewithgps_id"], row["ridewithgps"], "ridewithgps"
                 ),
@@ -535,6 +559,9 @@ def run(year_month):
         "RWGPS ID",
         "RWGPS Name",
         "RWGPS Equip",
+        "Garmin ID",
+        "Garmin Name",
+        "Garmin Equip",
         "Distance (mi)",
         "Sheet: Strava ID",
         "Sheet: Garmin ID",
@@ -567,5 +594,3 @@ def run(year_month):
                 print(f"\n{change_type.value}s:")
                 for change in changes_by_type[change_type]:
                     print(f"* {change}")
-
-    # Database connection is managed by Fitler class

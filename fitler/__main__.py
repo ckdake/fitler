@@ -20,6 +20,9 @@ def main():
     subparsers.add_parser(
         "auth-strava", help="Authenticate with Strava and get an access token"
     )
+    subparsers.add_parser(
+        "auth-garmin", help="Authenticate with Garmin Connect and store tokens"
+    )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
     subparsers.add_parser(
         "migrate",
@@ -50,6 +53,10 @@ def main():
         from fitler.commands.auth_strava import run
 
         run()
+    elif args.command == "auth-garmin":
+        from fitler.commands.auth_garmin import run
+
+        run()
     elif args.command == "configure":
         from fitler.commands.configure import run
 
@@ -76,6 +83,7 @@ Usage:
 
 Commands:
     auth-strava   Authenticate with Strava and get an access token
+    auth-garmin   Authenticate with Garmin Connect and store tokens
     configure     Configure Fitler for your environment (paths, API keys, etc)
     show-month    Show all activities for a given month (YYYY-MM) from all sources
     sync-month    Correlate and show all activities for a given month (YYYY-MM)

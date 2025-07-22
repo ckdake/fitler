@@ -57,9 +57,14 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
    RIDEWITHGPS_EMAIL=your_email
    RIDEWITHGPS_PASSWORD=your_password
    RIDEWITHGPS_KEY=your_api_key
+
+   # Garmin Connect credentials (required for Garmin integration)
+   GARMIN_EMAIL=your_email
+   GARMINTOKENS=~/.garminconnect
    ```
-   Note: You can get Strava API credentials by creating an application at https://www.strava.com/settings/api
-   and RideWithGPS credentials at https://ridewithgps.com/api
+   Note: You can get Strava API credentials by creating an application at https://www.strava.com/settings/api,
+   RideWithGPS credentials at https://ridewithgps.com/api, and Garmin Connect credentials by using your 
+   existing Garmin Connect account.
 
 5. **Prepare your data:**
     - Place your exported Strava activity files in a folder such as `export_12345/` in the repo root.
@@ -91,6 +96,27 @@ To use Strava API features, you need to authenticate and get an access token.
 
 ---
 
+## Authenticating with Garmin Connect
+
+To use Garmin Connect API features, you need to authenticate and store OAuth tokens.
+
+1. **Set your Garmin Connect credentials as environment variables (optional):**
+    ```sh
+    export GARMIN_EMAIL=your_email
+    export GARMINTOKENS=~/.garminconnect
+    ```
+
+2. **Run the Garmin authentication command:**
+    ```sh
+    python -m fitler auth-garmin
+    ```
+
+    This will prompt for your email and password, handle any required MFA, and automatically 
+    generate and store OAuth tokens that are valid for about a year. The tokens will be reused 
+    automatically for future API calls.
+
+---
+
 ## Running Fitler
 
 You can use the CLI for various commands:
@@ -99,6 +125,7 @@ You can use the CLI for various commands:
 python -m fitler --help
 python -m fitler configure
 python -m fitler auth-strava
+python -m fitler auth-garmin
 python -m fitler sync
 ```
 
