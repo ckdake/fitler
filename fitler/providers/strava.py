@@ -6,11 +6,9 @@ updating activities, and managing gear.
 """
 
 import os
-import time
 import logging
 from typing import List, Optional, Dict
 import dateparser
-import calendar
 import datetime
 import json
 from pathlib import Path
@@ -88,7 +86,8 @@ class StravaProvider(FitnessProvider):
                         filtered_activities.append(act)
 
                 print(
-                    f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}"
+                    f"Found {len(filtered_activities)} existing activities "
+                    f"from database for {self.provider_name}"
                 )
                 return filtered_activities
             except Exception as e:
@@ -104,7 +103,7 @@ class StravaProvider(FitnessProvider):
 
         config_path = Path("fitler_config.json")
         with open(config_path) as f:
-            config = json.load(f)
+            json.load(f)  # Load config but don't store in unused variable
 
         persisted_activities = []
 
@@ -159,8 +158,6 @@ class StravaProvider(FitnessProvider):
             activity.source = self.provider_name
 
             # Store the raw provider data
-            import json
-
             activity.strava_data = json.dumps(activity_data)
 
             # Save the activity
@@ -285,7 +282,8 @@ class StravaProvider(FitnessProvider):
 
     def fetch_activities_for_month(self, year_month: str) -> List[Activity]:
         """
-        Return activities for the given year_month (YYYY-MM) using Stravalib API filters and pagination.
+        Return activities for the given year_month (YYYY-MM) using
+        Stravalib API filters and pagination.
         """
         from dateutil.relativedelta import relativedelta
         import pytz
@@ -303,7 +301,9 @@ class StravaProvider(FitnessProvider):
                 start_date_local = getattr(a, "start_date_local", None)
                 if self.debug:
                     print(
-                        f"DEBUG: id={getattr(a, 'id', None)}, name={getattr(a, 'name', None)}, start_date_local={start_date_local} type={type(start_date_local)}"
+                        f"DEBUG: id={getattr(a, 'id', None)}, "
+                        f"name={getattr(a, 'name', None)}, "
+                        f"start_date_local={start_date_local} type={type(start_date_local)}"
                     )
                 if not start_date_local:
                     continue

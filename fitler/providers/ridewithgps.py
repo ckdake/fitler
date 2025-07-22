@@ -6,8 +6,8 @@ updating activities, and managing gear.
 """
 
 import os
+import json
 from typing import List, Optional, Dict
-import dateparser
 from pyrwgps import RideWithGPS
 import datetime
 
@@ -43,7 +43,8 @@ class RideWithGPSProvider(FitnessProvider):
         if existing_sync:
             # Return activities from database for this month
             try:
-                # Query activities that have ridewithgps_id set AND source=ridewithgps for this month
+                # Query activities that have ridewithgps_id set AND
+                # source=ridewithgps for this month
                 existing_activities = list(
                     Activity.select().where(
                         (Activity.ridewithgps_id.is_null(False))
@@ -59,7 +60,8 @@ class RideWithGPSProvider(FitnessProvider):
                         filtered_activities.append(act)
 
                 print(
-                    f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}"
+                    f"Found {len(filtered_activities)} existing activities "
+                    f"from database for {self.provider_name}"
                 )
                 return filtered_activities
             except Exception as e:
@@ -71,11 +73,11 @@ class RideWithGPSProvider(FitnessProvider):
 
         # Load config for provider priority
         from pathlib import Path
-        import json
 
         config_path = Path("fitler_config.json")
         with open(config_path) as f:
-            config = json.load(f)
+            # Load config but don't use it in this method
+            json.load(f)
 
         persisted_activities = []
 
@@ -130,8 +132,6 @@ class RideWithGPSProvider(FitnessProvider):
             activity.source = self.provider_name
 
             # Store the raw provider data
-            import json
-
             activity.ridewithgps_data = json.dumps(activity_data)
 
             # Save the activity
@@ -146,13 +146,13 @@ class RideWithGPSProvider(FitnessProvider):
     def _parse_ridewithgps_datetime(self, dt_val):
         # RideWithGPS provides datetime strings in ISO8601 format with timezone
         # e.g. '2025-01-02T19:55:14-05:00'
-        from dateutil import parser as dateparser
+        from dateutil import parser as dt_parser
 
         if not dt_val:
             return None
         try:
             # Parse the ISO8601 string which includes timezone
-            dt = dateparser.parse(str(dt_val))
+            dt = dt_parser.parse(str(dt_val))
             # At this point dt should have the correct timezone (-05:00)
             if dt and dt.tzinfo is None:
                 # If somehow we get a naive datetime, assume local
@@ -268,6 +268,6 @@ class RideWithGPSProvider(FitnessProvider):
                     dt = datetime.datetime.fromtimestamp(int(departed_at))
                     if dt.year == year and dt.month == month:
                         filtered.append(act)
-                except:
+                except (ValueError, TypeError):
                     continue
         return filtered

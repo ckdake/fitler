@@ -1,4 +1,4 @@
-from peewee import Model, CharField, DateTimeField
+from peewee import Model, CharField
 from fitler.database import db
 
 

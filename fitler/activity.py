@@ -134,7 +134,8 @@ class Activity(Model):
                 setattr(self, field_name, provider_id)
                 changes.append(f"Set {provider} ID to {provider_id}")
 
-        # Update other provider IDs if available (e.g., spreadsheet has strava_id, garmin_id, ridewithgps_id)
+        # Update other provider IDs if available (e.g., spreadsheet has
+        # strava_id, garmin_id, ridewithgps_id)
         for other_provider in ["strava", "garmin", "ridewithgps"]:
             other_id = data.get(f"{other_provider}_id")
             if other_id:
@@ -224,7 +225,8 @@ class Activity(Model):
             # If provider doesn't have this activity yet
             if not provider_id and provider == "spreadsheet":
                 changes.append(
-                    f"Create new entry in {provider} for '{auth_data.get('name', 'Untitled')}' starting at {self.start_time}"
+                    f"Create new entry in {provider} for "
+                    f"'{auth_data.get('name', 'Untitled')}' starting at {self.start_time}"
                 )
             elif provider_data:
                 # Check for mismatches in key fields

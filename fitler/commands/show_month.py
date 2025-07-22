@@ -1,4 +1,3 @@
-import logging
 import datetime
 from fitler.core import Fitler
 
@@ -35,14 +34,16 @@ def print_activities(provider_name, activities, id_field, home_tz):
 
                 raw_timestamp = str(timestamp)
                 date_str = f"{local_dt.strftime('%Y-%m-%d %H:%M')} {local_dt.tzname()}"
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 date_str = "invalid"
                 raw_timestamp = str(start_time) if start_time else "None"
 
         dist = getattr(act, "distance", 0)
-        print(
-            f"{str(act_id):<12} {str(name)[:28]:<30} {str(raw_timestamp):<12} {str(date_str):<19} {dist:12.2f}"
+        line = (
+            f"{str(act_id):<12} {str(name)[:28]:<30} "
+            f"{str(raw_timestamp):<12} {str(date_str):<19} {dist:12.2f}"
         )
+        print(line)
 
 
 def run(year_month):

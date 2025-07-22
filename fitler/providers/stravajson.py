@@ -53,15 +53,6 @@ class StravaJsonProvider(FitnessProvider):
         raise NotImplementedError("StravaJsonProvider does not support setting gear.")
 
 
-import glob
-import json
-from typing import List, Optional, Dict
-import dateparser
-
-from fitler.providers.base import FitnessProvider
-from fitler.activity import Activity
-
-
 class StravaJsonActivities(FitnessProvider):
     def __init__(self, folder):
         self.folder = folder

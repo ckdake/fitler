@@ -6,6 +6,7 @@ for interacting with activity data stored in local spreadsheet files.
 
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+import json
 import openpyxl
 from dateutil import parser as dateparser
 import datetime
@@ -35,7 +36,8 @@ class SpreadsheetProvider(FitnessProvider):
         if existing_sync:
             # Return activities from database for this month
             try:
-                # Query activities that have spreadsheet_id set AND source=spreadsheet for this month
+                # Query activities that have spreadsheet_id set AND
+                # source=spreadsheet for this month
                 existing_activities = list(
                     Activity.select().where(
                         (Activity.spreadsheet_id.is_null(False))
@@ -51,7 +53,8 @@ class SpreadsheetProvider(FitnessProvider):
                         filtered_activities.append(act)
 
                 print(
-                    f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}"
+                    f"Found {len(filtered_activities)} existing activities "
+                    f"from database for {self.provider_name}"
                 )
                 return filtered_activities
             except Exception as e:
@@ -62,13 +65,6 @@ class SpreadsheetProvider(FitnessProvider):
         raw_activities = self.fetch_activities_for_month(date_filter)
 
         # Load config for provider priority
-        from pathlib import Path
-        import json
-
-        config_path = Path("fitler_config.json")
-        with open(config_path) as f:
-            config = json.load(f)
-
         persisted_activities = []
 
         for raw_activity in raw_activities:
@@ -179,8 +175,6 @@ class SpreadsheetProvider(FitnessProvider):
                 activity.ridewithgps_id = activity_data["ridewithgps_id"]
 
             # Store the raw provider data
-            import json
-
             activity.spreadsheet_data = json.dumps(activity_data)
 
             # Save the activity
@@ -356,7 +350,7 @@ class SpreadsheetProvider(FitnessProvider):
                     date_str = dt.strftime("%Y-%m")
                     if date_str == year_month:
                         filtered.append(act)
-                except:
+                except (ValueError, TypeError):
                     continue
         return filtered
 

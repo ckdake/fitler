@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, NamedTuple
+from typing import Optional, NamedTuple
 from enum import Enum
 from fitler.activity import Activity
 from fitler.core import Fitler
@@ -25,13 +25,25 @@ class ActivityChange(NamedTuple):
 
     def __str__(self) -> str:
         if self.change_type == ChangeType.UPDATE_NAME:
-            return f"Update {self.provider} name for activity {self.activity_id} from '{self.old_value}' to '{self.new_value}'"
+            return (
+                f"Update {self.provider} name for activity {self.activity_id} "
+                f"from '{self.old_value}' to '{self.new_value}'"
+            )
         elif self.change_type == ChangeType.UPDATE_EQUIPMENT:
-            return f"Update {self.provider} equipment for activity {self.activity_id} from '{self.old_value}' to '{self.new_value}'"
+            return (
+                f"Update {self.provider} equipment for activity {self.activity_id} "
+                f"from '{self.old_value}' to '{self.new_value}'"
+            )
         elif self.change_type == ChangeType.ADD_ACTIVITY:
-            return f"Add activity '{self.new_value}' to {self.provider} (from {self.source_provider} activity {self.activity_id})"
+            return (
+                f"Add activity '{self.new_value}' to {self.provider} "
+                f"(from {self.source_provider} activity {self.activity_id})"
+            )
         elif self.change_type == ChangeType.LINK_ACTIVITY:
-            return f"Link {self.provider} activity {self.activity_id} with {self.source_provider} activity {self.new_value}"
+            return (
+                f"Link {self.provider} activity {self.activity_id} "
+                f"with {self.source_provider} activity {self.new_value}"
+            )
         return "Unknown change"
 
 
@@ -193,7 +205,8 @@ def run(year_month):
     # Build rows for the table
     rows = []
     for group in grouped.values():
-        # Find the earliest start time in the group for ordering, converting from UTC to home timezone
+        # Find the earliest start time in the group for ordering,
+        # converting from UTC to home timezone
         start = min(
             (
                 datetime.fromtimestamp(int(a["timestamp"]), timezone.utc).astimezone(
@@ -308,17 +321,16 @@ def run(year_month):
         activity_changes = []
 
         # Get authoritative provider's data
-        auth_provider = metadata.get_authoritative_provider(
-            config.get("provider_priority", "spreadsheet,ridewithgps,strava").split(",")
-        )
+        provider_priority = config.get(
+            "provider_priority", "spreadsheet,ridewithgps,strava"
+        ).split(",")
+        auth_provider = metadata.get_authoritative_provider(provider_priority)
         auth_data = metadata.get_provider_data(auth_provider) if auth_provider else None
 
         # Check each provider for needed changes
         for provider in ["strava", "ridewithgps", "spreadsheet"]:
-            provider_data = metadata.get_provider_data(provider)
-            provider_id = getattr(metadata, f"{provider}_id", None)
-
-            # Only proceed with change detection if we have an authoritative source and this isn't it
+            # Only proceed with change detection if we have an authoritative
+            # source and this isn't it
             if not auth_provider or provider == auth_provider:
                 continue
 
@@ -427,7 +439,6 @@ def run(year_month):
             )
 
             # Get provider and authoritative data
-            provider_data = metadata.get_provider_data(provider) if metadata else None
             auth_data = (
                 metadata.get_provider_data(auth_provider)
                 if auth_provider and metadata
