@@ -13,8 +13,8 @@ dependencies = [
     "gpxpy==1.6.2",
     "python-tcxparser==2.4.0",
     "fitparse==1.2.0",
-    "openpyxl==3.1.2",
-    "dateparser==1.2.0",
+    "openpyxl==3.1.5",
+    "dateparser==1.2.2",
     "pytz==2025.2",
     "requests==2.32.4",
     "pyrwgps==0.0.2",
@@ -28,8 +28,8 @@ dev = [
     "pylint==3.3.7",
     "black==25.1.0",
     "mypy==1.16.1",
-    "flake8==7.2.0",
-    "pytest==8.4.0",
+    "flake8==7.3.0",
+    "pytest==8.4.1",
     "pytest-cov==6.2.1",
 ]
 
