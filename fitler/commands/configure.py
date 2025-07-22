@@ -33,7 +33,9 @@ def run():
     print("there are conflicts in activity names or equipment.")
     print("Available providers: spreadsheet, ridewithgps, strava")
     print("Enter them in order of priority, comma-separated.")
-    provider_priority = input("Provider priority (default: spreadsheet,ridewithgps,strava): ").strip()
+    provider_priority = input(
+        "Provider priority (default: spreadsheet,ridewithgps,strava): "
+    ).strip()
     config["provider_priority"] = provider_priority or "spreadsheet,ridewithgps,strava"
 
     # Prompt for debug mode

@@ -13,7 +13,7 @@ from .providers.garmin import GarminProvider
 __version__ = "0.0.1"
 __all__ = [
     "ActivityFileCollection",
-    "ActivityFile", 
+    "ActivityFile",
     "Activity",
     "StravaProvider",
     "RideWithGPSProvider",

@@ -22,34 +22,46 @@ def main():
     )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
     subparsers.add_parser(
-        "migrate", help="Initialize or upgrade the database. Run this after installation or updates."
+        "migrate",
+        help="Initialize or upgrade the database. Run this after installation or updates.",
     )
     show_month_parser = subparsers.add_parser(
-        "show-month", help="Show all activities for a given month (YYYY-MM) from all sources"
+        "show-month",
+        help="Show all activities for a given month (YYYY-MM) from all sources",
     )
-    show_month_parser.add_argument("year_month", type=str, help="Year and month in YYYY-MM format")
+    show_month_parser.add_argument(
+        "year_month", type=str, help="Year and month in YYYY-MM format"
+    )
     sync_month_parser = subparsers.add_parser(
-        "sync-month", help="Correlate and show all activities for a given month (YYYY-MM) across all sources, dry run"
+        "sync-month",
+        help="Correlate and show all activities for a given month (YYYY-MM) across all sources, dry run",
     )
-    sync_month_parser.add_argument("year_month", type=str, help="Year and month in YYYY-MM format")
+    sync_month_parser.add_argument(
+        "year_month", type=str, help="Year and month in YYYY-MM format"
+    )
     subparsers.add_parser("help", help="Show usage and documentation")
 
     args = parser.parse_args()
 
     if args.command == "auth-strava":
         from fitler.commands.auth_strava import run
+
         run()
     elif args.command == "configure":
         from fitler.commands.configure import run
+
         run()
     elif args.command == "show-month":
         from fitler.commands.show_month import run
+
         run(args.year_month)
     elif args.command == "sync-month":
         from fitler.commands.sync_month import run
+
         run(args.year_month)
     elif args.command == "migrate":
         from fitler.commands.migrate import run
+
         run()
     elif args.command == "help" or args.command is None:
         print(

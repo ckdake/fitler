@@ -11,7 +11,7 @@ from .garmin import GarminProvider
 __all__ = [
     "FitnessProvider",
     "SpreadsheetProvider",
-    "StravaProvider", 
+    "StravaProvider",
     "RideWithGPSProvider",
     "StravaJsonProvider",
     "GarminProvider",

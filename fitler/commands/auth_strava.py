@@ -26,21 +26,21 @@ def run():
         s.bind(("127.0.0.1", port))
         s.listen()
         conn, addr = s.accept()
-        request_bytes = b''
+        request_bytes = b""
         with conn:
             while True:
                 chunk = conn.recv(512)
                 request_bytes += chunk
-                if request_bytes.endswith(b'\r\n\r\n'):
+                if request_bytes.endswith(b"\r\n\r\n"):
                     break
-            conn.sendall(b'HTTP/1.1 200 OK\r\n\r\nsuccess\r\n')
-        request = request_bytes.decode('utf-8')
-        status_line = request.split('\n', 1)[0]
-        method, raw_url, protocol_version = status_line.split(' ')
+            conn.sendall(b"HTTP/1.1 200 OK\r\n\r\nsuccess\r\n")
+        request = request_bytes.decode("utf-8")
+        status_line = request.split("\n", 1)[0]
+        method, raw_url, protocol_version = status_line.split(" ")
         url = urllib.parse.urlparse(raw_url)
         query_params = urllib.parse.parse_qs(url.query, keep_blank_values=True)
         if url.path == "/authorization_successful":
-            code = query_params.get('code')[0]
+            code = query_params.get("code")[0]
         else:
             raise RuntimeError("Did not receive code from Strava redirect.")
     token_dict = client.exchange_code_for_token(

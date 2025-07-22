@@ -44,103 +44,110 @@ class RideWithGPSProvider(FitnessProvider):
             # Return activities from database for this month
             try:
                 # Query activities that have ridewithgps_id set AND source=ridewithgps for this month
-                existing_activities = list(Activity.select().where(
-                    (Activity.ridewithgps_id.is_null(False)) & 
-                    (Activity.source == self.provider_name)
-                ))
-                
+                existing_activities = list(
+                    Activity.select().where(
+                        (Activity.ridewithgps_id.is_null(False))
+                        & (Activity.source == self.provider_name)
+                    )
+                )
+
                 # Filter by month in Python since date comparison is tricky
                 year, month = map(int, date_filter.split("-"))
                 filtered_activities = []
                 for act in existing_activities:
                     if act.date and act.date.year == year and act.date.month == month:
                         filtered_activities.append(act)
-                
-                print(f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}")
+
+                print(
+                    f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}"
+                )
                 return filtered_activities
             except Exception as e:
                 print(f"Error loading existing activities: {e}")
                 # Fall through to re-sync
-        
+
         # Get the raw activity data for the month
         raw_activities = self.fetch_activities_for_month(date_filter)
-        
+
         # Load config for provider priority
         from pathlib import Path
         import json
+
         config_path = Path("fitler_config.json")
         with open(config_path) as f:
             config = json.load(f)
-        
+
         persisted_activities = []
-        
+
         for raw_activity in raw_activities:
             # Convert the raw activity data to a dict for update_from_provider
             activity_data = {
-                'id': getattr(raw_activity, 'ridewithgps_id', None),
-                'name': getattr(raw_activity, 'name', None),
-                'distance': getattr(raw_activity, 'distance', None),
-                'equipment': getattr(raw_activity, 'equipment', None),
-                'activity_type': getattr(raw_activity, 'activity_type', None),
-                'start_time': getattr(raw_activity, 'departed_at', None),
-                'notes': getattr(raw_activity, 'notes', None),
+                "id": getattr(raw_activity, "ridewithgps_id", None),
+                "name": getattr(raw_activity, "name", None),
+                "distance": getattr(raw_activity, "distance", None),
+                "equipment": getattr(raw_activity, "equipment", None),
+                "activity_type": getattr(raw_activity, "activity_type", None),
+                "start_time": getattr(raw_activity, "departed_at", None),
+                "notes": getattr(raw_activity, "notes", None),
                 # Set source to this provider
-                'source': self.provider_name,
+                "source": self.provider_name,
             }
-            
+
             # Look for existing activity with this ridewithgps_id AND source=ridewithgps
             existing_activity = None
-            if activity_data['id']:
+            if activity_data["id"]:
                 try:
                     existing_activity = Activity.get(
-                        (Activity.ridewithgps_id == activity_data['id']) & 
-                        (Activity.source == self.provider_name)
+                        (Activity.ridewithgps_id == activity_data["id"])
+                        & (Activity.source == self.provider_name)
                     )
                 except DoesNotExist:
                     existing_activity = None
-            
+
             if existing_activity:
                 # Update existing activity
                 activity = existing_activity
             else:
                 # Create new activity
                 activity = Activity()
-            
+
             # Set the start time if available
-            if activity_data.get('start_time'):
-                activity.set_start_time(str(activity_data['start_time']))
-            
+            if activity_data.get("start_time"):
+                activity.set_start_time(str(activity_data["start_time"]))
+
             # Set all the fields directly (handle None values)
-            activity.ridewithgps_id = activity_data['id']
-            if activity_data.get('name'):
-                activity.name = activity_data['name']
-            if activity_data.get('distance'):
-                activity.distance = activity_data['distance']
-            if activity_data.get('equipment'):
-                activity.equipment = activity_data['equipment']
-            if activity_data.get('activity_type'):
-                activity.activity_type = activity_data['activity_type']
-            if activity_data.get('notes'):
-                activity.notes = activity_data['notes']
+            activity.ridewithgps_id = activity_data["id"]
+            if activity_data.get("name"):
+                activity.name = activity_data["name"]
+            if activity_data.get("distance"):
+                activity.distance = activity_data["distance"]
+            if activity_data.get("equipment"):
+                activity.equipment = activity_data["equipment"]
+            if activity_data.get("activity_type"):
+                activity.activity_type = activity_data["activity_type"]
+            if activity_data.get("notes"):
+                activity.notes = activity_data["notes"]
             activity.source = self.provider_name
-            
+
             # Store the raw provider data
             import json
+
             activity.ridewithgps_data = json.dumps(activity_data)
-            
+
             # Save the activity
             activity.save()
             persisted_activities.append(activity)
-        
+
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        
+
         return persisted_activities
 
     def _parse_ridewithgps_datetime(self, dt_val):
         # RideWithGPS provides datetime strings in ISO8601 format with timezone
         # e.g. '2025-01-02T19:55:14-05:00'
         from dateutil import parser as dateparser
+
         if not dt_val:
             return None
         try:
@@ -173,13 +180,12 @@ class RideWithGPSProvider(FitnessProvider):
                 gear_id_str = str(gear_id) if gear_id is not None else None
                 act = Activity(
                     departed_at=timestamp,
-                    distance=getattr(trip, "distance", 0) * 0.00062137,  # meters to miles
+                    distance=getattr(trip, "distance", 0)
+                    * 0.00062137,  # meters to miles
                     ridewithgps_id=getattr(trip, "id", None),
                     name=getattr(trip, "name", None),
                     notes=getattr(trip, "name", None),
-                    equipment=(
-                        gear.get(gear_id_str, "") if gear_id_str else ""
-                    ),
+                    equipment=(gear.get(gear_id_str, "") if gear_id_str else ""),
                 )
                 activities.append(act)
             except Exception as e:
@@ -223,7 +229,10 @@ class RideWithGPSProvider(FitnessProvider):
         updated_trip = self.client.put(
             path=f"/trips/{activity_id}.json", params={"name": activity.name}
         )
-        return hasattr(updated_trip, "trip") and getattr(updated_trip.trip, "name", None) == activity.name
+        return (
+            hasattr(updated_trip, "trip")
+            and getattr(updated_trip.trip, "name", None) == activity.name
+        )
 
     def get_gear(self) -> Dict[str, str]:
         gear = {}
@@ -239,7 +248,10 @@ class RideWithGPSProvider(FitnessProvider):
         updated_trip = self.client.put(
             path=f"/trips/{activity_id}.json", param={"gear_id": gear_id}
         )
-        return hasattr(updated_trip, "trip") and getattr(updated_trip.trip, "gear_id", None) == gear_id
+        return (
+            hasattr(updated_trip, "trip")
+            and getattr(updated_trip.trip, "gear_id", None) == gear_id
+        )
 
     def fetch_activities_for_month(self, year_month: str) -> List[Activity]:
         """

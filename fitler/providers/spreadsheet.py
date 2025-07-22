@@ -36,151 +36,160 @@ class SpreadsheetProvider(FitnessProvider):
             # Return activities from database for this month
             try:
                 # Query activities that have spreadsheet_id set AND source=spreadsheet for this month
-                existing_activities = list(Activity.select().where(
-                    (Activity.spreadsheet_id.is_null(False)) & 
-                    (Activity.source == self.provider_name)
-                ))
-                
+                existing_activities = list(
+                    Activity.select().where(
+                        (Activity.spreadsheet_id.is_null(False))
+                        & (Activity.source == self.provider_name)
+                    )
+                )
+
                 # Filter by month in Python since date comparison is tricky
                 year, month = map(int, date_filter.split("-"))
                 filtered_activities = []
                 for act in existing_activities:
                     if act.date and act.date.year == year and act.date.month == month:
                         filtered_activities.append(act)
-                
-                print(f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}")
+
+                print(
+                    f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}"
+                )
                 return filtered_activities
             except Exception as e:
                 print(f"Error loading existing activities: {e}")
                 # Fall through to re-sync
-        
+
         # Get the raw activity data for the month
         raw_activities = self.fetch_activities_for_month(date_filter)
-        
+
         # Load config for provider priority
         from pathlib import Path
         import json
+
         config_path = Path("fitler_config.json")
         with open(config_path) as f:
             config = json.load(f)
-        
+
         persisted_activities = []
-        
+
         for raw_activity in raw_activities:
             # Convert the raw activity data to a dict for update_from_provider
             activity_data = {
-                'id': getattr(raw_activity, 'spreadsheet_id', None),
-                'name': getattr(raw_activity, 'name', None) or getattr(raw_activity, 'notes', None),
-                'distance': getattr(raw_activity, 'distance', None),
-                'equipment': getattr(raw_activity, 'equipment', None),
-                'activity_type': getattr(raw_activity, 'activity_type', None),
-                'start_time': getattr(raw_activity, 'departed_at', None),
-                'location_name': getattr(raw_activity, 'location_name', None),
-                'city': getattr(raw_activity, 'city', None),
-                'state': getattr(raw_activity, 'state', None),
-                'temperature': getattr(raw_activity, 'temperature', None),
-                'duration': getattr(raw_activity, 'duration', None),
-                'max_speed': getattr(raw_activity, 'max_speed', None),
-                'avg_heart_rate': getattr(raw_activity, 'avg_heart_rate', None),
-                'max_heart_rate': getattr(raw_activity, 'max_heart_rate', None),
-                'calories': getattr(raw_activity, 'calories', None),
-                'max_elevation': getattr(raw_activity, 'max_elevation', None),
-                'total_elevation_gain': getattr(raw_activity, 'total_elevation_gain', None),
-                'avg_cadence': getattr(raw_activity, 'avg_cadence', None),
-                'notes': getattr(raw_activity, 'notes', None),
+                "id": getattr(raw_activity, "spreadsheet_id", None),
+                "name": getattr(raw_activity, "name", None)
+                or getattr(raw_activity, "notes", None),
+                "distance": getattr(raw_activity, "distance", None),
+                "equipment": getattr(raw_activity, "equipment", None),
+                "activity_type": getattr(raw_activity, "activity_type", None),
+                "start_time": getattr(raw_activity, "departed_at", None),
+                "location_name": getattr(raw_activity, "location_name", None),
+                "city": getattr(raw_activity, "city", None),
+                "state": getattr(raw_activity, "state", None),
+                "temperature": getattr(raw_activity, "temperature", None),
+                "duration": getattr(raw_activity, "duration", None),
+                "max_speed": getattr(raw_activity, "max_speed", None),
+                "avg_heart_rate": getattr(raw_activity, "avg_heart_rate", None),
+                "max_heart_rate": getattr(raw_activity, "max_heart_rate", None),
+                "calories": getattr(raw_activity, "calories", None),
+                "max_elevation": getattr(raw_activity, "max_elevation", None),
+                "total_elevation_gain": getattr(
+                    raw_activity, "total_elevation_gain", None
+                ),
+                "avg_cadence": getattr(raw_activity, "avg_cadence", None),
+                "notes": getattr(raw_activity, "notes", None),
                 # Include provider IDs from spreadsheet
-                'strava_id': getattr(raw_activity, 'strava_id', None),
-                'garmin_id': getattr(raw_activity, 'garmin_id', None),
-                'ridewithgps_id': getattr(raw_activity, 'ridewithgps_id', None),
+                "strava_id": getattr(raw_activity, "strava_id", None),
+                "garmin_id": getattr(raw_activity, "garmin_id", None),
+                "ridewithgps_id": getattr(raw_activity, "ridewithgps_id", None),
                 # Set source to this provider
-                'source': self.provider_name,
+                "source": self.provider_name,
             }
-            
+
             # Look for existing activity with this spreadsheet_id AND source=spreadsheet
             existing_activity = None
-            if activity_data['id']:
+            if activity_data["id"]:
                 try:
                     existing_activity = Activity.get(
-                        (Activity.spreadsheet_id == activity_data['id']) & 
-                        (Activity.source == self.provider_name)
+                        (Activity.spreadsheet_id == activity_data["id"])
+                        & (Activity.source == self.provider_name)
                     )
                 except DoesNotExist:
                     existing_activity = None
-            
+
             if existing_activity:
                 # Update existing activity
                 activity = existing_activity
             else:
                 # Create new activity
                 activity = Activity()
-            
+
             # Set the start time if available
-            if activity_data.get('start_time'):
-                activity.set_start_time(str(activity_data['start_time']))
-            
+            if activity_data.get("start_time"):
+                activity.set_start_time(str(activity_data["start_time"]))
+
             # Set all the fields directly instead of using update_from_provider
-            activity.spreadsheet_id = activity_data['id']
-            if activity_data.get('name'):
-                activity.name = activity_data['name']
-            if activity_data.get('distance'):
-                activity.distance = activity_data['distance']
-            if activity_data.get('equipment'):
-                activity.equipment = activity_data['equipment']
-            if activity_data.get('activity_type'):
-                activity.activity_type = activity_data['activity_type']
-            if activity_data.get('location_name'):
-                activity.location_name = activity_data['location_name']
-            if activity_data.get('city'):
-                activity.city = activity_data['city']
-            if activity_data.get('state'):
-                activity.state = activity_data['state']
-            if activity_data.get('temperature'):
-                activity.temperature = activity_data['temperature']
-            if activity_data.get('duration'):
+            activity.spreadsheet_id = activity_data["id"]
+            if activity_data.get("name"):
+                activity.name = activity_data["name"]
+            if activity_data.get("distance"):
+                activity.distance = activity_data["distance"]
+            if activity_data.get("equipment"):
+                activity.equipment = activity_data["equipment"]
+            if activity_data.get("activity_type"):
+                activity.activity_type = activity_data["activity_type"]
+            if activity_data.get("location_name"):
+                activity.location_name = activity_data["location_name"]
+            if activity_data.get("city"):
+                activity.city = activity_data["city"]
+            if activity_data.get("state"):
+                activity.state = activity_data["state"]
+            if activity_data.get("temperature"):
+                activity.temperature = activity_data["temperature"]
+            if activity_data.get("duration"):
                 # Convert duration seconds to HH:MM:SS format for duration_hms field
-                duration_seconds = activity_data['duration']
+                duration_seconds = activity_data["duration"]
                 if duration_seconds:
                     hours = int(duration_seconds // 3600)
                     minutes = int((duration_seconds % 3600) // 60)
                     seconds = int(duration_seconds % 60)
                     activity.duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-            if activity_data.get('max_speed'):
-                activity.max_speed = activity_data['max_speed']
-            if activity_data.get('avg_heart_rate'):
-                activity.avg_heart_rate = activity_data['avg_heart_rate']
-            if activity_data.get('max_heart_rate'):
-                activity.max_heart_rate = activity_data['max_heart_rate']
-            if activity_data.get('calories'):
-                activity.calories = activity_data['calories']
-            if activity_data.get('max_elevation'):
-                activity.max_elevation = activity_data['max_elevation']
-            if activity_data.get('total_elevation_gain'):
-                activity.total_elevation_gain = activity_data['total_elevation_gain']
-            if activity_data.get('avg_cadence'):
-                activity.avg_cadence = activity_data['avg_cadence']
-            if activity_data.get('notes'):
-                activity.notes = activity_data['notes']
+            if activity_data.get("max_speed"):
+                activity.max_speed = activity_data["max_speed"]
+            if activity_data.get("avg_heart_rate"):
+                activity.avg_heart_rate = activity_data["avg_heart_rate"]
+            if activity_data.get("max_heart_rate"):
+                activity.max_heart_rate = activity_data["max_heart_rate"]
+            if activity_data.get("calories"):
+                activity.calories = activity_data["calories"]
+            if activity_data.get("max_elevation"):
+                activity.max_elevation = activity_data["max_elevation"]
+            if activity_data.get("total_elevation_gain"):
+                activity.total_elevation_gain = activity_data["total_elevation_gain"]
+            if activity_data.get("avg_cadence"):
+                activity.avg_cadence = activity_data["avg_cadence"]
+            if activity_data.get("notes"):
+                activity.notes = activity_data["notes"]
             activity.source = self.provider_name
-            
+
             # Set additional provider IDs from spreadsheet
-            if activity_data.get('strava_id'):
-                activity.strava_id = activity_data['strava_id']
-            if activity_data.get('garmin_id'):
-                activity.garmin_id = activity_data['garmin_id'] 
-            if activity_data.get('ridewithgps_id'):
-                activity.ridewithgps_id = activity_data['ridewithgps_id']
-            
+            if activity_data.get("strava_id"):
+                activity.strava_id = activity_data["strava_id"]
+            if activity_data.get("garmin_id"):
+                activity.garmin_id = activity_data["garmin_id"]
+            if activity_data.get("ridewithgps_id"):
+                activity.ridewithgps_id = activity_data["ridewithgps_id"]
+
             # Store the raw provider data
             import json
+
             activity.spreadsheet_data = json.dumps(activity_data)
-            
+
             # Save the activity
             activity.save()
             persisted_activities.append(activity)
-        
+
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        
+
         return persisted_activities
 
     def _seconds_to_hms(self, seconds: Optional[float]) -> str:
@@ -200,6 +209,7 @@ class SpreadsheetProvider(FitnessProvider):
             return float(hms)
         try:
             import decimal
+
             if isinstance(hms, decimal.Decimal):
                 return float(hms)
         except ImportError:
@@ -208,7 +218,7 @@ class SpreadsheetProvider(FitnessProvider):
         if not isinstance(hms, str):
             return None
         # Ignore openpyxl types that are not string or numeric
-        if hasattr(hms, 'value') or hasattr(hms, 'is_date'):
+        if hasattr(hms, "value") or hasattr(hms, "is_date"):
             return None
         try:
             t = datetime.datetime.strptime(hms, "%H:%M:%S")
@@ -252,7 +262,7 @@ class SpreadsheetProvider(FitnessProvider):
             config_path = Path("fitler_config.json")
             with open(config_path) as f:
                 config = json.load(f)
-            home_tz = ZoneInfo(config.get('home_timezone', 'US/Eastern'))
+            home_tz = ZoneInfo(config.get("home_timezone", "US/Eastern"))
 
             # Parse the date string (assumes home timezone)
             dt = dateparser.parse(str(dt_val))

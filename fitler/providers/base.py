@@ -17,7 +17,7 @@ class FitnessProvider(ABC):
         pass
 
     @abstractmethod
-    def pull_activities(self, date_filter: str) -> List['Activity']:
+    def pull_activities(self, date_filter: str) -> List["Activity"]:
         """
         Pull activities for a given month filter in YYYY-MM format.
         Fetches from provider API/source and persists to database.
