@@ -1,6 +1,6 @@
 """Strava provider for Fitler.
 
-This module defines the StravaActivities class, which provides an interface
+This module defines the StravaProvider class, which provides an interface
 for interacting with Strava activity data, including fetching, creating,
 updating activities, and managing gear.
 """
@@ -15,10 +15,13 @@ import datetime
 import json
 from pathlib import Path
 
-from fitler.providers.base import FitnessProvider, Activity
+from fitler.providers.base import FitnessProvider
+from fitler.activity import Activity
+from fitler.provider_sync import ProviderSync
+from peewee import DoesNotExist
 
 
-class StravaActivities(FitnessProvider):
+class StravaProvider(FitnessProvider):
     def __init__(self, token: str, refresh_token: Optional[str] = None, client_id: Optional[str] = None, client_secret: Optional[str] = None, token_expires: Optional[str] = None):
         # Initialize debug from environment and config
         self.debug = os.environ.get("STRAVALIB_DEBUG") == "1"
@@ -45,6 +48,115 @@ class StravaActivities(FitnessProvider):
             self.client._client_secret = client_secret
         if token_expires:
             self.client.token_expires = int(token_expires)
+
+    @property
+    def provider_name(self) -> str:
+        """Return the name of this provider."""
+        return "strava"
+
+    def pull_activities(self, date_filter: str) -> List[Activity]:
+        """
+        Sync activities for a given month filter in YYYY-MM format.
+        Returns a list of synced Activity objects that have been persisted to the database.
+        """
+        # Check if this month has already been synced for this provider
+        existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
+        if existing_sync:
+            # Return activities from database for this month
+            try:
+                # Query activities that have strava_id set AND source=strava for this month
+                existing_activities = list(Activity.select().where(
+                    (Activity.strava_id.is_null(False)) & 
+                    (Activity.source == self.provider_name)
+                ))
+                
+                # Filter by month in Python since date comparison is tricky
+                year, month = map(int, date_filter.split("-"))
+                filtered_activities = []
+                for act in existing_activities:
+                    if act.date and act.date.year == year and act.date.month == month:
+                        filtered_activities.append(act)
+                
+                print(f"Found {len(filtered_activities)} existing activities from database for {self.provider_name}")
+                return filtered_activities
+            except Exception as e:
+                print(f"Error loading existing activities: {e}")
+                # Fall through to re-sync
+        
+        # Get the raw activity data for the month
+        raw_activities = self.fetch_activities_for_month(date_filter)
+        
+        # Load config for provider priority
+        from pathlib import Path
+        import json
+        config_path = Path("fitler_config.json")
+        with open(config_path) as f:
+            config = json.load(f)
+        
+        persisted_activities = []
+        
+        for raw_activity in raw_activities:
+            # Convert the raw activity data to a dict for update_from_provider
+            activity_data = {
+                'id': getattr(raw_activity, 'strava_id', None),
+                'name': getattr(raw_activity, 'name', None),
+                'distance': getattr(raw_activity, 'distance', None),
+                'equipment': getattr(raw_activity, 'equipment', None),
+                'activity_type': getattr(raw_activity, 'activity_type', None),
+                'start_time': getattr(raw_activity, 'departed_at', None),
+                'notes': getattr(raw_activity, 'notes', None),
+                # Set source to this provider
+                'source': self.provider_name,
+            }
+            
+            # Look for existing activity with this strava_id AND source=strava
+            existing_activity = None
+            if activity_data['id']:
+                try:
+                    existing_activity = Activity.get(
+                        (Activity.strava_id == activity_data['id']) & 
+                        (Activity.source == self.provider_name)
+                    )
+                except DoesNotExist:
+                    existing_activity = None
+            
+            if existing_activity:
+                # Update existing activity
+                activity = existing_activity
+            else:
+                # Create new activity
+                activity = Activity()
+            
+            # Set the start time if available
+            if activity_data.get('start_time'):
+                activity.set_start_time(str(activity_data['start_time']))
+            
+            # Set all the fields directly (handle None values)
+            activity.strava_id = activity_data['id']
+            if activity_data.get('name'):
+                activity.name = activity_data['name']
+            if activity_data.get('distance'):
+                activity.distance = activity_data['distance']
+            if activity_data.get('equipment'):
+                activity.equipment = activity_data['equipment']
+            if activity_data.get('activity_type'):
+                activity.activity_type = activity_data['activity_type']
+            if activity_data.get('notes'):
+                activity.notes = activity_data['notes']
+            activity.source = self.provider_name
+            
+            # Store the raw provider data
+            import json
+            activity.strava_data = json.dumps(activity_data)
+            
+            # Save the activity
+            activity.save()
+            persisted_activities.append(activity)
+        
+        # Mark this month as synced
+        ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+        
+        return persisted_activities
 
     def _get_gmt_timestamp(self, dt_str):
         """Convert a datetime string to a GMT Unix timestamp.

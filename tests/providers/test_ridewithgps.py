@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from fitler.providers.ridewithgps import RideWithGPSActivities, Activity
+from fitler.providers.ridewithgps import RideWithGPSProvider, Activity
 
 @pytest.fixture
 def mock_client():
@@ -10,12 +10,13 @@ def mock_client():
     return mock
 
 @pytest.fixture(autouse=True)
-def patch_init(monkeypatch, mock_client):
-    """Patch RideWithGPSActivities.__init__ to not require env vars and set mock client."""
+def patch_rwgps_activities(monkeypatch):
+    """Patch RideWithGPSProvider.__init__ to not require env vars and set mock client."""
     def fake_init(self):
-        self.client = mock_client
+        self.client = MockRWGPSClient()
         self.userid = 123
-    monkeypatch.setattr(RideWithGPSActivities, "__init__", fake_init)
+
+    monkeypatch.setattr(RideWithGPSProvider, "__init__", fake_init)
 
 def test_fetch_activities(monkeypatch, mock_client):
     mock_client.list.return_value = [
@@ -27,8 +28,8 @@ def test_fetch_activities(monkeypatch, mock_client):
             "gear_id": "bike1",
         }
     ]
-    monkeypatch.setattr(RideWithGPSActivities, "get_gear", lambda self: {"bike1": "Road Bike"})
-    act = RideWithGPSActivities()
+    monkeypatch.setattr(RideWithGPSProvider, "get_gear", lambda self: {"bike1": "Road Bike"})
+    act = RideWithGPSProvider()
     activities = act.fetch_activities()
     assert len(activities) == 1
     assert activities[0].notes == "Morning Ride"
@@ -36,7 +37,7 @@ def test_fetch_activities(monkeypatch, mock_client):
 
 def test_create_activity(mock_client):
     mock_client.put.return_value = {"id": 42}
-    act = RideWithGPSActivities()
+    act = RideWithGPSProvider()
     with patch("builtins.open", create=True):
         activity = Activity(source_file="fake.gpx")
         result = act.create_activity(activity)
@@ -51,8 +52,8 @@ def test_get_activity_by_id(monkeypatch, mock_client):
         "name": "Lunch Ride",
         "gear_id": "bike2",
     }
-    monkeypatch.setattr(RideWithGPSActivities, "get_gear", lambda self: {"bike2": "Gravel Bike"})
-    act = RideWithGPSActivities()
+    monkeypatch.setattr(RideWithGPSProvider, "get_gear", lambda self: {"bike2": "Gravel Bike"})
+    act = RideWithGPSProvider()
     activity = act.get_activity_by_id(2)
     assert activity is not None
     assert activity.notes == "Lunch Ride"
@@ -60,7 +61,7 @@ def test_get_activity_by_id(monkeypatch, mock_client):
 
 def test_update_activity(mock_client):
     mock_client.put.return_value = {"name": "Updated Ride"}
-    act = RideWithGPSActivities()
+    act = RideWithGPSProvider()
     activity = Activity(name="Updated Ride")
     result = act.update_activity(3, activity)
     assert result is True
@@ -71,13 +72,13 @@ def test_get_gear(mock_client):
         {"id": "bike1", "nickname": "Road Bike"},
         {"id": "bike2", "nickname": "Gravel Bike"},
     ]
-    act = RideWithGPSActivities()
+    act = RideWithGPSProvider()
     gear = act.get_gear()
     assert gear == {"bike1": "Road Bike", "bike2": "Gravel Bike"}
 
 def test_set_gear(mock_client):
     mock_client.put.return_value = {"gear_id": "bike1"}
-    act = RideWithGPSActivities()
+    act = RideWithGPSProvider()
     result = act.set_gear("bike1", 4)
     assert result is True
     mock_client.put.assert_called_once()

@@ -5,7 +5,7 @@ import tempfile
 import gzip
 import json
 
-from fitler.metadata import ActivityMetadata
+from fitler.activity import Activity
 from fitler.fileformats.gpx import parse_gpx
 from fitler.fileformats.tcx import parse_tcx
 from fitler.fileformats.fit import parse_fit
@@ -36,7 +36,7 @@ class ActivityFileCollection(object):
 class ActivityFile(object):
     def __init__(self, file):
         self.file = file
-        self.activity_metadata, created = ActivityMetadata.get_or_create(
+        self.activity_metadata, created = Activity.get_or_create(
             original_filename=file.split("/")[-1]
         )
 

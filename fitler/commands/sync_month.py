@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, NamedTuple
 from enum import Enum
-from fitler.metadata import ActivityMetadata
+from fitler.activity import Activity
 from fitler.core import Fitler
 from datetime import datetime, timezone
 import dateparser
@@ -67,9 +67,42 @@ def highlight_provider_id(sheet_id, actual_id, provider):
         return str(sheet_id)
     return ""  # No ID available
 
+def process_activity_for_display(activity: Activity, provider: str) -> dict:
+    """Process an Activity object for display/matching purposes."""
+    # Get the provider-specific ID
+    provider_id = getattr(activity, f'{provider}_id', None)
+    
+    # Convert start time to timestamp
+    if activity.start_time:
+        try:
+            # If it's already a timestamp string, use it
+            if isinstance(activity.start_time, str):
+                ts = int(activity.start_time)
+            # If it's a datetime object, convert directly
+            elif isinstance(activity.start_time, datetime):
+                ts = int(activity.start_time.timestamp())
+            else:
+                # Handle other formats
+                start_dt = dateparser.parse(str(activity.start_time))
+                ts = int(start_dt.timestamp()) if start_dt else 0
+        except (AttributeError, TypeError, ValueError):
+            ts = 0
+    else:
+        ts = 0
+    
+    return {
+        'provider': provider,
+        'id': provider_id,
+        'timestamp': ts,
+        'distance': activity.distance or 0,
+        'obj': activity,  # Use the actual Activity object
+        'metadata': activity
+    }
+
 def run(year_month):
     with Fitler() as fitler:
-        activities = fitler.provider_sync(year_month)
+        # Use the new pull_activities method
+        activities = fitler.pull_activities(year_month)
             
         spreadsheet_acts = activities.get('spreadsheet', [])
         strava_acts = activities.get('strava', [])
@@ -80,13 +113,13 @@ def run(year_month):
 
     all_acts = []
     
-    # Process activities from each provider
+    # Process activities from each provider - these are now Activity objects
     for act in spreadsheet_acts:
-        all_acts.append(fitler._process_activity(act, 'spreadsheet'))
+        all_acts.append(process_activity_for_display(act, 'spreadsheet'))
     for act in strava_acts:
-        all_acts.append(fitler._process_activity(act, 'strava'))
+        all_acts.append(process_activity_for_display(act, 'strava'))
     for act in ridewithgps_acts:
-        all_acts.append(fitler._process_activity(act, 'ridewithgps'))
+        all_acts.append(process_activity_for_display(act, 'ridewithgps'))
 
     # Group by (date, distance) rounded to nearest 0.05 mile for fuzzy matching
     def keyfunc(act):
@@ -218,7 +251,7 @@ def run(year_month):
         
         if not metadata:
             # If we still can't find it, create a new one
-            metadata = ActivityMetadata()
+            metadata = Activity()
             metadata.start_time = row['start']
         
         # Get the authoritative provider and data
@@ -283,6 +316,8 @@ def run(year_month):
             # Get the data for comparison
             auth_equipment = auth_data.get('equipment', '') if auth_data else ''
             provider_equipment = getattr(activity_obj, 'equipment', '') if activity_obj else ''
+            auth_name = auth_data.get('name', '') if auth_data else ''
+            provider_name = getattr(activity_obj, 'name', '') if activity_obj else ''
 
             # Check if equipment needs updating
             if auth_equipment and provider_equipment and auth_equipment != provider_equipment:
@@ -294,26 +329,15 @@ def run(year_month):
                     new_value=auth_equipment
                 ))
 
-            if provider_data and auth_data and provider != auth_provider:
-                # Check if name needs updating
-                if provider_data.get('name') != auth_data.get('name'):
-                    activity_changes.append(ActivityChange(
-                        change_type=ChangeType.UPDATE_NAME,
-                        provider=provider,
-                        activity_id=provider_id or '',
-                        old_value=provider_data.get('name', ''),
-                        new_value=auth_data.get('name', '')
-                    ))
-                
-                # Check if equipment needs updating
-                if provider_data.get('equipment') != auth_data.get('equipment'):
-                    activity_changes.append(ActivityChange(
-                        change_type=ChangeType.UPDATE_EQUIPMENT,
-                        provider=provider,
-                        activity_id=provider_id or '',
-                        old_value=provider_data.get('equipment', ''),
-                        new_value=auth_data.get('equipment', '')
-                    ))
+            # Check if name needs updating  
+            if auth_name and provider_name and auth_name != provider_name:
+                activity_changes.append(ActivityChange(
+                    change_type=ChangeType.UPDATE_NAME,
+                    provider=provider,
+                    activity_id=str(row[provider]),
+                    old_value=provider_name,
+                    new_value=auth_name
+                ))
 
         if activity_changes:
             all_changes.extend(activity_changes)
@@ -347,15 +371,11 @@ def run(year_month):
                 field = 'name' if is_name else 'equipment'
                 auth_value = auth_data.get(field)
             
-            # If this is the authoritative provider
+            # Only highlight green if this is the actual authoritative provider
             if provider == auth_provider:
                 return color_text(text, True, False, False)
             
-            # If this provider matches the authoritative data
-            if auth_value and text == auth_value:
-                return color_text(text, True, False, False)
-            
-            # If this provider has data but doesn't match
+            # If this provider has data but doesn't match the authoritative source
             if auth_value and text != auth_value:
                 return color_text(text, False, False, True)
             
@@ -363,6 +383,7 @@ def run(year_month):
             if not auth_provider:
                 return color_text(text, False, True, False)
             
+            # For all other cases (matches authoritative but isn't authoritative), no highlighting
             return text
 
         table.append([

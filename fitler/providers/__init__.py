@@ -2,13 +2,13 @@
 
 from .base import FitnessProvider
 
-from .spreadsheet import SpreadsheetActivities
-from .strava import StravaActivities
-from .ridewithgps import RideWithGPSActivities
+from .spreadsheet import SpreadsheetProvider
+from .strava import StravaProvider
+from .ridewithgps import RideWithGPSProvider
 
 __all__ = [
     "FitnessProvider",
-    "SpreadsheetActivities",
-    "StravaActivities",
-    "RideWithGPSActivities",
+    "SpreadsheetProvider",
+    "StravaProvider",
+    "RideWithGPSProvider",
 ]

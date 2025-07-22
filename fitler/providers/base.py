@@ -1,78 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict
 
-
-class Activity:
-    """
-    Central representation of an activity in fitler.
-
-    All numbers should be in Standard units (miles, Fahrenheit, etc.)
-    """
-
-    def __init__(
-        self,
-        source_file: Optional[str] = None,
-        source_file_type: Optional[str] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        equipment: Optional[str] = None,
-        notes: Optional[str] = None,
-        location_name: Optional[str] = None,
-        activity_type: Optional[str] = None,
-        city: Optional[str] = None,
-        state: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_speed: Optional[float] = None,
-        avg_heart_rate: Optional[float] = None,
-        max_heart_rate: Optional[float] = None,
-        calories: Optional[float] = None,
-        max_elevation: Optional[float] = None,
-        total_elevation_gain: Optional[float] = None,
-        with_names: Optional[str] = None,
-        avg_cadence: Optional[float] = None,
-        tags: Optional[List[str]] = None,
-        group: Optional[List[str]] = None,
-        departed_at: Optional[str] = None,
-        distance: Optional[float] = None,
-        duration: Optional[float] = None,
-        tss: Optional[float] = None,
-        strava_id: Optional[str] = None,
-        garmin_id: Optional[str] = None,
-        ridewithgps_id: Optional[str] = None,
-        spreadsheet_id: Optional[str] = None,
-    ):
-        self.source_file = source_file
-        self.source_file_type = source_file_type
-        self.name = name
-        self.description = description
-        self.equipment = equipment
-        self.notes = notes
-        self.location_name = location_name
-        self.activity_type = activity_type
-        self.city = city
-        self.state = state
-        self.temperature = temperature
-        self.max_speed = max_speed
-        self.avg_heart_rate = avg_heart_rate
-        self.max_heart_rate = max_heart_rate
-        self.calories = calories
-        self.max_elevation = max_elevation
-        self.total_elevation_gain = total_elevation_gain
-        self.with_names = with_names
-        self.avg_cadence = avg_cadence
-        self.tags = tags or []
-        self.group = group or []
-        self.departed_at = departed_at
-        self.distance = distance
-        self.duration = duration
-        self.tss = tss
-        self.strava_id = strava_id
-        self.garmin_id = garmin_id
-        self.ridewithgps_id = ridewithgps_id
-        self.spreadsheet_id = spreadsheet_id
-
-    def to_dict(self):
-        return self.__dict__
+# Import Activity from the new location
+from fitler.activity import Activity
 
 
 class FitnessProvider(ABC):
@@ -87,10 +17,11 @@ class FitnessProvider(ABC):
         pass
 
     @abstractmethod
-    def sync_activities(self, date_filter: str) -> List[Activity]:
+    def pull_activities(self, date_filter: str) -> List['Activity']:
         """
-        Sync activities for a given month filter in YYYY-MM format.
-        Returns a list of synced Activity objects.
+        Pull activities for a given month filter in YYYY-MM format.
+        Fetches from provider API/source and persists to database.
+        Returns a list of Activity objects.
         """
         pass
 

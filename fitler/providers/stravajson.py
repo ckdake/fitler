@@ -11,7 +11,8 @@ import json
 from typing import List, Optional, Dict
 import dateparser
 
-from fitler.providers.base import FitnessProvider, Activity
+from fitler.providers.base import FitnessProvider
+from fitler.activity import Activity
 
 
 class StravaJsonActivities(FitnessProvider):

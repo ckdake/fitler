@@ -7,7 +7,8 @@ for interacting with Garmin activity data.
 import os
 from typing import List, Optional, Dict
 
-from fitler.providers.base import FitnessProvider, Activity
+from fitler.providers.base import FitnessProvider
+from fitler.activity import Activity
 
 
 class GarminActivities(FitnessProvider):

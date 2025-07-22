@@ -9,18 +9,34 @@ def print_activities(provider_name, activities, id_field, home_tz):
     for act in activities:
         act_id = getattr(act, id_field, None)
         name = getattr(act, 'name', None) or getattr(act, 'notes', '')
-        departed_at = getattr(act, 'departed_at', None)
-        # Convert UTC timestamp to local time for display
+        
+        # start_time is stored as a Unix timestamp (integer/string)
+        start_time = getattr(act, 'start_time', None)
         date_str = ''
-        if departed_at:
+        raw_timestamp = 'None'
+        
+        if start_time:
             try:
-                utc = datetime.datetime.fromtimestamp(int(departed_at), datetime.timezone.utc)
-                local = utc.astimezone(home_tz)
-                date_str = f"{local.strftime('%Y-%m-%d %H:%M')} {local.tzname()}"
-            except:
+                # Convert Unix timestamp to datetime
+                if isinstance(start_time, str):
+                    timestamp = int(start_time)
+                else:
+                    timestamp = int(start_time)
+                
+                # Create UTC datetime from timestamp
+                import datetime
+                utc_dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
+                # Convert to local timezone
+                local_dt = utc_dt.astimezone(home_tz)
+                
+                raw_timestamp = str(timestamp)
+                date_str = f"{local_dt.strftime('%Y-%m-%d %H:%M')} {local_dt.tzname()}"
+            except (ValueError, TypeError) as e:
                 date_str = 'invalid'
+                raw_timestamp = str(start_time) if start_time else 'None'
+                
         dist = getattr(act, 'distance', 0)
-        print(f"{str(act_id):<12} {str(name)[:28]:<30} {str(departed_at):<12} {str(date_str):<19} {dist:12.2f}")
+        print(f"{str(act_id):<12} {str(name)[:28]:<30} {str(raw_timestamp):<12} {str(date_str):<19} {dist:12.2f}")
 
 def run(year_month):
     """Show activities for a specific year and month (format: YYYY-MM)."""
@@ -30,13 +46,19 @@ def run(year_month):
 
     # Initialize Fitler
     with Fitler() as fitler:
-        # Get all activities for the month
-        activities = fitler.fetch_activities_for_month(year_month)
+        # Pull all activities for the month
+        activities = fitler.pull_activities(year_month)
         
         # Use fitler's config and timezone
         home_tz = fitler.home_tz
 
-        # Print activities from each source
-        print_activities("Spreadsheet", activities['spreadsheet'], "spreadsheet_id", home_tz)
-        print_activities("Strava", activities['strava'], "strava_id", home_tz)
-        print_activities("RideWithGPS", activities['ridewithgps'], "ridewithgps_id", home_tz)
+        # Print activities from each enabled provider
+        provider_configs = {
+            "spreadsheet": ("Spreadsheet", "spreadsheet_id"),
+            "strava": ("Strava", "strava_id"),
+            "ridewithgps": ("RideWithGPS", "ridewithgps_id")
+        }
+        
+        for provider_key, (display_name, id_field) in provider_configs.items():
+            if provider_key in activities:
+                print_activities(display_name, activities[provider_key], id_field, home_tz)
