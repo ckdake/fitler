@@ -24,7 +24,6 @@ def print_activities(provider_name, activities, id_field, home_tz):
                     timestamp = int(start_time)
                 
                 # Create UTC datetime from timestamp
-                import datetime
                 utc_dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
                 # Convert to local timezone
                 local_dt = utc_dt.astimezone(home_tz)

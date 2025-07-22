@@ -32,7 +32,6 @@ def main():
         "sync-month", help="Correlate and show all activities for a given month (YYYY-MM) across all sources, dry run"
     )
     sync_month_parser.add_argument("year_month", type=str, help="Year and month in YYYY-MM format")
-    subparsers.add_parser("sync", help="Sync and match activities from all sources")
     subparsers.add_parser("help", help="Show usage and documentation")
 
     args = parser.parse_args()
@@ -49,9 +48,6 @@ def main():
     elif args.command == "sync-month":
         from fitler.commands.sync_month import run
         run(args.year_month)
-    elif args.command == "sync":
-        from fitler.commands.sync_all import run
-        run()
     elif args.command == "migrate":
         from fitler.commands.migrate import run
         run()
@@ -68,14 +64,13 @@ Commands:
     configure     Configure Fitler for your environment (paths, API keys, etc)
     show-month    Show all activities for a given month (YYYY-MM) from all sources
     sync-month    Correlate and show all activities for a given month (YYYY-MM) across all sources, dry run
-    sync          Sync and match activities from all sources
     help          Show this help and usage documentation
 
 Setup:
     1. Run 'python -m fitler migrate' to initialize the database.
     2. Run 'python -m fitler configure' to set up paths and API credentials.
     3. Authenticate with Strava using 'python -m fitler auth-strava'.
-    4. Sync your activities with 'python -m fitler sync'.
+    4. Use 'python -m fitler sync-month YYYY-MM' to view activity correlations.
 
 See README.md for more details.
 """

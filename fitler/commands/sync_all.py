@@ -1,6 +1,6 @@
 import copy
 
-import fitler
+from fitler.activity import Activity
 
 
 def run():

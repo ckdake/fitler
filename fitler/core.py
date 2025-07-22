@@ -3,16 +3,13 @@
 import os
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Type
-from datetime import datetime, timezone
+from typing import Optional, Dict, Any, List
 from zoneinfo import ZoneInfo
-import dateparser
-from peewee import Model
 
 from .providers.spreadsheet import SpreadsheetProvider
 from .providers.strava import StravaProvider
 from .providers.ridewithgps import RideWithGPSProvider
-from .providers.base import Activity
+from .activity import Activity
 from .database import db
 
 CONFIG_PATH = Path("fitler_config.json")
