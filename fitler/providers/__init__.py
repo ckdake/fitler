@@ -7,7 +7,7 @@ from .stravajson import StravaJsonProvider
 from .garmin import GarminProvider
 
 __all__ = [
-    "SpreadsheetProvider", 
+    "SpreadsheetProvider",
     "StravaProvider",
     "RideWithGPSProvider",
     "StravaJsonProvider",

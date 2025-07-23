@@ -2,4 +2,4 @@
 
 from .ridewithgps_provider import RideWithGPSProvider
 
-__all__ = ['RideWithGPSProvider']
+__all__ = ["RideWithGPSProvider"]
