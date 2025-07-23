@@ -1,5 +1,5 @@
 import os
-from fitler.fileformats.fit import parse_fit
+from fitler.providers.file.formats.fit import parse_fit
 
 
 def test_parse_fit_sample():

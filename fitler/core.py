@@ -10,6 +10,7 @@ from .providers.spreadsheet import SpreadsheetProvider
 from .providers.strava import StravaProvider
 from .providers.ridewithgps import RideWithGPSProvider
 from .providers.garmin import GarminProvider
+from .providers.file import FileProvider
 from .activity import Activity
 from .database import db
 
@@ -32,6 +33,7 @@ class Fitler:
         self._strava = None
         self._ridewithgps = None
         self._garmin = None
+        self._file = None
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from fitler_config.json."""
@@ -90,6 +92,15 @@ class Fitler:
                 self._garmin = GarminProvider()
         return self._garmin
 
+    @property  
+    def file(self) -> Optional[FileProvider]:
+        """Get the File provider, initializing it if needed."""
+        if not self._file:
+            activity_file_glob = self.config.get("activity_file_glob")
+            if activity_file_glob:
+                self._file = FileProvider(activity_file_glob)
+        return self._file
+
     @property
     def enabled_providers(self) -> List[str]:
         """Get list of enabled providers."""
@@ -102,6 +113,8 @@ class Fitler:
             providers.append("ridewithgps")
         if self.garmin:
             providers.append("garmin")
+        if self.file:
+            providers.append("file")
         return providers
 
     def pull_activities(self, year_month: str) -> Dict[str, List[Activity]]:

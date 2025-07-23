@@ -5,11 +5,13 @@ from .strava import StravaProvider
 from .ridewithgps import RideWithGPSProvider
 from .stravajson import StravaJsonProvider
 from .garmin import GarminProvider
+from .file import FileProvider
 
 __all__ = [
-    "SpreadsheetProvider",
+    "SpreadsheetProvider", 
     "StravaProvider",
     "RideWithGPSProvider",
     "StravaJsonProvider",
     "GarminProvider",
+    "FileProvider",
 ]

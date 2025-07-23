@@ -1,5 +1,5 @@
 import os
-from fitler.fileformats.gpx import parse_gpx
+from fitler.providers.file.formats.gpx import parse_gpx
 
 
 def test_parse_gpx_sample():

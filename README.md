@@ -142,7 +142,7 @@ You can also use the Python API in your own scripts to process files, sync with 
 
 - All core code lives in the `fitler/` package.
 - Providers are in `fitler/providers/`
-- File format handlers are in `fitler/fileformats/`
+- File format handlers are in `fitler/providers/file/formats/`
 - Database models are in `fitler/metadata.py`
 - CLI commands are in `fitler/commands/`
 
@@ -153,8 +153,7 @@ You can also use the Python API in your own scripts to process files, sync with 
 Fitler uses [pytest](https://pytest.org/) for testing. To run all tests:
 
 ```sh
-pip install pytest
-pytest -v
+python -m pytest --cov=fitler --cov-report=term-missing -v
 ```
 
 Test files are in the `tests/` directory and mirror the package structure.
