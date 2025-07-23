@@ -11,7 +11,7 @@ from typing import List, Optional, Dict
 from pyrwgps import RideWithGPS
 import datetime
 
-from fitler.providers.base import FitnessProvider
+from fitler.providers.base_provider import FitnessProvider
 from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
 from peewee import DoesNotExist

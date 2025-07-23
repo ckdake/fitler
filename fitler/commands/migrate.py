@@ -6,15 +6,14 @@ def run():
     print("Running database migrations...")
 
     try:
-        from fitler.activity import Activity
-        from fitler.provider_sync import ProviderSync
-        from fitler.database import migrate_tables
+        from fitler.database import migrate_tables, get_all_models
 
-        migrate_tables([Activity, ProviderSync])
+        models = get_all_models()
+        migrate_tables(models)
 
         print("Successfully migrated database tables:")
-        print("- Activity")
-        print("- ProviderSync")
+        for model in models:
+            print(f"- {model.__name__}")
     except Exception as e:
         print(f"Migration failed: {e}")
         raise

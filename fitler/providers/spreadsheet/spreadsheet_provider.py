@@ -11,7 +11,7 @@ import openpyxl
 from dateutil import parser as dateparser
 import datetime
 
-from fitler.providers.base import FitnessProvider
+from fitler.providers.base_provider import FitnessProvider
 from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
 from peewee import DoesNotExist

@@ -13,7 +13,7 @@ import datetime
 import json
 from pathlib import Path
 
-from fitler.providers.base import FitnessProvider
+from fitler.providers.base_provider import FitnessProvider
 from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
 from peewee import DoesNotExist

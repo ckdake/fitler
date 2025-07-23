@@ -68,8 +68,8 @@ def mock_sheet():
     )
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 @pytest.mark.skip(
     reason="Spreadsheet provider tests need updating for new pull_activities API"
 )
@@ -79,8 +79,8 @@ def test_fetch_activities(mock_path, mock_load_workbook, mock_sheet):
     pass
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 def test_get_activity_by_id(mock_path, mock_load_workbook, mock_sheet):
     mock_wb = MagicMock()
     mock_wb.active = mock_sheet
@@ -94,8 +94,8 @@ def test_get_activity_by_id(mock_path, mock_load_workbook, mock_sheet):
     assert activity.spreadsheet_id == 2
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 def test_create_activity(mock_path, mock_load_workbook):
     mock_wb = MagicMock()
     mock_sheet = MagicMock()
@@ -117,8 +117,8 @@ def test_create_activity(mock_path, mock_load_workbook):
     assert result == "3"
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 def test_set_gear(mock_path, mock_load_workbook):
     mock_wb = MagicMock()
     mock_sheet = MagicMock()
@@ -134,8 +134,8 @@ def test_set_gear(mock_path, mock_load_workbook):
     assert result is True
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 def test_update_activity(mock_path, mock_load_workbook):
     mock_wb = MagicMock()
     mock_sheet = MagicMock()
@@ -157,8 +157,8 @@ def test_update_activity(mock_path, mock_load_workbook):
     mock_wb.save.assert_called_once()
 
 
-@patch("fitler.providers.spreadsheet.openpyxl.load_workbook")
-@patch("fitler.providers.spreadsheet.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 def test_get_gear(mock_path, mock_load_workbook, mock_sheet):
     mock_wb = MagicMock()
     # Simulate two rows with different equipment

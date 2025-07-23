@@ -1,6 +1,6 @@
 """Core Activity model for fitler."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import json
 import dateparser
 import pytz
@@ -14,6 +14,7 @@ from peewee import (
     IntegerField,
     DateField,
     TextField,
+    SQL,
 )
 
 # Import database here to set up the connection
@@ -22,32 +23,33 @@ from fitler.database import db
 
 class Activity(Model):
     """
-    Central representation of an activity in fitler.
+    Central logical representation of an activity in fitler.
 
-    This class handles both the in-memory representation and database persistence.
-    All numbers should be in Standard units (miles, Fahrenheit, etc.)
+    This represents the "source of truth" activity that can be linked to
+    multiple provider-specific activity records. Each Activity represents
+    a single logical workout/ride/activity.
     """
 
-    # Core activity data
+    # Core activity data - the authoritative/computed values
     start_time = CharField(null=True, index=True)  # Stored as Unix timestamp string
     date = DateField(null=True, index=True)
     distance = FloatField(null=True)  # in miles
 
-    # Names and descriptions
+    # Authoritative names and descriptions
     name = CharField(null=True)  # The canonical name for the activity
     notes = TextField(null=True)  # Additional notes/description
 
-    # Equipment and conditions
+    # Equipment and conditions (authoritative)
     equipment = CharField(null=True)
     activity_type = CharField(null=True)
     temperature = DecimalField(null=True)
 
-    # Location data
+    # Location data (authoritative)
     location_name = CharField(null=True)
     city = CharField(null=True)
     state = CharField(null=True)
 
-    # Performance metrics
+    # Performance metrics (authoritative)
     duration_hms = CharField(null=True)
     max_speed = DecimalField(null=True)
     avg_heart_rate = IntegerField(null=True)
@@ -57,25 +59,34 @@ class Activity(Model):
     total_elevation_gain = IntegerField(null=True)
     avg_cadence = IntegerField(null=True)
 
-    # Provider IDs and data
-    spreadsheet_id = IntegerField(null=True, index=True)  # Row number in spreadsheet
-    strava_id = IntegerField(null=True, index=True)
-    garmin_id = IntegerField(null=True, index=True)
-    ridewithgps_id = IntegerField(null=True, index=True)
+    # Links to provider-specific activity records
+    # These are the IDs from each provider for correlation
+    spreadsheet_id = CharField(null=True, index=True)  # Row number or custom ID
+    strava_id = CharField(null=True, index=True)
+    garmin_id = CharField(null=True, index=True)
+    ridewithgps_id = CharField(null=True, index=True)
 
-    # Provider-specific data (stored as JSON)
+    # Provider-specific data (stored as JSON) - kept for compatibility
     strava_data = TextField(null=True)  # JSON blob of raw Strava data
     ridewithgps_data = TextField(null=True)  # JSON blob of raw RWGPS data
     garmin_data = TextField(null=True)  # JSON blob of raw Garmin data
     spreadsheet_data = TextField(null=True)  # JSON blob of spreadsheet data
 
-    # Tracking fields
-    last_updated = DateTimeField(default=datetime.now)
+    # Metadata for correlation and tracking
+    correlation_key = CharField(null=True, index=True)  # For deterministic matching
+    last_updated = DateTimeField(constraints=[SQL("DEFAULT CURRENT_TIMESTAMP")])
     original_filename = CharField(null=True)  # For imported files
-    source = CharField(null=True)  # Original data source
+    source = CharField(default="fitler")  # Source of truth indicator
+
+    # User association (for multi-user support in the future)
+    user_id = CharField(null=True, index=True)
 
     class Meta:
         database = db
+        indexes = (
+            # Composite index for correlation key lookups
+            (("correlation_key", "user_id"), False),
+        )
 
     def set_start_time(self, datetimestring: str) -> None:
         """Set the start time from a string, converting to Unix timestamp."""
@@ -295,3 +306,79 @@ class Activity(Model):
             "ridewithgps_id": getattr(self, "ridewithgps_id", None),
             "spreadsheet_id": getattr(self, "spreadsheet_id", None),
         }
+
+    def generate_correlation_key(self) -> str:
+        """Generate a correlation key for matching activities across providers.
+
+        This should be deterministic and slightly fuzzy to account for different
+        distance calculations across providers.
+        """
+        if not self.start_time or not self.distance:
+            return ""
+
+        try:
+            # Convert timestamp to date string
+            dt = datetime.fromtimestamp(int(self.start_time), pytz.UTC)
+            date_str = dt.strftime("%Y-%m-%d")
+
+            # Round distance to nearest 0.1 mile for fuzzy matching
+            rounded_distance = round(float(self.distance) * 10) / 10
+
+            return f"{date_str}_{rounded_distance}"
+        except (ValueError, TypeError):
+            return ""
+
+    def update_correlation_key(self) -> None:
+        """Update the correlation key based on current start_time and distance."""
+        self.correlation_key = self.generate_correlation_key()
+
+    def get_linked_provider_activities(self) -> Dict[str, Any]:
+        """Get all linked provider-specific activity records.
+
+        Returns a dict with provider names as keys and activity objects as values.
+        """
+        from fitler.providers.strava.strava_activity import StravaActivity
+        from fitler.providers.garmin.garmin_activity import GarminActivity
+        from fitler.providers.ridewithgps.ridewithgps_activity import (
+            RideWithGPSActivity,
+        )
+        from fitler.providers.spreadsheet.spreadsheet_activity import (
+            SpreadsheetActivity,
+        )
+
+        linked = {}
+
+        # Check each provider
+        if self.strava_id:
+            try:
+                linked["strava"] = StravaActivity.get(
+                    StravaActivity.strava_id == self.strava_id
+                )
+            except StravaActivity.DoesNotExist:
+                pass
+
+        if self.garmin_id:
+            try:
+                linked["garmin"] = GarminActivity.get(
+                    GarminActivity.garmin_id == self.garmin_id
+                )
+            except GarminActivity.DoesNotExist:
+                pass
+
+        if self.ridewithgps_id:
+            try:
+                linked["ridewithgps"] = RideWithGPSActivity.get(
+                    RideWithGPSActivity.ridewithgps_id == self.ridewithgps_id
+                )
+            except RideWithGPSActivity.DoesNotExist:
+                pass
+
+        if self.spreadsheet_id:
+            try:
+                linked["spreadsheet"] = SpreadsheetActivity.get(
+                    SpreadsheetActivity.spreadsheet_id == self.spreadsheet_id
+                )
+            except SpreadsheetActivity.DoesNotExist:
+                pass
+
+        return linked

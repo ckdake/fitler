@@ -11,7 +11,7 @@ import json
 from typing import List, Optional, Dict
 import dateparser
 
-from fitler.providers.base import FitnessProvider
+from fitler.providers.base_provider import FitnessProvider
 from fitler.activity import Activity
 
 
