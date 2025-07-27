@@ -48,16 +48,6 @@ class Fitler:
             config["debug"] = False
         if "provider_priority" not in config:
             config["provider_priority"] = "spreadsheet,ridewithgps,strava,garmin"
-        if "providers" not in config:
-            # Create default providers section for backward compatibility
-            config["providers"] = {
-                "spreadsheet": {"enabled": bool(config.get("spreadsheet_path")), "path": config.get("spreadsheet_path", "")},
-                "file": {"enabled": bool(config.get("activity_file_glob")), "glob": config.get("activity_file_glob", "")},
-                "strava": {"enabled": True},
-                "ridewithgps": {"enabled": True},
-                "garmin": {"enabled": True},
-                "stravajson": {"enabled": bool(config.get("strava_export_folder"))},
-            }
 
         return config
 
@@ -67,9 +57,12 @@ class Fitler:
         provider_config = self.config.get("providers", {}).get("spreadsheet", {})
         
         if not self._spreadsheet and provider_config.get("enabled", False):
-            path = provider_config.get("path") or self.config.get("spreadsheet_path", "")
+            path = provider_config.get("path")
             if path:
-                self._spreadsheet = SpreadsheetProvider(path)
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                self._spreadsheet = SpreadsheetProvider(path, config=enhanced_config)
         return self._spreadsheet
 
     @property
@@ -80,13 +73,16 @@ class Fitler:
         if not self._strava and provider_config.get("enabled", False):
             token = os.environ.get("STRAVA_ACCESS_TOKEN")
             if token:
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
                 self._strava = StravaProvider(
                     token,
                     refresh_token=os.environ.get("STRAVA_REFRESH_TOKEN"),
                     client_id=os.environ.get("STRAVA_CLIENT_ID"),
                     client_secret=os.environ.get("STRAVA_CLIENT_SECRET"),
                     token_expires=os.environ.get("STRAVA_TOKEN_EXPIRES"),
-                    config=provider_config,
+                    config=enhanced_config,
                 )
         return self._strava
 
@@ -104,7 +100,10 @@ class Fitler:
                     "RIDEWITHGPS_KEY",
                 ]
             ):
-                self._ridewithgps = RideWithGPSProvider(config=provider_config)
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                self._ridewithgps = RideWithGPSProvider(config=enhanced_config)
         return self._ridewithgps
 
     @property
@@ -114,7 +113,10 @@ class Fitler:
         
         if not self._garmin and provider_config.get("enabled", False):
             if os.environ.get("GARMINTOKENS"):
-                self._garmin = GarminProvider(config=provider_config)
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                self._garmin = GarminProvider(config=enhanced_config)
         return self._garmin
 
     @property
@@ -123,9 +125,12 @@ class Fitler:
         provider_config = self.config.get("providers", {}).get("file", {})
         
         if not self._file and provider_config.get("enabled", False):
-            glob_pattern = provider_config.get("glob") or self.config.get("activity_file_glob")
+            glob_pattern = provider_config.get("glob")
             if glob_pattern:
-                self._file = FileProvider(glob_pattern, config=provider_config)
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                self._file = FileProvider(glob_pattern, config=enhanced_config)
         return self._file
 
     @property
@@ -134,9 +139,12 @@ class Fitler:
         provider_config = self.config.get("providers", {}).get("stravajson", {})
         
         if not self._stravajson and provider_config.get("enabled", False):
-            folder = provider_config.get("folder") or self.config.get("strava_export_folder")
+            folder = provider_config.get("folder")
             if folder:
-                self._stravajson = StravaJsonProvider(folder, config=provider_config)
+                # Add home_timezone to provider config
+                enhanced_config = provider_config.copy()
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                self._stravajson = StravaJsonProvider(folder, config=enhanced_config)
         return self._stravajson
 
     @property

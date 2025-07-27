@@ -8,7 +8,7 @@ uploading, creating, updating, or managing gear.
 
 import glob
 import json
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 import dateparser
 
 from fitler.providers.base_provider import FitnessProvider
@@ -18,8 +18,9 @@ from fitler.activity import Activity
 class StravaJsonProvider(FitnessProvider):
     """Provider for reading Strava activity data from JSON files."""
 
-    def __init__(self, folder: str):
+    def __init__(self, folder: str, config: Optional[Dict[str, Any]] = None):
         """Initialize with folder containing JSON files."""
+        super().__init__(config)
         self.folder = folder
 
     @property

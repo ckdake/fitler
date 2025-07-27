@@ -11,7 +11,7 @@ import json
 import tempfile
 import gzip
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fitler.providers.base_provider import FitnessProvider
 from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
@@ -22,8 +22,9 @@ from peewee import DoesNotExist
 class FileProvider(FitnessProvider):
     """File provider for processing activity files from filesystem."""
 
-    def __init__(self, file_glob: str):
+    def __init__(self, file_glob: str, config: Optional[Dict[str, Any]] = None):
         """Initialize with file glob pattern for finding activity files."""
+        super().__init__(config)
         self.file_glob = file_glob
 
     @property

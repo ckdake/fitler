@@ -18,7 +18,9 @@ from peewee import DoesNotExist
 
 
 class SpreadsheetProvider(FitnessProvider):
-    def __init__(self, path: str):
+    def __init__(self, path: str, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        super().__init__(config)
         self.path = path
 
     @property
@@ -45,7 +47,7 @@ class SpreadsheetProvider(FitnessProvider):
                 )
                 if existing:
                     # Update existing activity with fresh data from spreadsheet
-                    for attr in ['departed_at', 'activity_type', 'location_name', 'city', 'state', 
+                    for attr in ['start_time', 'activity_type', 'location_name', 'city', 'state', 
                                 'temperature', 'equipment', 'duration', 'distance', 'max_speed',
                                 'avg_heart_rate', 'max_heart_rate', 'calories', 'max_elevation',
                                 'total_elevation_gain', 'with_names', 'avg_cadence', 'strava_id',
@@ -75,10 +77,10 @@ class SpreadsheetProvider(FitnessProvider):
         year, month = map(int, date_filter.split("-"))
         
         for activity in persisted_activities:
-            if hasattr(activity, 'departed_at') and activity.departed_at:
+            if hasattr(activity, 'start_time') and activity.start_time:
                 try:
                     # Convert timestamp to datetime for comparison
-                    dt = datetime.datetime.fromtimestamp(int(activity.departed_at))
+                    dt = datetime.datetime.fromtimestamp(int(activity.start_time))
                     if dt.year == year and dt.month == month:
                         filtered_activities.append(activity)
                 except (ValueError, TypeError):
@@ -184,8 +186,8 @@ class SpreadsheetProvider(FitnessProvider):
                 continue  # Skip header row
             activity_kwargs: Dict[str, Any] = {}
             # Convert date to GMT timestamp
-            departed_at = self._convert_to_gmt_timestamp(row[0])
-            activity_kwargs["departed_at"] = departed_at
+            start_time = self._convert_to_gmt_timestamp(row[0])
+            activity_kwargs["start_time"] = start_time
 
             if row[1]:
                 activity_kwargs["activity_type"] = row[1]
@@ -246,11 +248,11 @@ class SpreadsheetProvider(FitnessProvider):
         all_activities = self.fetch_activities()
         filtered = []
         for act in all_activities:
-            departed_at = getattr(act, "departed_at", None)
-            if departed_at:
+            start_time = getattr(act, "start_time", None)
+            if start_time:
                 try:
                     # Convert GMT timestamp to local time for comparison
-                    dt = datetime.datetime.fromtimestamp(int(departed_at))
+                    dt = datetime.datetime.fromtimestamp(int(start_time))
                     date_str = dt.strftime("%Y-%m")
                     if date_str == year_month:
                         filtered.append(act)
@@ -272,8 +274,8 @@ class SpreadsheetProvider(FitnessProvider):
 
         row = [cell.value for cell in sheet[row_idx]]
         activity_kwargs: Dict[str, Any] = {}
-        departed_at = self._convert_to_gmt_timestamp(row[0]) if row[0] else None
-        activity_kwargs["departed_at"] = departed_at
+        start_time = self._convert_to_gmt_timestamp(row[0]) if row[0] else None
+        activity_kwargs["start_time"] = start_time
         if row[1]:
             activity_kwargs["activity_type"] = row[1]
         if row[2]:
@@ -319,56 +321,64 @@ class SpreadsheetProvider(FitnessProvider):
         activity_kwargs["spreadsheet_id"] = row_idx
         return SpreadsheetActivity(**activity_kwargs)
 
-    def update_activity(self, activity_data: Dict) -> SpreadsheetActivity:
+
+
+    def update_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Update an existing SpreadsheetActivity with new data."""
-        provider_id = activity_data['spreadsheet_id']
-        activity = SpreadsheetActivity.get(SpreadsheetActivity.spreadsheet_id == provider_id)
-        for key, value in activity_data.items():
-            setattr(activity, key, value)
-        activity.save()
-        return activity
-        xlsx_file = Path("ActivityData", self.path)
+        try:
+            activity_id = activity_data.get("spreadsheet_id")
+            if not activity_id:
+                return None
+            activity = SpreadsheetActivity.get(SpreadsheetActivity.spreadsheet_id == activity_id)
+            for key, value in activity_data.items():
+                if key != "spreadsheet_id":  # Don't update the ID itself
+                    setattr(activity, key, value)
+            activity.save()
+            return activity
+        except Exception:
+            return None
+
+    def create_activity(self, activity_data: Dict[str, Any]) -> str:
+        """Create a new activity in the spreadsheet from activity data."""
+        xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
+
+        # Get the next row number
+        next_row = sheet.max_row + 1
         
-        if sheet is None:
-            return False
-
-        row_idx = int(activity_id)
-        if row_idx <= 1 or row_idx > sheet.max_row:
-            return False
-
-        # Prepare the row in the same order as the header
+        # Prepare the row data
         row = [
-            getattr(activity, "start_time", ""),
-            getattr(activity, "activity_type", ""),
-            getattr(activity, "location_name", ""),
-            getattr(activity, "city", ""),
-            getattr(activity, "state", ""),
-            getattr(activity, "temperature", ""),
-            getattr(activity, "equipment", ""),
-            self._seconds_to_hms(getattr(activity, "duration", None)),
-            getattr(activity, "distance", ""),
-            getattr(activity, "max_speed", ""),
-            getattr(activity, "avg_heart_rate", ""),
-            getattr(activity, "max_heart_rate", ""),
-            getattr(activity, "calories", ""),
-            getattr(activity, "max_elevation", ""),
-            getattr(activity, "total_elevation_gain", ""),
-            getattr(activity, "with_names", ""),
-            getattr(activity, "avg_cadence", ""),
-            getattr(activity, "strava_id", ""),
-            getattr(activity, "garmin_id", ""),
-            getattr(activity, "ridewithgps_id", ""),
-            getattr(activity, "notes", ""),
+            activity_data.get("start_time", ""),
+            activity_data.get("activity_type", ""),
+            activity_data.get("location_name", ""),
+            activity_data.get("city", ""),
+            activity_data.get("state", ""),
+            activity_data.get("temperature", ""),
+            activity_data.get("equipment", ""),
+            self._seconds_to_hms(activity_data.get("duration", None)),
+            activity_data.get("distance", ""),
+            activity_data.get("max_speed", ""),
+            activity_data.get("avg_heart_rate", ""),
+            activity_data.get("max_heart_rate", ""),
+            activity_data.get("calories", ""),
+            activity_data.get("max_elevation", ""),
+            activity_data.get("total_elevation_gain", ""),
+            activity_data.get("with_names", ""),
+            activity_data.get("avg_cadence", ""),
+            activity_data.get("strava_id", ""),
+            activity_data.get("garmin_id", ""),
+            activity_data.get("ridewithgps_id", ""),
+            activity_data.get("notes", ""),
         ]
-        for col_idx, value in enumerate(row, start=1):
-            sheet.cell(row=row_idx, column=col_idx, value=value)
+        
+        sheet.append(row)
         wb_obj.save(xlsx_file)
-        return True
+        return str(next_row)
 
     def get_gear(self) -> Dict[str, str]:
-        xlsx_file = Path("ActivityData", self.path)
+        """Fetch gear/equipment from the spreadsheet."""
+        xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
         
@@ -380,52 +390,15 @@ class SpreadsheetProvider(FitnessProvider):
         for i, row in enumerate(sheet.iter_rows(values_only=True)):
             if i == 0:
                 continue  # Skip header row
-            equipment = row[6]
+            equipment = row[6] if len(row) > 6 else None
             if equipment:
                 gear_set.add(str(equipment))
         # Use the equipment name as both key and value
         return {name: name for name in gear_set}
 
-    def create_activity(self, activity_data: Dict) -> SpreadsheetActivity:
-        """Create a new SpreadsheetActivity from activity data."""
-        return SpreadsheetActivity.create(**activity_data)
-        xlsx_file = Path("ActivityData", self.path)
-        wb_obj = openpyxl.load_workbook(xlsx_file)
-        sheet = wb_obj.active
-
-        row = [
-            getattr(activity, "start_time", ""),
-            getattr(activity, "activity_type", ""),
-            getattr(activity, "location_name", ""),
-            getattr(activity, "city", ""),
-            getattr(activity, "state", ""),
-            getattr(activity, "temperature", ""),
-            getattr(activity, "equipment", ""),
-            self._seconds_to_hms(getattr(activity, "duration", None)),
-            getattr(activity, "distance", ""),
-            getattr(activity, "max_speed", ""),
-            getattr(activity, "avg_heart_rate", ""),
-            getattr(activity, "max_heart_rate", ""),
-            getattr(activity, "calories", ""),
-            getattr(activity, "max_elevation", ""),
-            getattr(activity, "total_elevation_gain", ""),
-            getattr(activity, "with_names", ""),
-            getattr(activity, "avg_cadence", ""),
-            getattr(activity, "strava_id", ""),
-            getattr(activity, "garmin_id", ""),
-            getattr(activity, "ridewithgps_id", ""),
-            getattr(activity, "notes", ""),
-        ]
-        
-        if sheet is None:
-            return ""
-            
-        sheet.append(row)
-        wb_obj.save(xlsx_file)
-        return str(sheet.max_row)
-
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
-        xlsx_file = Path("ActivityData", self.path)
+        """Set the gear/equipment for a specific activity."""
+        xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
         
@@ -433,10 +406,10 @@ class SpreadsheetProvider(FitnessProvider):
             return False
 
         row_idx = int(activity_id)
-        # The gear column is index 7 (0-based), so column 7+1=8 (1-based for openpyxl)
-        gear_col = 7 + 1
         if row_idx <= 1 or row_idx > sheet.max_row:
-            return False  # Invalid row (header or out of range)
-        sheet.cell(row=row_idx, column=gear_col, value=gear_id)
+            return False
+
+        # Equipment is in column 7 (1-based)
+        sheet.cell(row=row_idx, column=7, value=gear_id)
         wb_obj.save(xlsx_file)
         return True

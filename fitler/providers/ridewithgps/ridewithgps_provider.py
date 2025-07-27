@@ -17,7 +17,8 @@ from fitler.providers.ridewithgps.ridewithgps_activity import RideWithGPSActivit
 
 
 class RideWithGPSProvider(FitnessProvider):
-    def __init__(self):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        super().__init__(config)
         self.username = os.environ["RIDEWITHGPS_EMAIL"]
         self.password = os.environ["RIDEWITHGPS_PASSWORD"]
         self.apikey = os.environ["RIDEWITHGPS_KEY"]

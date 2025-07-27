@@ -43,7 +43,6 @@ class TestFitlerCore:
 
                 assert fitler.config["home_timezone"] == "US/Pacific"
                 assert fitler.config["debug"] == False
-                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
 
     def test_fitler_config_defaults(self, tmp_path):
         """Test that Fitler sets default config values."""
@@ -60,15 +59,14 @@ class TestFitlerCore:
 
                 fitler = Fitler()
 
-                # Should set defaults and create providers section for backward compatibility
+                # Should set defaults but NOT create providers section
                 assert fitler.config["debug"] == False
                 assert (
                     fitler.config["provider_priority"]
                     == "spreadsheet,ridewithgps,strava,garmin"
                 )
-                assert "providers" in fitler.config
-                assert fitler.config["providers"]["spreadsheet"]["enabled"] == True
-                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
+                # No longer creates providers section automatically
+                assert "providers" not in fitler.config
 
     def test_enabled_providers_empty(self, tmp_path):
         """Test enabled_providers when no providers are enabled."""
@@ -261,28 +259,3 @@ class TestFitlerCore:
                 # Should handle error gracefully and return empty list
                 assert result["spreadsheet"] == []
 
-    def test_backward_compatibility_old_config(self, tmp_path):
-        """Test that old config format still works with backward compatibility."""
-        # Old config format without providers block
-        config_data = {
-            "spreadsheet_path": "/tmp/test.xlsx",
-            "activity_file_glob": "./test/*",
-            "home_timezone": "US/Pacific"
-        }
-
-        config_file = tmp_path / "fitler_config.json"
-        config_file.write_text(json.dumps(config_data))
-
-        with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
-
-                fitler = Fitler()
-
-                # Should create providers section automatically
-                assert "providers" in fitler.config
-                assert fitler.config["providers"]["spreadsheet"]["enabled"] == True
-                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
-                assert fitler.config["providers"]["file"]["enabled"] == True
-                assert fitler.config["providers"]["file"]["glob"] == "./test/*"
