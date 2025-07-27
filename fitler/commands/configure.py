@@ -6,41 +6,109 @@ def run():
     print("Welcome to Fitler configuration!")
     config = {}
 
-    # Prompt for spreadsheet path
-    spreadsheet = input(
-        "Path to activity spreadsheet (e.g. /home/vscode/exerciselog.xlsx): "
-    ).strip()
-    config["spreadsheet_path"] = spreadsheet
-
-    # Prompt for activity file glob
-    file_glob = input(
-        "Glob for activity file collection (e.g. ./export*/activities/*): "
-    ).strip()
-    config["activity_file_glob"] = file_glob
-
-    print("\nNote: Strava and RideWithGPS credentials should be set in .env file.")
-    print("See README.md for details on setting up provider credentials.\n")
-
-    # Prompt for home timezone
+    # Home timezone
     print("\n--- Timezone Configuration ---")
     print("Common timezones: US/Eastern, US/Central, US/Mountain, US/Pacific")
     timezone = input("Home timezone (default: US/Eastern): ").strip()
     config["home_timezone"] = timezone or "US/Eastern"
 
-    # Prompt for provider priority
-    print("\n--- Provider Priority Configuration ---")
-    print("This setting controls which provider's data takes precedence when")
-    print("there are conflicts in activity names or equipment.")
-    print("Available providers: spreadsheet, ridewithgps, strava")
-    print("Enter them in order of priority, comma-separated.")
-    provider_priority = input(
-        "Provider priority (default: spreadsheet,ridewithgps,strava): "
-    ).strip()
-    config["provider_priority"] = provider_priority or "spreadsheet,ridewithgps,strava"
-
-    # Prompt for debug mode
+    # Debug mode
     debug_input = input("\nEnable debug mode? (y/N): ").strip().lower()
     config["debug"] = debug_input == "y"
+
+    # Create providers block
+    config["providers"] = {}
+    
+    print("\n--- Provider Configuration ---")
+    
+    # Spreadsheet provider
+    print("\nSpreadsheet Provider:")
+    enable_spreadsheet = input("Enable spreadsheet provider? (Y/n): ").strip().lower() != "n"
+    spreadsheet_path = ""
+    spreadsheet_priority = 0
+    if enable_spreadsheet:
+        spreadsheet_path = input("Path to activity spreadsheet (default: /home/vscode/exerciselog.xlsx): ").strip()
+        spreadsheet_path = spreadsheet_path or "/home/vscode/exerciselog.xlsx"
+        spreadsheet_priority = int(input("Priority (1-5, lower is higher priority, default: 1): ").strip() or "1")
+    
+    config["providers"]["spreadsheet"] = {
+        "enabled": enable_spreadsheet,
+        "path": spreadsheet_path
+    }
+    if enable_spreadsheet and spreadsheet_priority > 0:
+        config["providers"]["spreadsheet"]["priority"] = spreadsheet_priority
+    
+    # File provider
+    print("\nFile Provider:")
+    enable_file = input("Enable file provider? (Y/n): ").strip().lower() != "n"
+    file_glob = ""
+    if enable_file:
+        file_glob = input("Glob for activity files (default: ./export*/activities/*): ").strip()
+        file_glob = file_glob or "./export*/activities/*"
+    
+    config["providers"]["file"] = {
+        "enabled": enable_file,
+        "glob": file_glob
+    }
+    
+    # Strava provider
+    print("\nStrava Provider:")
+    enable_strava = input("Enable Strava provider? (Y/n): ").strip().lower() != "n"
+    strava_priority = 0
+    if enable_strava:
+        print("Note: Strava credentials should be set in .env file.")
+        strava_priority = int(input("Priority (1-5, lower is higher priority, default: 3): ").strip() or "3")
+    
+    config["providers"]["strava"] = {
+        "enabled": enable_strava
+    }
+    if enable_strava and strava_priority > 0:
+        config["providers"]["strava"]["priority"] = strava_priority
+    
+    # RideWithGPS provider
+    print("\nRideWithGPS Provider:")
+    enable_ridewithgps = input("Enable RideWithGPS provider? (Y/n): ").strip().lower() != "n"
+    ridewithgps_priority = 0
+    if enable_ridewithgps:
+        print("Note: RideWithGPS credentials should be set in .env file.")
+        ridewithgps_priority = int(input("Priority (1-5, lower is higher priority, default: 2): ").strip() or "2")
+    
+    config["providers"]["ridewithgps"] = {
+        "enabled": enable_ridewithgps
+    }
+    if enable_ridewithgps and ridewithgps_priority > 0:
+        config["providers"]["ridewithgps"]["priority"] = ridewithgps_priority
+    
+    # Garmin provider
+    print("\nGarmin Provider:")
+    enable_garmin = input("Enable Garmin provider? (Y/n): ").strip().lower() != "n"
+    if enable_garmin:
+        print("Note: Garmin credentials should be set in .env file.")
+    
+    config["providers"]["garmin"] = {
+        "enabled": enable_garmin
+    }
+    
+    # StravaJSON provider (disabled by default)
+    config["providers"]["stravajson"] = {
+        "enabled": False
+    }
+    
+    # Create provider_priority string based on provider priorities
+    providers_with_priority = []
+    for provider, settings in config["providers"].items():
+        if settings.get("enabled", False) and "priority" in settings:
+            providers_with_priority.append((provider, settings["priority"]))
+    
+    # Sort by priority (lower number = higher priority)
+    providers_with_priority.sort(key=lambda x: x[1])
+    priority_list = [p[0] for p in providers_with_priority]
+    
+    if priority_list:
+        config["provider_priority"] = ",".join(priority_list)
+    else:
+        # Default priority if none specified
+        config["provider_priority"] = "spreadsheet,ridewithgps,strava"
 
     config_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "../../fitler_config.json")

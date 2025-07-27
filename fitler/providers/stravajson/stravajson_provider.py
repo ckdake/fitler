@@ -22,11 +22,15 @@ class StravaJsonProvider(FitnessProvider):
         """Initialize with folder containing JSON files."""
         self.folder = folder
 
-    def pull_activities(self, date_filter: str) -> List[Activity]:
+    @property
+    def provider_name(self) -> str:
+        """Return the name of this provider."""
+        return "stravajson"
+
+    def pull_activities(self, date_filter: Optional[str] = None) -> List[Activity]:
         """Pull activities from JSON files - not yet implemented."""
-        raise NotImplementedError(
-            "StravaJsonProvider pull_activities not yet implemented"
-        )
+        print("StravaJSON provider: pulling activities not implemented yet")
+        return []
 
     def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
         """Get activity by ID - not supported for JSON files."""

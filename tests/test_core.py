@@ -11,13 +11,24 @@ class TestFitlerCore:
 
     def test_fitler_init_loads_config(self, tmp_path):
         """Test that Fitler initializes and loads config correctly."""
-        # Create a temporary config file
+        # Create a temporary config file with new format
         config_data = {
-            "spreadsheet_path": "/tmp/test.xlsx",
-            "activity_file_glob": "./test/*",
             "home_timezone": "US/Pacific",
-            "provider_priority": "spreadsheet,strava",
             "debug": False,
+            "provider_priority": "spreadsheet,strava",
+            "providers": {
+                "spreadsheet": {
+                    "enabled": True,
+                    "path": "/tmp/test.xlsx"
+                },
+                "strava": {
+                    "enabled": True
+                },
+                "file": {
+                    "enabled": True,
+                    "glob": "./test/*"
+                }
+            }
         }
 
         config_file = tmp_path / "fitler_config.json"
@@ -30,9 +41,9 @@ class TestFitlerCore:
 
                 fitler = Fitler()
 
-                assert fitler.config["spreadsheet_path"] == "/tmp/test.xlsx"
                 assert fitler.config["home_timezone"] == "US/Pacific"
                 assert fitler.config["debug"] == False
+                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
 
     def test_fitler_config_defaults(self, tmp_path):
         """Test that Fitler sets default config values."""
@@ -49,16 +60,28 @@ class TestFitlerCore:
 
                 fitler = Fitler()
 
-                # Should set defaults
+                # Should set defaults and create providers section for backward compatibility
                 assert fitler.config["debug"] == False
                 assert (
                     fitler.config["provider_priority"]
                     == "spreadsheet,ridewithgps,strava,garmin"
                 )
+                assert "providers" in fitler.config
+                assert fitler.config["providers"]["spreadsheet"]["enabled"] == True
+                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
 
     def test_enabled_providers_empty(self, tmp_path):
-        """Test enabled_providers when no providers are configured."""
-        config_data = {}  # No provider configs
+        """Test enabled_providers when no providers are enabled."""
+        config_data = {
+            "providers": {
+                "spreadsheet": {"enabled": False},
+                "strava": {"enabled": False},
+                "ridewithgps": {"enabled": False},
+                "garmin": {"enabled": False},
+                "file": {"enabled": False},
+                "stravajson": {"enabled": False}
+            }
+        }
 
         config_file = tmp_path / "fitler_config.json"
         config_file.write_text(json.dumps(config_data))
@@ -74,8 +97,20 @@ class TestFitlerCore:
                 assert fitler.enabled_providers == []
 
     def test_enabled_providers_with_spreadsheet(self, tmp_path):
-        """Test enabled_providers when spreadsheet is configured."""
-        config_data = {"spreadsheet_path": "/tmp/test.xlsx"}
+        """Test enabled_providers when spreadsheet is configured and enabled."""
+        config_data = {
+            "providers": {
+                "spreadsheet": {
+                    "enabled": True,
+                    "path": "/tmp/test.xlsx"
+                },
+                "strava": {"enabled": False},
+                "ridewithgps": {"enabled": False},
+                "garmin": {"enabled": False},
+                "file": {"enabled": False},
+                "stravajson": {"enabled": False}
+            }
+        }
 
         config_file = tmp_path / "fitler_config.json"
         config_file.write_text(json.dumps(config_data))
@@ -99,8 +134,17 @@ class TestFitlerCore:
         },
     )
     def test_enabled_providers_with_strava_env(self, tmp_path):
-        """Test enabled_providers when Strava env vars are set."""
-        config_data = {}
+        """Test enabled_providers when Strava env vars are set and provider is enabled."""
+        config_data = {
+            "providers": {
+                "spreadsheet": {"enabled": False},
+                "strava": {"enabled": True},
+                "ridewithgps": {"enabled": False},
+                "garmin": {"enabled": False},
+                "file": {"enabled": False},
+                "stravajson": {"enabled": False}
+            }
+        }
 
         config_file = tmp_path / "fitler_config.json"
         config_file.write_text(json.dumps(config_data))
@@ -112,8 +156,42 @@ class TestFitlerCore:
 
                 fitler = Fitler()
 
-                # Should detect strava provider due to env vars
+                # Should detect strava provider due to env vars and enabled config
                 assert "strava" in fitler.enabled_providers
+
+    @patch.dict(
+        os.environ,
+        {
+            "STRAVA_ACCESS_TOKEN": "test_token",
+            "STRAVA_CLIENT_ID": "12345",
+            "STRAVA_CLIENT_SECRET": "secret",
+        },
+    )
+    def test_enabled_providers_with_strava_disabled(self, tmp_path):
+        """Test enabled_providers when Strava env vars are set but provider is disabled."""
+        config_data = {
+            "providers": {
+                "spreadsheet": {"enabled": False},
+                "strava": {"enabled": False},  # Disabled in config
+                "ridewithgps": {"enabled": False},
+                "garmin": {"enabled": False},
+                "file": {"enabled": False},
+                "stravajson": {"enabled": False}
+            }
+        }
+
+        config_file = tmp_path / "fitler_config.json"
+        config_file.write_text(json.dumps(config_data))
+
+        with patch("fitler.core.CONFIG_PATH", config_file):
+            with patch("fitler.core.db") as mock_db:
+                mock_db.connect.return_value = None
+                mock_db.is_connection_usable.return_value = True
+
+                fitler = Fitler()
+
+                # Should NOT detect strava provider because it's disabled in config
+                assert "strava" not in fitler.enabled_providers
 
     def test_cleanup_closes_db(self, tmp_path):
         """Test that cleanup properly closes database connection."""
@@ -154,7 +232,14 @@ class TestFitlerCore:
 
     def test_pull_activities_error_handling(self, tmp_path):
         """Test that pull_activities handles provider errors gracefully."""
-        config_data = {"spreadsheet_path": "/tmp/test.xlsx"}
+        config_data = {
+            "providers": {
+                "spreadsheet": {
+                    "enabled": True,
+                    "path": "/tmp/test.xlsx"
+                }
+            }
+        }
 
         config_file = tmp_path / "fitler_config.json"
         config_file.write_text(json.dumps(config_data))
@@ -175,3 +260,29 @@ class TestFitlerCore:
 
                 # Should handle error gracefully and return empty list
                 assert result["spreadsheet"] == []
+
+    def test_backward_compatibility_old_config(self, tmp_path):
+        """Test that old config format still works with backward compatibility."""
+        # Old config format without providers block
+        config_data = {
+            "spreadsheet_path": "/tmp/test.xlsx",
+            "activity_file_glob": "./test/*",
+            "home_timezone": "US/Pacific"
+        }
+
+        config_file = tmp_path / "fitler_config.json"
+        config_file.write_text(json.dumps(config_data))
+
+        with patch("fitler.core.CONFIG_PATH", config_file):
+            with patch("fitler.core.db") as mock_db:
+                mock_db.connect.return_value = None
+                mock_db.is_connection_usable.return_value = True
+
+                fitler = Fitler()
+
+                # Should create providers section automatically
+                assert "providers" in fitler.config
+                assert fitler.config["providers"]["spreadsheet"]["enabled"] == True
+                assert fitler.config["providers"]["spreadsheet"]["path"] == "/tmp/test.xlsx"
+                assert fitler.config["providers"]["file"]["enabled"] == True
+                assert fitler.config["providers"]["file"]["glob"] == "./test/*"

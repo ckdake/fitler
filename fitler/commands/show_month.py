@@ -58,10 +58,10 @@ def run(year_month):
         home_tz = fitler.home_tz
 
         provider_configs = {
-            "spreadsheet": ("Spreadsheet", "spreadsheet_id"),
-            "strava": ("Strava", "strava_id"),
-            "ridewithgps": ("RideWithGPS", "ridewithgps_id"),
-            "garmin": ("Garmin", "garmin_id"),
+            "spreadsheet": ("Spreadsheet", "provider_id"),
+            "strava": ("Strava", "provider_id"),
+            "ridewithgps": ("RideWithGPS", "provider_id"),
+            "garmin": ("Garmin", "provider_id"),
         }
 
         for provider_key, (display_name, id_field) in provider_configs.items():

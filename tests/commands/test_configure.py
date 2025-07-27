@@ -11,11 +11,18 @@ def test_run_creates_config_file(monkeypatch):
     # Prepare fake user input for all prompts
     inputs = iter(
         [
-            "/tmp/fake_spreadsheet.xlsx",
-            "./fake_glob/*",
             "US/Pacific",  # Home timezone
-            "spreadsheet,strava,ridewithgps",  # Provider priority
             "y",  # Debug mode
+            "Y",  # Enable spreadsheet provider
+            "/tmp/fake_spreadsheet.xlsx",  # Spreadsheet path
+            "1",  # Spreadsheet priority
+            "Y",  # Enable file provider
+            "./fake_glob/*",  # File glob
+            "Y",  # Enable Strava provider
+            "3",  # Strava priority
+            "Y",  # Enable RideWithGPS provider
+            "2",  # RideWithGPS priority
+            "Y",  # Enable Garmin provider
         ]
     )
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
@@ -30,8 +37,34 @@ def test_run_creates_config_file(monkeypatch):
         assert os.path.exists(config_path)
         with open(config_path) as f:
             config = json.load(f)
-        assert config["spreadsheet_path"] == "/tmp/fake_spreadsheet.xlsx"
-        assert config["activity_file_glob"] == "./fake_glob/*"
+        
+        # Check top-level settings
         assert config["home_timezone"] == "US/Pacific"
-        assert config["provider_priority"] == "spreadsheet,strava,ridewithgps"
         assert config["debug"] == True
+        assert config["provider_priority"] == "spreadsheet,ridewithgps,strava"
+        
+        # Check providers block
+        assert "providers" in config
+        
+        # Check spreadsheet provider
+        assert config["providers"]["spreadsheet"]["enabled"] == True
+        assert config["providers"]["spreadsheet"]["path"] == "/tmp/fake_spreadsheet.xlsx"
+        assert config["providers"]["spreadsheet"]["priority"] == 1
+        
+        # Check file provider
+        assert config["providers"]["file"]["enabled"] == True
+        assert config["providers"]["file"]["glob"] == "./fake_glob/*"
+        
+        # Check Strava provider
+        assert config["providers"]["strava"]["enabled"] == True
+        assert config["providers"]["strava"]["priority"] == 3
+        
+        # Check RideWithGPS provider
+        assert config["providers"]["ridewithgps"]["enabled"] == True
+        assert config["providers"]["ridewithgps"]["priority"] == 2
+        
+        # Check Garmin provider
+        assert config["providers"]["garmin"]["enabled"] == True
+        
+        # Check StravaJSON provider (should be disabled by default)
+        assert config["providers"]["stravajson"]["enabled"] == False

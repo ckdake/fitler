@@ -46,6 +46,24 @@ def main():
         "year_month", type=str, help="Year and month in YYYY-MM format"
     )
     subparsers.add_parser("help", help="Show usage and documentation")
+    pull_parser = subparsers.add_parser("pull", help="Pull activities from providers")
+    pull_parser.add_argument(
+        "provider",
+        nargs="?",
+        choices=[
+            "files",
+            "strava",
+            "ridewithgps",
+            "garmin",
+            "spreadsheet",
+            "stravajson",
+        ],
+        help="Provider to pull from (if not specified, pulls from all enabled providers)",
+    )
+    pull_parser.add_argument(
+        "--date",
+        help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
+    )
 
     args = parser.parse_args()
 
@@ -73,6 +91,16 @@ def main():
         from fitler.commands.migrate import run
 
         run()
+    elif args.command == "pull":
+        from fitler.commands.pull import run
+
+        # Convert args to list format expected by pull command
+        pull_args = []
+        if hasattr(args, "provider") and args.provider:
+            pull_args.append(args.provider)
+        if hasattr(args, "date") and args.date:
+            pull_args.extend(["--date", args.date])
+        run(pull_args if pull_args else None)
     elif args.command == "help" or args.command is None:
         print(
             """

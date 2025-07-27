@@ -92,6 +92,65 @@ class BaseProviderActivity(Model):
         except (ValueError, TypeError):
             return ""
 
+    @property
+    def date(self):
+        """Get the date of the activity from start_time."""
+        start_time_val = getattr(self, 'start_time', None)
+        if not start_time_val:
+            return None
+        try:
+            from datetime import datetime, timezone
+            return datetime.fromtimestamp(int(start_time_val), timezone.utc).date()
+        except (ValueError, TypeError):
+            return None
+
+    @property
+    def local_time(self) -> str:
+        """Get formatted local time string."""
+        start_time_val = getattr(self, 'start_time', None)
+        if not start_time_val:
+            return ""
+        try:
+            from datetime import datetime, timezone
+            import zoneinfo
+            dt = datetime.fromtimestamp(int(start_time_val), timezone.utc)
+            # Default to US/Eastern if no timezone provided
+            local_tz = zoneinfo.ZoneInfo("US/Eastern")
+            local_dt = dt.astimezone(local_tz)
+            return local_dt.strftime("%Y-%m-%d %H:%M %Z")
+        except (ValueError, TypeError, Exception):
+            return ""
+
+    @property  
+    def duration(self):
+        """Get duration in seconds from duration_hms."""
+        duration_hms_val = getattr(self, 'duration_hms', None)
+        if not duration_hms_val:
+            return None
+        try:
+            parts = str(duration_hms_val).split(":")
+            if len(parts) == 3:
+                hours, minutes, seconds = map(int, parts)
+                return hours * 3600 + minutes * 60 + seconds
+        except (ValueError, TypeError):
+            pass
+        return None
+
+    @duration.setter
+    def duration(self, value):
+        """Set duration_hms from seconds value."""
+        if value is None:
+            self.duration_hms = None
+        else:
+            try:
+                total_seconds = int(value)
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                seconds = total_seconds % 60
+                self.duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            except (ValueError, TypeError):
+                self.duration_hms = None
+
     def __str__(self) -> str:
         """String representation of the activity."""
         return (

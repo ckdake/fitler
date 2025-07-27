@@ -23,7 +23,7 @@ def get_all_models() -> List[Type[Model]]:
     from .providers.ridewithgps.ridewithgps_activity import RideWithGPSActivity
     from .providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
     from .providers.file.file_activity import FileActivity
-    
+
     return [
         Activity,
         ProviderSync,

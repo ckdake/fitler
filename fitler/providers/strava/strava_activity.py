@@ -1,6 +1,6 @@
 """Strava-specific activity model."""
 
-from peewee import CharField
+from peewee import CharField, TextField
 from fitler.providers.base_activity import BaseProviderActivity
 from fitler.database import db
 
@@ -13,6 +13,9 @@ class StravaActivity(BaseProviderActivity):
 
     # Strava-specific ID field
     strava_id = CharField(max_length=50, unique=True, index=True)
+    
+    # Store raw JSON data from Strava API
+    strava_data = TextField(null=True)
 
     # Strava-specific fields can be added here as needed
     # For example: kudos_count, comment_count, etc.

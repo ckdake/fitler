@@ -8,7 +8,7 @@ from .garmin import GarminProvider
 from .file import FileProvider
 
 __all__ = [
-    "SpreadsheetProvider", 
+    "SpreadsheetProvider",
     "StravaProvider",
     "RideWithGPSProvider",
     "StravaJsonProvider",

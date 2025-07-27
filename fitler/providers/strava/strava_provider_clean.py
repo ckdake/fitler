@@ -6,6 +6,8 @@ from typing import List, Optional, Dict, Any
 import datetime
 
 from fitler.providers.base_provider import FitnessProvider
+from fitler.providers.base_activity import BaseProviderActivity
+from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
 from fitler.providers.strava.strava_activity import StravaActivity
 
@@ -38,7 +40,7 @@ class StravaProvider(FitnessProvider):
         """Return the name of this provider."""
         return "strava"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[StravaActivity]:
+    def pull_activities(self, date_filter: Optional[str] = None) -> List[BaseProviderActivity]:
         """Pull activities from Strava API for the given date filter."""
         if date_filter is None:
             print("Strava provider: pulling all activities not implemented yet")
@@ -122,16 +124,7 @@ class StravaProvider(FitnessProvider):
         # Duration
         elapsed_time = getattr(strava_lib_activity, "elapsed_time", None)
         if elapsed_time:
-            # Handle different types of duration objects
-            if hasattr(elapsed_time, 'total_seconds'):
-                total_seconds = int(elapsed_time.total_seconds())
-            elif hasattr(elapsed_time, 'seconds'):
-                # Duration object with seconds attribute
-                total_seconds = int(elapsed_time.seconds)
-            else:
-                # Assume it's already an integer seconds value
-                total_seconds = int(elapsed_time)
-            
+            total_seconds = int(elapsed_time.total_seconds())
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
             seconds = total_seconds % 60
@@ -148,13 +141,13 @@ class StravaProvider(FitnessProvider):
         return strava_activity
 
     # Abstract method implementations
-    def create_activity(self, activity_data: Dict[str, Any]) -> str:
+    def create_activity(self, activity: Activity) -> str:
         raise NotImplementedError("Creating activities on Strava not implemented")
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[Dict[str, Any]]:
+    def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
         raise NotImplementedError("Getting activity by ID not implemented")
 
-    def update_activity(self, activity_id: str, activity_data: Dict[str, Any]) -> bool:
+    def update_activity(self, activity_id: str, activity: Activity) -> bool:
         raise NotImplementedError("Updating activities on Strava not implemented")
 
     def get_gear(self) -> Dict[str, str]:

@@ -11,7 +11,9 @@ from .providers.strava import StravaProvider
 from .providers.ridewithgps import RideWithGPSProvider
 from .providers.garmin import GarminProvider
 from .providers.file import FileProvider
-from .activity import Activity
+from .providers.stravajson import StravaJsonProvider
+from fitler.activity import Activity
+from fitler.providers.base_activity import BaseProviderActivity
 from .database import db
 
 CONFIG_PATH = Path("fitler_config.json")
@@ -34,30 +36,48 @@ class Fitler:
         self._ridewithgps = None
         self._garmin = None
         self._file = None
+        self._stravajson = None
 
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from fitler_config.json."""
         with open(CONFIG_PATH) as f:
             config = json.load(f)
 
+        # Set defaults if not present
         if "debug" not in config:
             config["debug"] = False
         if "provider_priority" not in config:
             config["provider_priority"] = "spreadsheet,ridewithgps,strava,garmin"
+        if "providers" not in config:
+            # Create default providers section for backward compatibility
+            config["providers"] = {
+                "spreadsheet": {"enabled": bool(config.get("spreadsheet_path")), "path": config.get("spreadsheet_path", "")},
+                "file": {"enabled": bool(config.get("activity_file_glob")), "glob": config.get("activity_file_glob", "")},
+                "strava": {"enabled": True},
+                "ridewithgps": {"enabled": True},
+                "garmin": {"enabled": True},
+                "stravajson": {"enabled": bool(config.get("strava_export_folder"))},
+            }
 
         return config
 
     @property
     def spreadsheet(self) -> Optional[SpreadsheetProvider]:
         """Get the spreadsheet provider, initializing it if needed."""
-        if not self._spreadsheet and self.config.get("spreadsheet_path"):
-            self._spreadsheet = SpreadsheetProvider(self.config["spreadsheet_path"])
+        provider_config = self.config.get("providers", {}).get("spreadsheet", {})
+        
+        if not self._spreadsheet and provider_config.get("enabled", False):
+            path = provider_config.get("path") or self.config.get("spreadsheet_path", "")
+            if path:
+                self._spreadsheet = SpreadsheetProvider(path)
         return self._spreadsheet
 
     @property
     def strava(self) -> Optional[StravaProvider]:
         """Get the Strava provider, initializing it if needed."""
-        if not self._strava:
+        provider_config = self.config.get("providers", {}).get("strava", {})
+        
+        if not self._strava and provider_config.get("enabled", False):
             token = os.environ.get("STRAVA_ACCESS_TOKEN")
             if token:
                 self._strava = StravaProvider(
@@ -66,13 +86,16 @@ class Fitler:
                     client_id=os.environ.get("STRAVA_CLIENT_ID"),
                     client_secret=os.environ.get("STRAVA_CLIENT_SECRET"),
                     token_expires=os.environ.get("STRAVA_TOKEN_EXPIRES"),
+                    config=provider_config,
                 )
         return self._strava
 
     @property
     def ridewithgps(self) -> Optional[RideWithGPSProvider]:
         """Get the RideWithGPS provider, initializing it if needed."""
-        if not self._ridewithgps:
+        provider_config = self.config.get("providers", {}).get("ridewithgps", {})
+        
+        if not self._ridewithgps and provider_config.get("enabled", False):
             if all(
                 os.environ.get(env)
                 for env in [
@@ -81,55 +104,72 @@ class Fitler:
                     "RIDEWITHGPS_KEY",
                 ]
             ):
-                self._ridewithgps = RideWithGPSProvider()
+                self._ridewithgps = RideWithGPSProvider(config=provider_config)
         return self._ridewithgps
 
     @property
     def garmin(self) -> Optional[GarminProvider]:
         """Get the Garmin provider, initializing it if needed."""
-        if not self._garmin:
+        provider_config = self.config.get("providers", {}).get("garmin", {})
+        
+        if not self._garmin and provider_config.get("enabled", False):
             if os.environ.get("GARMINTOKENS"):
-                self._garmin = GarminProvider()
+                self._garmin = GarminProvider(config=provider_config)
         return self._garmin
 
-    @property  
+    @property
     def file(self) -> Optional[FileProvider]:
         """Get the File provider, initializing it if needed."""
-        if not self._file:
-            activity_file_glob = self.config.get("activity_file_glob")
-            if activity_file_glob:
-                self._file = FileProvider(activity_file_glob)
+        provider_config = self.config.get("providers", {}).get("file", {})
+        
+        if not self._file and provider_config.get("enabled", False):
+            glob_pattern = provider_config.get("glob") or self.config.get("activity_file_glob")
+            if glob_pattern:
+                self._file = FileProvider(glob_pattern, config=provider_config)
         return self._file
 
     @property
+    def stravajson(self) -> Optional[StravaJsonProvider]:
+        """Get the StravaJSON provider, initializing it if needed."""
+        provider_config = self.config.get("providers", {}).get("stravajson", {})
+        
+        if not self._stravajson and provider_config.get("enabled", False):
+            folder = provider_config.get("folder") or self.config.get("strava_export_folder")
+            if folder:
+                self._stravajson = StravaJsonProvider(folder, config=provider_config)
+        return self._stravajson
+
+    @property
     def enabled_providers(self) -> List[str]:
-        """Get list of enabled providers."""
+        """Get list of enabled providers based on config."""
         providers = []
-        if self.spreadsheet:
-            providers.append("spreadsheet")
-        if self.strava:
-            providers.append("strava")
-        if self.ridewithgps:
-            providers.append("ridewithgps")
-        if self.garmin:
-            providers.append("garmin")
-        if self.file:
-            providers.append("file")
+        providers_config = self.config.get("providers", {})
+        
+        for provider_name in ["spreadsheet", "strava", "ridewithgps", "garmin", "file", "stravajson"]:
+            if providers_config.get(provider_name, {}).get("enabled", False):
+                # Only add if required credentials/paths are available
+                provider = getattr(self, provider_name)
+                if provider:
+                    providers.append(provider_name)
+        
         return providers
 
-    def pull_activities(self, year_month: str) -> Dict[str, List[Activity]]:
+    def pull_activities(self, year_month: str) -> Dict[str, List[BaseProviderActivity]]:
         """Pull activities from all enabled providers for the given month.
 
         This is the main entry point for fetching data from providers.
         Each provider handles its own API interaction and database updates.
 
         Returns:
-            Dict mapping provider names to lists of Activity objects
+            Dict mapping provider names to lists of BaseProviderActivity objects
         """
         activities = {}
 
+        # Get the list of enabled providers from the config
+        enabled_providers = self.enabled_providers
+        
         # Pull from each enabled provider
-        for provider_name in self.enabled_providers:
+        for provider_name in enabled_providers:
             provider = getattr(self, provider_name)
             if provider:
                 try:
