@@ -57,15 +57,11 @@ def run(year_month):
 
         home_tz = fitler.home_tz
 
-        provider_configs = {
-            "spreadsheet": ("Spreadsheet", "provider_id"),
-            "strava": ("Strava", "provider_id"),
-            "ridewithgps": ("RideWithGPS", "provider_id"),
-            "garmin": ("Garmin", "provider_id"),
-        }
-
-        for provider_key, (display_name, id_field) in provider_configs.items():
-            if provider_key in activities:
+        # Use the actual providers that returned activities
+        for provider_name, provider_activities in activities.items():
+            if provider_activities:  # Only show providers that have activities
+                display_name = provider_name.title()  # Capitalize first letter
                 print_activities(
-                    display_name, activities[provider_key], id_field, home_tz
+                    display_name, provider_activities, "provider_id", home_tz
                 )
+

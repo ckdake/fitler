@@ -105,7 +105,7 @@ class GarminProvider(FitnessProvider):
                     # Handle Garmin timestamp format
                     import dateutil.parser
                     dt = dateutil.parser.parse(start_time_str)
-                    garmin_activity.start_time = str(int(dt.timestamp()))
+                    garmin_activity.start_time = int(dt.timestamp())
                 
                 # Duration
                 if raw_activity.get("duration"):
@@ -158,103 +158,6 @@ class GarminProvider(FitnessProvider):
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
         
         print(f"Synced {len(persisted_activities)} Garmin activities to garmin_activities table")
-        return persisted_activities
-
-        # Get the raw activity data for the month
-        raw_activities = self.fetch_activities_for_month(date_filter)
-
-        persisted_activities = []
-
-        for raw_activity in raw_activities:
-            # Convert the raw activity data to a dict
-            activity_data = {
-                "id": raw_activity.get("activityId"),
-                "name": raw_activity.get("activityName"),
-                "distance": raw_activity.get("distance"),  # meters
-                "activity_type": raw_activity.get("activityType", {}).get("typeKey"),
-                "start_time": raw_activity.get("startTimeGMT"),
-                "location_name": raw_activity.get("locationName"),
-                "duration": raw_activity.get("duration"),  # seconds
-                "max_speed": raw_activity.get("maxSpeed"),
-                "avg_heart_rate": raw_activity.get("averageHR"),
-                "max_heart_rate": raw_activity.get("maxHR"),
-                "calories": raw_activity.get("calories"),
-                "max_elevation": raw_activity.get("maxElevation"),
-                "total_elevation_gain": raw_activity.get("elevationGain"),
-                "avg_cadence": (
-                    raw_activity.get("averageRunCadence")
-                    or raw_activity.get("averageBikingCadence")
-                ),
-                "source": self.provider_name,
-            }
-
-            # Look for existing activity with this garmin_id AND source=garmin
-            existing_activity = None
-            if activity_data["id"]:
-                try:
-                    existing_activity = Activity.get(
-                        (Activity.garmin_id == activity_data["id"])
-                        & (Activity.source == self.provider_name)
-                    )
-                except DoesNotExist:
-                    existing_activity = None
-
-            if existing_activity:
-                # Update existing activity
-                activity = existing_activity
-            else:
-                # Create new activity
-                activity = Activity()
-
-            # Set the start time if available
-            if activity_data.get("start_time"):
-                activity.set_start_time(activity_data["start_time"])
-
-            # Set all the fields directly
-            activity.garmin_id = activity_data["id"]
-            if activity_data.get("name"):
-                activity.name = activity_data["name"]
-            if activity_data.get("distance"):
-                # Convert meters to miles
-                activity.distance = activity_data["distance"] / 1609.34
-            if activity_data.get("activity_type"):
-                activity.activity_type = activity_data["activity_type"]
-            if activity_data.get("location_name"):
-                activity.location_name = activity_data["location_name"]
-            if activity_data.get("duration"):
-                # Convert duration seconds to HH:MM:SS format for duration_hms field
-                duration_seconds = activity_data["duration"]
-                if duration_seconds:
-                    hours = int(duration_seconds // 3600)
-                    minutes = int((duration_seconds % 3600) // 60)
-                    seconds = int(duration_seconds % 60)
-                    activity.duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-            if activity_data.get("max_speed"):
-                activity.max_speed = activity_data["max_speed"]
-            if activity_data.get("avg_heart_rate"):
-                activity.avg_heart_rate = activity_data["avg_heart_rate"]
-            if activity_data.get("max_heart_rate"):
-                activity.max_heart_rate = activity_data["max_heart_rate"]
-            if activity_data.get("calories"):
-                activity.calories = activity_data["calories"]
-            if activity_data.get("max_elevation"):
-                activity.max_elevation = activity_data["max_elevation"]
-            if activity_data.get("total_elevation_gain"):
-                activity.total_elevation_gain = activity_data["total_elevation_gain"]
-            if activity_data.get("avg_cadence"):
-                activity.avg_cadence = activity_data["avg_cadence"]
-            activity.source = self.provider_name
-
-            # Store the raw provider data
-            activity.garmin_data = json.dumps(raw_activity)
-
-            # Save the activity
-            activity.save()
-            persisted_activities.append(activity)
-
-        # Mark this month as synced
-        ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-
         return persisted_activities
 
     def fetch_activities_for_month(self, year_month: str) -> List[Dict]:

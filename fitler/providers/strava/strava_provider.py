@@ -22,7 +22,6 @@ class StravaProvider(FitnessProvider):
     ):
         super().__init__(config)
         
-        # Initialize debug from environment and config
         self.debug = os.environ.get("STRAVALIB_DEBUG") == "1"
         if not self.debug and self.config:
             self.debug = self.config.get("debug", False)
@@ -117,7 +116,7 @@ class StravaProvider(FitnessProvider):
         # Start time as timestamp string
         start_date = getattr(strava_lib_activity, "start_date", None)
         if start_date:
-            setattr(strava_activity, 'start_time', str(int(start_date.timestamp())))
+            setattr(strava_activity, 'start_time', int(start_date.timestamp()))
         
         # Duration
         elapsed_time = getattr(strava_lib_activity, "elapsed_time", None)
@@ -141,21 +140,29 @@ class StravaProvider(FitnessProvider):
         raw_data = {
             "id": getattr(strava_lib_activity, "id", None),
             "name": getattr(strava_lib_activity, "name", None),
-            "type": getattr(strava_lib_activity, "type", None),
+            "type": str(getattr(strava_lib_activity, "type", None)),
         }
         setattr(strava_activity, 'strava_data', json.dumps(raw_data))
         
         return strava_activity
 
     # Abstract method implementations
-    def create_activity(self, activity_data: Dict[str, Any]) -> str:
-        raise NotImplementedError("Creating activities on Strava not implemented")
+    def create_activity(self, activity_data: Dict[str, Any]) -> StravaActivity:
+        """Create a new StravaActivity from activity data."""
+        return StravaActivity.create(**activity_data)
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[Dict[str, Any]]:
-        raise NotImplementedError("Getting activity by ID not implemented")
+    def get_activity_by_id(self, activity_id: str) -> Optional[StravaActivity]:
+        """Get a StravaActivity by its provider ID."""
+        return StravaActivity.get_or_none(StravaActivity.strava_id == activity_id)
 
-    def update_activity(self, activity_id: str, activity_data: Dict[str, Any]) -> bool:
-        raise NotImplementedError("Updating activities on Strava not implemented")
+    def update_activity(self, activity_data: Dict[str, Any]) -> StravaActivity:
+        """Update an existing StravaActivity with new data."""
+        provider_id = activity_data["strava_id"]
+        activity = StravaActivity.get(StravaActivity.strava_id == provider_id)
+        for key, value in activity_data.items():
+            setattr(activity, key, value)
+        activity.save()
+        return activity
 
     def get_gear(self) -> Dict[str, str]:
         raise NotImplementedError("Getting gear from Strava not implemented")

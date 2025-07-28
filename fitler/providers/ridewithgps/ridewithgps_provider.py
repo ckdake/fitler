@@ -73,8 +73,7 @@ class RideWithGPSProvider(FitnessProvider):
                     rwgps_activity.distance = Decimal(str(raw_activity.get("distance", 0)))
                 
                 # Start time
-                if raw_activity.get("departed_at"):
-                    rwgps_activity.start_time = str(raw_activity.get("departed_at", ""))
+                rwgps_activity.start_time = raw_activity.get("departed_at", "")
                 
                 # Location data
                 if raw_activity.get("locality"):
@@ -142,18 +141,18 @@ class RideWithGPSProvider(FitnessProvider):
         filtered = []
         year, month = map(int, year_month.split("-"))
         for act in all_activities:
-            departed_at = getattr(act, "departed_at", None)
-            if departed_at:
+            start_time = getattr(act, "start_time", None)
+            if start_time:
                 try:
                     # Convert GMT timestamp to local time for filtering
-                    dt = datetime.datetime.fromtimestamp(int(departed_at))
+                    dt = datetime.datetime.fromtimestamp(int(start_time))
                     if dt.year == year and dt.month == month:
                         # Convert activity object to dict for processing
                         activity_dict = {
                             "id": getattr(act, "ridewithgps_id", None),
                             "name": getattr(act, "name", None),
                             "distance": getattr(act, "distance", None),
-                            "departed_at": departed_at,
+                            "departed_at": start_time,
                             "locality": None,  # Not available in basic fetch
                             "administrative_area": None,  # Not available in basic fetch
                         }
@@ -175,7 +174,7 @@ class RideWithGPSProvider(FitnessProvider):
                     if dt:
                         # Convert to UTC and get timestamp
                         utc_dt = dt.astimezone(datetime.timezone.utc)
-                        timestamp = str(int(utc_dt.timestamp()))
+                        timestamp = int(utc_dt.timestamp())
                     else:
                         timestamp = None
                     gear_id = getattr(trip, "gear_id", None)
@@ -188,7 +187,23 @@ class RideWithGPSProvider(FitnessProvider):
                     rwgps_activity.ridewithgps_id = str(getattr(trip, "id", ""))
                     rwgps_activity.name = str(getattr(trip, "name", ""))
                     rwgps_activity.equipment = gear.get(gear_id_str, "") if gear_id_str else ""
-                    rwgps_activity.raw_data = json.dumps(trip.__dict__ if hasattr(trip, '__dict__') else {})
+                    # Convert trip object to serializable dict
+                    try:
+                        if hasattr(trip, '__dict__'):
+                            trip_dict = {}
+                            for key, value in trip.__dict__.items():
+                                try:
+                                    # Test if value is JSON serializable
+                                    json.dumps(value)
+                                    trip_dict[key] = value
+                                except (TypeError, ValueError):
+                                    # Convert non-serializable objects to string
+                                    trip_dict[key] = str(value)
+                            rwgps_activity.raw_data = json.dumps(trip_dict)
+                        else:
+                            rwgps_activity.raw_data = json.dumps({})
+                    except Exception:
+                        rwgps_activity.raw_data = json.dumps({})
                     
                     activities.append(rwgps_activity)
                 except Exception as e:

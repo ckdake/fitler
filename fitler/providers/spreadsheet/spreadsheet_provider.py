@@ -168,7 +168,7 @@ class SpreadsheetProvider(FitnessProvider):
                 dt = dt.replace(tzinfo=home_tz)
             # Convert to GMT/UTC and return Unix timestamp
             utc_dt = dt.astimezone(datetime.timezone.utc)
-            return str(int(utc_dt.timestamp()))
+            return int(utc_dt.timestamp())
         except Exception:
             return None
 

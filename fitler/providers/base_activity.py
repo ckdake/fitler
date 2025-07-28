@@ -29,7 +29,7 @@ class BaseProviderActivity(Model):
     # Core activity data
     name = CharField(max_length=255, null=True)
     distance = DecimalField(max_digits=10, decimal_places=6, null=True)  # in miles
-    start_time = CharField(max_length=20, null=True)  # Unix timestamp as string
+    start_time = IntegerField(null=True)  # Unix timestamp
 
     # Activity classification
     activity_type = CharField(max_length=50, null=True)
@@ -82,7 +82,7 @@ class BaseProviderActivity(Model):
             from datetime import datetime, timezone
 
             # Convert timestamp to date string
-            dt = datetime.fromtimestamp(int(self.start_time), timezone.utc)
+            dt = datetime.fromtimestamp(self.start_time, timezone.utc)
             date_str = dt.strftime("%Y-%m-%d")
 
             # Round distance to nearest 0.1 mile for fuzzy matching
@@ -100,7 +100,7 @@ class BaseProviderActivity(Model):
             return None
         try:
             from datetime import datetime, timezone
-            return datetime.fromtimestamp(int(start_time_val), timezone.utc).date()
+            return datetime.fromtimestamp(start_time_val, timezone.utc).date()
         except (ValueError, TypeError):
             return None
 
@@ -113,7 +113,7 @@ class BaseProviderActivity(Model):
         try:
             from datetime import datetime, timezone
             import zoneinfo
-            dt = datetime.fromtimestamp(int(start_time_val), timezone.utc)
+            dt = datetime.fromtimestamp(start_time_val, timezone.utc)
             # Default to US/Eastern if no timezone provided
             local_tz = zoneinfo.ZoneInfo("US/Eastern")
             local_dt = dt.astimezone(local_tz)

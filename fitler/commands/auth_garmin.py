@@ -2,6 +2,8 @@
 
 This module provides authentication for Garmin Connect using the garminconnect library.
 It stores OAuth tokens that are valid for about a year to avoid frequent re-authentication.
+
+Remove Garmin env vars from your .evn file to re-authenticate!
 """
 
 import os
