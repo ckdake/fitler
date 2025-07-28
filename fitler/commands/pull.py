@@ -3,6 +3,7 @@
 import argparse
 from fitler.core import Fitler
 
+
 def run(args=None):
     """Run the pull command."""
     parser = argparse.ArgumentParser(description="Pull activities from providers")

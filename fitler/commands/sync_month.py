@@ -74,16 +74,16 @@ def process_activity_for_display(activity, provider: str) -> dict:
     """Process a provider-specific activity object for display/matching purposes."""
     # Get the provider ID using the provider_id property
     provider_id = getattr(activity, "provider_id", None)
-    
+
     # Get start_time (now stored as integer timestamp)
     start_time = getattr(activity, "start_time", None)
     timestamp = start_time if start_time else 0
-    
+
     # Get distance
     distance = getattr(activity, "distance", 0)
     if distance is None:
         distance = 0
-    
+
     return {
         "provider": provider,
         "id": provider_id,
@@ -99,15 +99,15 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
     """Generate a correlation key for matching activities across providers."""
     if not timestamp or not distance:
         return ""
-    
+
     try:
         # Convert timestamp to date string
         dt = datetime.fromtimestamp(timestamp, timezone.utc)
         date_str = dt.strftime("%Y-%m-%d")
-        
+
         # Round distance to nearest 0.1 mile for fuzzy matching
         rounded_distance = round(float(distance) * 10) / 10
-        
+
         return f"{date_str}_{rounded_distance}"
     except (ValueError, TypeError):
         return ""
@@ -117,13 +117,13 @@ def run(year_month):
     with Fitler() as fitler:
         # Use the new pull_activities method to get provider-specific activities
         activities = fitler.pull_activities(year_month)
-        
+
         config = fitler.config
         home_tz = fitler.home_tz
 
     # Process all activities from all providers
     all_acts = []
-    
+
     # Dynamically process activities from all enabled providers
     for provider_name, provider_activities in activities.items():
         for act in provider_activities:
@@ -147,26 +147,31 @@ def run(year_month):
         # (no correlation to show)
         if len(group) == 1:
             continue
-            
+
         # Find the earliest start time in the group for ordering
         start = min(
-            datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(home_tz)
-            if a["timestamp"] else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+            (
+                datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(home_tz)
+                if a["timestamp"]
+                else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+            )
             for a in group
         )
-        
+
         # Organize by provider
         by_provider = {}
         for a in group:
             by_provider[a["provider"]] = a
-        
-        rows.append({
-            "start": start,
-            "providers": by_provider,
-            "correlation_key": generate_correlation_key(
-                group[0]["timestamp"], group[0]["distance"]
-            ),
-        })
+
+        rows.append(
+            {
+                "start": start,
+                "providers": by_provider,
+                "correlation_key": generate_correlation_key(
+                    group[0]["timestamp"], group[0]["distance"]
+                ),
+            }
+        )
 
     # Sort by start time
     rows.sort(key=lambda r: r["start"])
@@ -175,7 +180,7 @@ def run(year_month):
     all_providers = set()
     for row in rows:
         all_providers.update(row["providers"].keys())
-    
+
     provider_list = sorted(all_providers)
 
     if not rows:
@@ -186,85 +191,109 @@ def run(year_month):
     # Build table
     table = []
     all_changes = []
-    
+
     # Determine authoritative provider based on config priority
-    provider_priority = config.get("provider_priority", "spreadsheet,ridewithgps,strava,garmin").split(",")
-    
+    provider_priority = config.get(
+        "provider_priority", "spreadsheet,ridewithgps,strava,garmin"
+    ).split(",")
+
     for row in rows:
         providers = row["providers"]
-        
+
         # Find authoritative provider for this group
         auth_provider = None
         for p in provider_priority:
             if p in providers:
                 auth_provider = p
                 break
-        
+
         if not auth_provider:
             continue
-            
+
         auth_activity = providers[auth_provider]
         auth_name = auth_activity["name"]
         auth_equipment = auth_activity["equipment"]
-        
+
         # Build table row
         table_row = [row["start"].strftime("%Y-%m-%d %H:%M")]
-        
+
         for provider in provider_list:
             if provider in providers:
                 activity = providers[provider]
                 # Color code based on authority
                 id_colored = color_id(activity["id"], True)
-                
+
                 if provider == auth_provider:
                     name_colored = color_text(activity["name"], True, False, False)
-                    equip_colored = color_text(activity["equipment"], True, False, False)
+                    equip_colored = color_text(
+                        activity["equipment"], True, False, False
+                    )
                 else:
                     # Check if different from authoritative
                     name_wrong = activity["name"] != auth_name if auth_name else False
-                    equip_wrong = activity["equipment"] != auth_equipment if auth_equipment else False
-                    
-                    name_colored = color_text(activity["name"], False, False, name_wrong)
-                    equip_colored = color_text(activity["equipment"], False, False, equip_wrong)
-                    
+                    equip_wrong = (
+                        activity["equipment"] != auth_equipment
+                        if auth_equipment
+                        else False
+                    )
+
+                    name_colored = color_text(
+                        activity["name"], False, False, name_wrong
+                    )
+                    equip_colored = color_text(
+                        activity["equipment"], False, False, equip_wrong
+                    )
+
                     # Record needed changes
                     if name_wrong and auth_name:
-                        all_changes.append(ActivityChange(
-                            change_type=ChangeType.UPDATE_NAME,
-                            provider=provider,
-                            activity_id=str(activity["id"]),
-                            old_value=activity["name"],
-                            new_value=auth_name,
-                        ))
-                    
+                        all_changes.append(
+                            ActivityChange(
+                                change_type=ChangeType.UPDATE_NAME,
+                                provider=provider,
+                                activity_id=str(activity["id"]),
+                                old_value=activity["name"],
+                                new_value=auth_name,
+                            )
+                        )
+
                     if equip_wrong and auth_equipment:
-                        all_changes.append(ActivityChange(
-                            change_type=ChangeType.UPDATE_EQUIPMENT,
-                            provider=provider,
-                            activity_id=str(activity["id"]),
-                            old_value=activity["equipment"],
-                            new_value=auth_equipment,
-                        ))
-                
+                        all_changes.append(
+                            ActivityChange(
+                                change_type=ChangeType.UPDATE_EQUIPMENT,
+                                provider=provider,
+                                activity_id=str(activity["id"]),
+                                old_value=activity["equipment"],
+                                new_value=auth_equipment,
+                            )
+                        )
+
                 table_row.extend([id_colored, name_colored, equip_colored])
             else:
                 # Missing from this provider
                 missing_id = color_text("TBD", False, True, False)
-                missing_name = color_text(auth_name, False, True, False) if auth_name else ""
-                missing_equip = color_text(auth_equipment, False, True, False) if auth_equipment else ""
-                
+                missing_name = (
+                    color_text(auth_name, False, True, False) if auth_name else ""
+                )
+                missing_equip = (
+                    color_text(auth_equipment, False, True, False)
+                    if auth_equipment
+                    else ""
+                )
+
                 table_row.extend([missing_id, missing_name, missing_equip])
-                
+
                 # Record that this activity should be added to this provider
                 if auth_name:  # Only suggest adding if there's a name
-                    all_changes.append(ActivityChange(
-                        change_type=ChangeType.ADD_ACTIVITY,
-                        provider=provider,
-                        activity_id=str(auth_activity["id"]),
-                        new_value=auth_name,
-                        source_provider=auth_provider,
-                    ))
-        
+                    all_changes.append(
+                        ActivityChange(
+                            change_type=ChangeType.ADD_ACTIVITY,
+                            provider=provider,
+                            activity_id=str(auth_activity["id"]),
+                            new_value=auth_name,
+                            source_provider=auth_provider,
+                        )
+                    )
+
         # Add distance
         table_row.append(f"{auth_activity['distance']:.2f}")
         table.append(table_row)
@@ -272,18 +301,26 @@ def run(year_month):
     # Build headers
     headers = ["Start"]
     for provider in provider_list:
-        headers.extend([f"{provider.title()} ID", f"{provider.title()} Name", f"{provider.title()} Equip"])
+        headers.extend(
+            [
+                f"{provider.title()} ID",
+                f"{provider.title()} Name",
+                f"{provider.title()} Equip",
+            ]
+        )
     headers.append("Distance (mi)")
 
-    print(tabulate(
-        table,
-        headers=headers,
-        tablefmt="plain",
-        stralign="left",
-        numalign="left",
-        colalign=("left",) * len(headers),
-    ))
-    
+    print(
+        tabulate(
+            table,
+            headers=headers,
+            tablefmt="plain",
+            stralign="left",
+            numalign="left",
+            colalign=("left",) * len(headers),
+        )
+    )
+
     print("\nLegend:")
     print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
     print(f"{yellow_bg}Yellow{reset} = New entry to be created")

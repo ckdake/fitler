@@ -95,11 +95,12 @@ class BaseProviderActivity(Model):
     @property
     def date(self):
         """Get the date of the activity from start_time."""
-        start_time_val = getattr(self, 'start_time', None)
+        start_time_val = getattr(self, "start_time", None)
         if not start_time_val:
             return None
         try:
             from datetime import datetime, timezone
+
             return datetime.fromtimestamp(start_time_val, timezone.utc).date()
         except (ValueError, TypeError):
             return None
@@ -107,12 +108,13 @@ class BaseProviderActivity(Model):
     @property
     def local_time(self) -> str:
         """Get formatted local time string."""
-        start_time_val = getattr(self, 'start_time', None)
+        start_time_val = getattr(self, "start_time", None)
         if not start_time_val:
             return ""
         try:
             from datetime import datetime, timezone
             import zoneinfo
+
             dt = datetime.fromtimestamp(start_time_val, timezone.utc)
             # Default to US/Eastern if no timezone provided
             local_tz = zoneinfo.ZoneInfo("US/Eastern")
@@ -121,10 +123,10 @@ class BaseProviderActivity(Model):
         except (ValueError, TypeError, Exception):
             return ""
 
-    @property  
+    @property
     def duration(self):
         """Get duration in seconds from duration_hms."""
-        duration_hms_val = getattr(self, 'duration_hms', None)
+        duration_hms_val = getattr(self, "duration_hms", None)
         if not duration_hms_val:
             return None
         try:

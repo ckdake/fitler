@@ -18,92 +18,98 @@ def run():
 
     # Create providers block
     config["providers"] = {}
-    
+
     print("\n--- Provider Configuration ---")
-    
+
     # Spreadsheet provider
     print("\nSpreadsheet Provider:")
-    enable_spreadsheet = input("Enable spreadsheet provider? (Y/n): ").strip().lower() != "n"
+    enable_spreadsheet = (
+        input("Enable spreadsheet provider? (Y/n): ").strip().lower() != "n"
+    )
     spreadsheet_path = ""
     spreadsheet_priority = 0
     if enable_spreadsheet:
-        spreadsheet_path = input("Path to activity spreadsheet (default: /home/vscode/exerciselog.xlsx): ").strip()
+        spreadsheet_path = input(
+            "Path to activity spreadsheet (default: /home/vscode/exerciselog.xlsx): "
+        ).strip()
         spreadsheet_path = spreadsheet_path or "/home/vscode/exerciselog.xlsx"
-        spreadsheet_priority = int(input("Priority (1-5, lower is higher priority, default: 1): ").strip() or "1")
-    
+        spreadsheet_priority = int(
+            input("Priority (1-5, lower is higher priority, default: 1): ").strip()
+            or "1"
+        )
+
     config["providers"]["spreadsheet"] = {
         "enabled": enable_spreadsheet,
-        "path": spreadsheet_path
+        "path": spreadsheet_path,
     }
     if enable_spreadsheet and spreadsheet_priority > 0:
         config["providers"]["spreadsheet"]["priority"] = spreadsheet_priority
-    
+
     # File provider
     print("\nFile Provider:")
     enable_file = input("Enable file provider? (Y/n): ").strip().lower() != "n"
     file_glob = ""
     if enable_file:
-        file_glob = input("Glob for activity files (default: ./export*/activities/*): ").strip()
+        file_glob = input(
+            "Glob for activity files (default: ./export*/activities/*): "
+        ).strip()
         file_glob = file_glob or "./export*/activities/*"
-    
-    config["providers"]["file"] = {
-        "enabled": enable_file,
-        "glob": file_glob
-    }
-    
+
+    config["providers"]["file"] = {"enabled": enable_file, "glob": file_glob}
+
     # Strava provider
     print("\nStrava Provider:")
     enable_strava = input("Enable Strava provider? (Y/n): ").strip().lower() != "n"
     strava_priority = 0
     if enable_strava:
         print("Note: Strava credentials should be set in .env file.")
-        strava_priority = int(input("Priority (1-5, lower is higher priority, default: 3): ").strip() or "3")
-    
-    config["providers"]["strava"] = {
-        "enabled": enable_strava
-    }
+        strava_priority = int(
+            input("Priority (1-5, lower is higher priority, default: 3): ").strip()
+            or "3"
+        )
+
+    config["providers"]["strava"] = {"enabled": enable_strava}
     if enable_strava and strava_priority > 0:
         config["providers"]["strava"]["priority"] = strava_priority
-    
+
     # RideWithGPS provider
     print("\nRideWithGPS Provider:")
-    enable_ridewithgps = input("Enable RideWithGPS provider? (Y/n): ").strip().lower() != "n"
+    enable_ridewithgps = (
+        input("Enable RideWithGPS provider? (Y/n): ").strip().lower() != "n"
+    )
     ridewithgps_priority = 0
     if enable_ridewithgps:
         print("Note: RideWithGPS credentials should be set in .env file.")
-        ridewithgps_priority = int(input("Priority (1-5, lower is higher priority, default: 2): ").strip() or "2")
-    
-    config["providers"]["ridewithgps"] = {
-        "enabled": enable_ridewithgps
-    }
+        ridewithgps_priority = int(
+            input("Priority (1-5, lower is higher priority, default: 2): ").strip()
+            or "2"
+        )
+
+    config["providers"]["ridewithgps"] = {"enabled": enable_ridewithgps}
     if enable_ridewithgps and ridewithgps_priority > 0:
         config["providers"]["ridewithgps"]["priority"] = ridewithgps_priority
-    
+
     # Garmin provider
     print("\nGarmin Provider:")
     enable_garmin = input("Enable Garmin provider? (Y/n): ").strip().lower() != "n"
     if enable_garmin:
         print("Note: Garmin credentials should be set in .env file.")
-    
-    config["providers"]["garmin"] = {
-        "enabled": enable_garmin
-    }
-    
+
+    config["providers"]["garmin"] = {"enabled": enable_garmin}
+
     # StravaJSON provider (disabled by default)
-    config["providers"]["stravajson"] = {
-        "enabled": False
-    }
-    
+    config["providers"]["stravajson"] = {"enabled": False}
+
     # Create provider_priority string based on provider priorities
     providers_with_priority = []
     for provider, settings in config["providers"].items():
         if settings.get("enabled", False) and "priority" in settings:
             providers_with_priority.append((provider, settings["priority"]))
-    
+
     # Sort by priority (lower number = higher priority)
     providers_with_priority.sort(key=lambda x: x[1])
     priority_list = [p[0] for p in providers_with_priority]
-    
+
     if priority_list:
         config["provider_priority"] = ",".join(priority_list)
     else:

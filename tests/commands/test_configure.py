@@ -37,34 +37,36 @@ def test_run_creates_config_file(monkeypatch):
         assert os.path.exists(config_path)
         with open(config_path) as f:
             config = json.load(f)
-        
+
         # Check top-level settings
         assert config["home_timezone"] == "US/Pacific"
         assert config["debug"] == True
         assert config["provider_priority"] == "spreadsheet,ridewithgps,strava"
-        
+
         # Check providers block
         assert "providers" in config
-        
+
         # Check spreadsheet provider
         assert config["providers"]["spreadsheet"]["enabled"] == True
-        assert config["providers"]["spreadsheet"]["path"] == "/tmp/fake_spreadsheet.xlsx"
+        assert (
+            config["providers"]["spreadsheet"]["path"] == "/tmp/fake_spreadsheet.xlsx"
+        )
         assert config["providers"]["spreadsheet"]["priority"] == 1
-        
+
         # Check file provider
         assert config["providers"]["file"]["enabled"] == True
         assert config["providers"]["file"]["glob"] == "./fake_glob/*"
-        
+
         # Check Strava provider
         assert config["providers"]["strava"]["enabled"] == True
         assert config["providers"]["strava"]["priority"] == 3
-        
+
         # Check RideWithGPS provider
         assert config["providers"]["ridewithgps"]["enabled"] == True
         assert config["providers"]["ridewithgps"]["priority"] == 2
-        
+
         # Check Garmin provider
         assert config["providers"]["garmin"]["enabled"] == True
-        
+
         # Check StravaJSON provider (should be disabled by default)
         assert config["providers"]["stravajson"]["enabled"] == False

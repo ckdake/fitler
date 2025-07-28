@@ -28,7 +28,9 @@ class SpreadsheetProvider(FitnessProvider):
         """Return the name of this provider."""
         return "spreadsheet"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[SpreadsheetActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[SpreadsheetActivity]:
         """
         Load all activities from spreadsheet into database, then return filtered activities.
         If date_filter is None, returns all activities.
@@ -37,7 +39,7 @@ class SpreadsheetProvider(FitnessProvider):
         # First, load all activities from the spreadsheet file
         all_activities = self.fetch_activities()
         print(f"Found {len(all_activities)} activities in spreadsheet")
-        
+
         persisted_activities = []
         for activity in all_activities:
             try:
@@ -47,12 +49,32 @@ class SpreadsheetProvider(FitnessProvider):
                 )
                 if existing:
                     # Update existing activity with fresh data from spreadsheet
-                    for attr in ['start_time', 'activity_type', 'location_name', 'city', 'state', 
-                                'temperature', 'equipment', 'duration', 'distance', 'max_speed',
-                                'avg_heart_rate', 'max_heart_rate', 'calories', 'max_elevation',
-                                'total_elevation_gain', 'with_names', 'avg_cadence', 'strava_id',
-                                'garmin_id', 'ridewithgps_id', 'notes', 'name', 'source_file',
-                                'source_file_type']:
+                    for attr in [
+                        "start_time",
+                        "activity_type",
+                        "location_name",
+                        "city",
+                        "state",
+                        "temperature",
+                        "equipment",
+                        "duration",
+                        "distance",
+                        "max_speed",
+                        "avg_heart_rate",
+                        "max_heart_rate",
+                        "calories",
+                        "max_elevation",
+                        "total_elevation_gain",
+                        "with_names",
+                        "avg_cadence",
+                        "strava_id",
+                        "garmin_id",
+                        "ridewithgps_id",
+                        "notes",
+                        "name",
+                        "source_file",
+                        "source_file_type",
+                    ]:
                         if hasattr(activity, attr):
                             setattr(existing, attr, getattr(activity, attr))
                     existing.save()
@@ -61,23 +83,25 @@ class SpreadsheetProvider(FitnessProvider):
                     # Save new activity to database
                     activity.save()
                     persisted_activities.append(activity)
-                    
+
             except Exception as e:
                 print(f"Error persisting spreadsheet activity: {e}")
                 continue
-        
-        print(f"Persisted {len(persisted_activities)} spreadsheet activities to database")
-        
+
+        print(
+            f"Persisted {len(persisted_activities)} spreadsheet activities to database"
+        )
+
         # If no date filter, return all persisted activities
         if date_filter is None:
             return persisted_activities
-        
+
         # Filter activities by the requested month
         filtered_activities = []
         year, month = map(int, date_filter.split("-"))
-        
+
         for activity in persisted_activities:
-            if hasattr(activity, 'start_time') and activity.start_time:
+            if hasattr(activity, "start_time") and activity.start_time:
                 try:
                     # Convert timestamp to datetime for comparison
                     dt = datetime.datetime.fromtimestamp(int(activity.start_time))
@@ -85,7 +109,7 @@ class SpreadsheetProvider(FitnessProvider):
                         filtered_activities.append(activity)
                 except (ValueError, TypeError):
                     continue
-        
+
         print(f"Returning {len(filtered_activities)} activities for {date_filter}")
         return filtered_activities
 
@@ -264,7 +288,7 @@ class SpreadsheetProvider(FitnessProvider):
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
-        
+
         if sheet is None:
             return None
 
@@ -321,15 +345,15 @@ class SpreadsheetProvider(FitnessProvider):
         activity_kwargs["spreadsheet_id"] = row_idx
         return SpreadsheetActivity(**activity_kwargs)
 
-
-
     def update_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Update an existing SpreadsheetActivity with new data."""
         try:
             activity_id = activity_data.get("spreadsheet_id")
             if not activity_id:
                 return None
-            activity = SpreadsheetActivity.get(SpreadsheetActivity.spreadsheet_id == activity_id)
+            activity = SpreadsheetActivity.get(
+                SpreadsheetActivity.spreadsheet_id == activity_id
+            )
             for key, value in activity_data.items():
                 if key != "spreadsheet_id":  # Don't update the ID itself
                     setattr(activity, key, value)
@@ -346,7 +370,7 @@ class SpreadsheetProvider(FitnessProvider):
 
         # Get the next row number
         next_row = sheet.max_row + 1
-        
+
         # Prepare the row data
         row = [
             activity_data.get("start_time", ""),
@@ -371,7 +395,7 @@ class SpreadsheetProvider(FitnessProvider):
             activity_data.get("ridewithgps_id", ""),
             activity_data.get("notes", ""),
         ]
-        
+
         sheet.append(row)
         wb_obj.save(xlsx_file)
         return str(next_row)
@@ -381,7 +405,7 @@ class SpreadsheetProvider(FitnessProvider):
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
-        
+
         if sheet is None:
             return {}
 
@@ -401,7 +425,7 @@ class SpreadsheetProvider(FitnessProvider):
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
-        
+
         if sheet is None:
             return False
 

@@ -64,4 +64,3 @@ def run(year_month):
                 print_activities(
                     display_name, provider_activities, "provider_id", home_tz
                 )
-

@@ -13,7 +13,7 @@ class StravaActivity(BaseProviderActivity):
 
     # Strava-specific ID field
     strava_id = CharField(max_length=50, unique=True, index=True)
-    
+
     # Store raw JSON data from Strava API
     strava_data = TextField(null=True)
 

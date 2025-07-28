@@ -53,7 +53,9 @@ class GarminProvider(FitnessProvider):
                 )
         return self.client
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[GarminActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[GarminActivity]:
         """
         Sync activities for a given month filter in YYYY-MM format.
         If date_filter is None, pulls all activities (not implemented yet).
@@ -63,7 +65,7 @@ class GarminProvider(FitnessProvider):
         if date_filter is None:
             print("Garmin provider: pulling all activities not implemented yet")
             return []
-        
+
         # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         if existing_sync:
@@ -80,84 +82,101 @@ class GarminProvider(FitnessProvider):
             try:
                 # Create GarminActivity from raw data
                 garmin_activity = GarminActivity()
-                
+
                 # Set basic activity data (raw_activity is a dict from Garmin API)
                 garmin_activity.garmin_id = str(raw_activity.get("activityId", ""))
                 garmin_activity.name = str(raw_activity.get("activityName", ""))
-                
+
                 # Activity type
                 activity_type_info = raw_activity.get("activityType", {})
                 if isinstance(activity_type_info, dict):
-                    garmin_activity.activity_type = str(activity_type_info.get("typeKey", ""))
+                    garmin_activity.activity_type = str(
+                        activity_type_info.get("typeKey", "")
+                    )
                 else:
                     garmin_activity.activity_type = str(activity_type_info or "")
-                
+
                 # Distance conversion from meters to miles
                 if raw_activity.get("distance"):
                     from decimal import Decimal
+
                     distance_meters = float(raw_activity.get("distance", 0))
-                    garmin_activity.distance = Decimal(str(distance_meters * 0.000621371))
-                
+                    garmin_activity.distance = Decimal(
+                        str(distance_meters * 0.000621371)
+                    )
+
                 # Start time
                 if raw_activity.get("startTimeGMT"):
                     # Convert Garmin timestamp to epoch
                     start_time_str = raw_activity.get("startTimeGMT")
                     # Handle Garmin timestamp format
                     import dateutil.parser
+
                     dt = dateutil.parser.parse(start_time_str)
                     garmin_activity.start_time = int(dt.timestamp())
-                
+
                 # Duration
                 if raw_activity.get("duration"):
                     total_seconds = int(raw_activity.get("duration", 0))
                     hours = total_seconds // 3600
                     minutes = (total_seconds % 3600) // 60
                     seconds = total_seconds % 60
-                    garmin_activity.duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-                
+                    garmin_activity.duration_hms = (
+                        f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                    )
+
                 # Location data
                 if raw_activity.get("locationName"):
-                    garmin_activity.location_name = str(raw_activity.get("locationName", ""))
-                
+                    garmin_activity.location_name = str(
+                        raw_activity.get("locationName", "")
+                    )
+
                 # Performance metrics
                 if raw_activity.get("maxSpeed"):
                     from decimal import Decimal
+
                     # Convert m/s to mph
                     max_speed_ms = float(raw_activity.get("maxSpeed", 0))
                     garmin_activity.max_speed = Decimal(str(max_speed_ms * 2.237))
-                
+
                 if raw_activity.get("averageHR"):
-                    garmin_activity.avg_heart_rate = int(raw_activity.get("averageHR", 0))
-                    
+                    garmin_activity.avg_heart_rate = int(
+                        raw_activity.get("averageHR", 0)
+                    )
+
                 if raw_activity.get("maxHR"):
                     garmin_activity.max_heart_rate = int(raw_activity.get("maxHR", 0))
-                
+
                 if raw_activity.get("calories"):
                     garmin_activity.calories = int(raw_activity.get("calories", 0))
-                
+
                 # Store raw data as JSON
                 garmin_activity.raw_data = json.dumps(raw_activity)
-                
+
                 # Check for duplicates based on garmin_id
                 existing = GarminActivity.get_or_none(
                     GarminActivity.garmin_id == str(raw_activity.get("activityId", ""))
                 )
                 if existing:
-                    print(f"Skipping duplicate Garmin activity {raw_activity.get('activityId')}")
+                    print(
+                        f"Skipping duplicate Garmin activity {raw_activity.get('activityId')}"
+                    )
                     continue
-                
+
                 # Save to garmin_activities table
                 garmin_activity.save()
                 persisted_activities.append(garmin_activity)
-                
+
             except Exception as e:
                 print(f"Error processing Garmin activity: {e}")
                 continue
 
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        
-        print(f"Synced {len(persisted_activities)} Garmin activities to garmin_activities table")
+
+        print(
+            f"Synced {len(persisted_activities)} Garmin activities to garmin_activities table"
+        )
         return persisted_activities
 
     def fetch_activities_for_month(self, year_month: str) -> List[Dict]:
@@ -202,7 +221,7 @@ class GarminProvider(FitnessProvider):
 
     def update_activity(self, activity_data: Dict) -> GarminActivity:
         """Update an existing GarminActivity with new data."""
-        provider_id = activity_data['garmin_id']
+        provider_id = activity_data["garmin_id"]
         activity = GarminActivity.get(GarminActivity.garmin_id == provider_id)
         for key, value in activity_data.items():
             setattr(activity, key, value)

@@ -21,7 +21,7 @@ class StravaProvider(FitnessProvider):
         config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(config)
-        
+
         self.debug = os.environ.get("STRAVALIB_DEBUG") == "1"
         if not self.debug and self.config:
             self.debug = self.config.get("debug", False)
@@ -30,6 +30,7 @@ class StravaProvider(FitnessProvider):
             logging.basicConfig(level=logging.DEBUG)
 
         from stravalib import Client
+
         self.client = Client(access_token=token)
 
     @property
@@ -37,12 +38,14 @@ class StravaProvider(FitnessProvider):
         """Return the name of this provider."""
         return "strava"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[StravaActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[StravaActivity]:
         """Pull activities from Strava API for the given date filter."""
         if date_filter is None:
             print("Strava provider: pulling all activities not implemented yet")
             return []
-        
+
         # Check if already synced
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         if existing_sync:
@@ -58,25 +61,25 @@ class StravaProvider(FitnessProvider):
             try:
                 # Convert stravalib activity to our StravaActivity
                 strava_activity = self._convert_to_strava_activity(strava_lib_activity)
-                
+
                 # Check for duplicates
                 existing = StravaActivity.get_or_none(
                     StravaActivity.strava_id == strava_activity.strava_id
                 )
                 if existing:
                     continue
-                
+
                 # Save to database
                 strava_activity.save()
                 strava_activities.append(strava_activity)
-                
+
             except Exception as e:
                 print(f"Error processing Strava activity: {e}")
                 continue
 
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        
+
         print(f"Synced {len(strava_activities)} Strava activities")
         return strava_activities
 
@@ -89,61 +92,79 @@ class StravaProvider(FitnessProvider):
         tz = pytz.UTC
         start_date = tz.localize(datetime.datetime(year, month, 1))
         end_date = start_date + relativedelta(months=1)
-        
+
         activities = []
-        for activity in self.client.get_activities(after=start_date, before=end_date, limit=None):
+        for activity in self.client.get_activities(
+            after=start_date, before=end_date, limit=None
+        ):
             activities.append(activity)
-        
+
         return activities
 
     def _convert_to_strava_activity(self, strava_lib_activity) -> StravaActivity:
         """Convert a stravalib activity to our StravaActivity object."""
         import json
         from decimal import Decimal
-        
+
         strava_activity = StravaActivity()
-        
+
         # Basic fields - use setattr to avoid type checker issues
-        setattr(strava_activity, 'strava_id', str(getattr(strava_lib_activity, "id", "")))
-        setattr(strava_activity, 'name', str(getattr(strava_lib_activity, "name", "") or ""))
-        setattr(strava_activity, 'activity_type', str(getattr(strava_lib_activity, "type", "") or ""))
-        
+        setattr(
+            strava_activity, "strava_id", str(getattr(strava_lib_activity, "id", ""))
+        )
+        setattr(
+            strava_activity, "name", str(getattr(strava_lib_activity, "name", "") or "")
+        )
+        setattr(
+            strava_activity,
+            "activity_type",
+            str(getattr(strava_lib_activity, "type", "") or ""),
+        )
+
         # Distance - convert from meters to miles
         distance_m = getattr(strava_lib_activity, "distance", None)
         if distance_m:
-            setattr(strava_activity, 'distance', Decimal(str(float(distance_m) * 0.000621371)))
-        
+            setattr(
+                strava_activity,
+                "distance",
+                Decimal(str(float(distance_m) * 0.000621371)),
+            )
+
         # Start time as timestamp string
         start_date = getattr(strava_lib_activity, "start_date", None)
         if start_date:
-            setattr(strava_activity, 'start_time', int(start_date.timestamp()))
-        
+            setattr(strava_activity, "start_time", int(start_date.timestamp()))
+
         # Duration
         elapsed_time = getattr(strava_lib_activity, "elapsed_time", None)
         if elapsed_time:
             # Handle different types of duration objects
-            if hasattr(elapsed_time, 'total_seconds'):
+            if hasattr(elapsed_time, "total_seconds"):
                 total_seconds = int(elapsed_time.total_seconds())
-            elif hasattr(elapsed_time, 'seconds'):
+            elif hasattr(elapsed_time, "seconds"):
                 # Duration object with seconds attribute
                 total_seconds = int(elapsed_time.seconds)
             else:
                 # Assume it's already an integer seconds value
                 total_seconds = int(elapsed_time)
-            
+
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
             seconds = total_seconds % 60
-            setattr(strava_activity, 'duration_hms', f"{hours:02d}:{minutes:02d}:{seconds:02d}")
-        
+            setattr(
+                strava_activity,
+                "duration_hms",
+                f"{hours:02d}:{minutes:02d}:{seconds:02d}",
+            )
+
         # Store raw data
         raw_data = {
             "id": getattr(strava_lib_activity, "id", None),
             "name": getattr(strava_lib_activity, "name", None),
             "type": str(getattr(strava_lib_activity, "type", None)),
         }
-        setattr(strava_activity, 'strava_data', json.dumps(raw_data))
-        
+        setattr(strava_activity, "strava_data", json.dumps(raw_data))
+
         return strava_activity
 
     # Abstract method implementations

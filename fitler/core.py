@@ -55,13 +55,15 @@ class Fitler:
     def spreadsheet(self) -> Optional[SpreadsheetProvider]:
         """Get the spreadsheet provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("spreadsheet", {})
-        
+
         if not self._spreadsheet and provider_config.get("enabled", False):
             path = provider_config.get("path")
             if path:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._spreadsheet = SpreadsheetProvider(path, config=enhanced_config)
         return self._spreadsheet
 
@@ -69,13 +71,15 @@ class Fitler:
     def strava(self) -> Optional[StravaProvider]:
         """Get the Strava provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("strava", {})
-        
+
         if not self._strava and provider_config.get("enabled", False):
             token = os.environ.get("STRAVA_ACCESS_TOKEN")
             if token:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._strava = StravaProvider(
                     token,
                     refresh_token=os.environ.get("STRAVA_REFRESH_TOKEN"),
@@ -90,7 +94,7 @@ class Fitler:
     def ridewithgps(self) -> Optional[RideWithGPSProvider]:
         """Get the RideWithGPS provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("ridewithgps", {})
-        
+
         if not self._ridewithgps and provider_config.get("enabled", False):
             if all(
                 os.environ.get(env)
@@ -102,7 +106,9 @@ class Fitler:
             ):
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._ridewithgps = RideWithGPSProvider(config=enhanced_config)
         return self._ridewithgps
 
@@ -110,12 +116,14 @@ class Fitler:
     def garmin(self) -> Optional[GarminProvider]:
         """Get the Garmin provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("garmin", {})
-        
+
         if not self._garmin and provider_config.get("enabled", False):
             if os.environ.get("GARMINTOKENS"):
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._garmin = GarminProvider(config=enhanced_config)
         return self._garmin
 
@@ -123,13 +131,15 @@ class Fitler:
     def file(self) -> Optional[FileProvider]:
         """Get the File provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("file", {})
-        
+
         if not self._file and provider_config.get("enabled", False):
             glob_pattern = provider_config.get("glob")
             if glob_pattern:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._file = FileProvider(glob_pattern, config=enhanced_config)
         return self._file
 
@@ -137,13 +147,15 @@ class Fitler:
     def stravajson(self) -> Optional[StravaJsonProvider]:
         """Get the StravaJSON provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("stravajson", {})
-        
+
         if not self._stravajson and provider_config.get("enabled", False):
             folder = provider_config.get("folder")
             if folder:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+                enhanced_config["home_timezone"] = self.config.get(
+                    "home_timezone", "US/Eastern"
+                )
                 self._stravajson = StravaJsonProvider(folder, config=enhanced_config)
         return self._stravajson
 
@@ -152,14 +164,21 @@ class Fitler:
         """Get list of enabled providers based on config."""
         providers = []
         providers_config = self.config.get("providers", {})
-        
-        for provider_name in ["spreadsheet", "strava", "ridewithgps", "garmin", "file", "stravajson"]:
+
+        for provider_name in [
+            "spreadsheet",
+            "strava",
+            "ridewithgps",
+            "garmin",
+            "file",
+            "stravajson",
+        ]:
             if providers_config.get(provider_name, {}).get("enabled", False):
                 # Only add if required credentials/paths are available
                 provider = getattr(self, provider_name)
                 if provider:
                     providers.append(provider_name)
-        
+
         return providers
 
     def pull_activities(self, year_month: str) -> Dict[str, List[BaseProviderActivity]]:
@@ -175,7 +194,7 @@ class Fitler:
 
         # Get the list of enabled providers from the config
         enabled_providers = self.enabled_providers
-        
+
         # Pull from each enabled provider
         for provider_name in enabled_providers:
             provider = getattr(self, provider_name)

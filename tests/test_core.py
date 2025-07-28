@@ -17,18 +17,10 @@ class TestFitlerCore:
             "debug": False,
             "provider_priority": "spreadsheet,strava",
             "providers": {
-                "spreadsheet": {
-                    "enabled": True,
-                    "path": "/tmp/test.xlsx"
-                },
-                "strava": {
-                    "enabled": True
-                },
-                "file": {
-                    "enabled": True,
-                    "glob": "./test/*"
-                }
-            }
+                "spreadsheet": {"enabled": True, "path": "/tmp/test.xlsx"},
+                "strava": {"enabled": True},
+                "file": {"enabled": True, "glob": "./test/*"},
+            },
         }
 
         config_file = tmp_path / "fitler_config.json"
@@ -77,7 +69,7 @@ class TestFitlerCore:
                 "ridewithgps": {"enabled": False},
                 "garmin": {"enabled": False},
                 "file": {"enabled": False},
-                "stravajson": {"enabled": False}
+                "stravajson": {"enabled": False},
             }
         }
 
@@ -98,15 +90,12 @@ class TestFitlerCore:
         """Test enabled_providers when spreadsheet is configured and enabled."""
         config_data = {
             "providers": {
-                "spreadsheet": {
-                    "enabled": True,
-                    "path": "/tmp/test.xlsx"
-                },
+                "spreadsheet": {"enabled": True, "path": "/tmp/test.xlsx"},
                 "strava": {"enabled": False},
                 "ridewithgps": {"enabled": False},
                 "garmin": {"enabled": False},
                 "file": {"enabled": False},
-                "stravajson": {"enabled": False}
+                "stravajson": {"enabled": False},
             }
         }
 
@@ -140,7 +129,7 @@ class TestFitlerCore:
                 "ridewithgps": {"enabled": False},
                 "garmin": {"enabled": False},
                 "file": {"enabled": False},
-                "stravajson": {"enabled": False}
+                "stravajson": {"enabled": False},
             }
         }
 
@@ -174,7 +163,7 @@ class TestFitlerCore:
                 "ridewithgps": {"enabled": False},
                 "garmin": {"enabled": False},
                 "file": {"enabled": False},
-                "stravajson": {"enabled": False}
+                "stravajson": {"enabled": False},
             }
         }
 
@@ -231,12 +220,7 @@ class TestFitlerCore:
     def test_pull_activities_error_handling(self, tmp_path):
         """Test that pull_activities handles provider errors gracefully."""
         config_data = {
-            "providers": {
-                "spreadsheet": {
-                    "enabled": True,
-                    "path": "/tmp/test.xlsx"
-                }
-            }
+            "providers": {"spreadsheet": {"enabled": True, "path": "/tmp/test.xlsx"}}
         }
 
         config_file = tmp_path / "fitler_config.json"
@@ -258,4 +242,3 @@ class TestFitlerCore:
 
                 # Should handle error gracefully and return empty list
                 assert result["spreadsheet"] == []
-

@@ -33,7 +33,9 @@ class RideWithGPSProvider(FitnessProvider):
         """Return the name of this provider."""
         return "ridewithgps"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[RideWithGPSActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[RideWithGPSActivity]:
         """
         Sync activities for a given month filter in YYYY-MM format.
         If date_filter is None, pulls all activities (not implemented yet).
@@ -43,7 +45,7 @@ class RideWithGPSProvider(FitnessProvider):
         if date_filter is None:
             print("RideWithGPS provider: pulling all activities not implemented yet")
             return []
-        
+
         # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         if existing_sync:
@@ -60,50 +62,60 @@ class RideWithGPSProvider(FitnessProvider):
             try:
                 # Create RideWithGPSActivity from raw data
                 rwgps_activity = RideWithGPSActivity()
-                
+
                 # Set basic activity data (raw_activity is a dict from API)
                 rwgps_activity.ridewithgps_id = str(raw_activity.get("id", ""))
                 rwgps_activity.name = str(raw_activity.get("name", ""))
                 rwgps_activity.activity_type = str(raw_activity.get("type", ""))
-                
+
                 # Distance conversion from raw data
                 if raw_activity.get("distance"):
                     # RideWithGPS provides distance, need to check units
                     from decimal import Decimal
-                    rwgps_activity.distance = Decimal(str(raw_activity.get("distance", 0)))
-                
+
+                    rwgps_activity.distance = Decimal(
+                        str(raw_activity.get("distance", 0))
+                    )
+
                 # Start time
                 rwgps_activity.start_time = raw_activity.get("departed_at", "")
-                
+
                 # Location data
                 if raw_activity.get("locality"):
                     rwgps_activity.city = str(raw_activity.get("locality", ""))
                 if raw_activity.get("administrative_area"):
-                    rwgps_activity.state = str(raw_activity.get("administrative_area", ""))
-                
+                    rwgps_activity.state = str(
+                        raw_activity.get("administrative_area", "")
+                    )
+
                 # Store raw data as JSON
                 rwgps_activity.raw_data = json.dumps(raw_activity)
-                
+
                 # Check for duplicates based on ridewithgps_id
                 existing = RideWithGPSActivity.get_or_none(
-                    RideWithGPSActivity.ridewithgps_id == str(raw_activity.get("id", ""))
+                    RideWithGPSActivity.ridewithgps_id
+                    == str(raw_activity.get("id", ""))
                 )
                 if existing:
-                    print(f"Skipping duplicate RideWithGPS activity {raw_activity.get('id')}")
+                    print(
+                        f"Skipping duplicate RideWithGPS activity {raw_activity.get('id')}"
+                    )
                     continue
-                
+
                 # Save to ridewithgps_activities table
                 rwgps_activity.save()
                 persisted_activities.append(rwgps_activity)
-                
+
             except Exception as e:
                 print(f"Error processing RideWithGPS activity: {e}")
                 continue
 
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        
-        print(f"Synced {len(persisted_activities)} RideWithGPS activities to ridewithgps_activities table")
+
+        print(
+            f"Synced {len(persisted_activities)} RideWithGPS activities to ridewithgps_activities table"
+        )
         return persisted_activities
 
     # Abstract method implementations
@@ -114,12 +126,16 @@ class RideWithGPSProvider(FitnessProvider):
 
     def get_activity_by_id(self, activity_id: str) -> Optional[RideWithGPSActivity]:
         """Get a RideWithGPSActivity by its provider ID."""
-        return RideWithGPSActivity.get_or_none(RideWithGPSActivity.ridewithgps_id == activity_id)
+        return RideWithGPSActivity.get_or_none(
+            RideWithGPSActivity.ridewithgps_id == activity_id
+        )
 
     def update_activity(self, activity_data: Dict) -> RideWithGPSActivity:
         """Update an existing RideWithGPSActivity with new data."""
-        provider_id = activity_data['ridewithgps_id']
-        activity = RideWithGPSActivity.get(RideWithGPSActivity.ridewithgps_id == provider_id)
+        provider_id = activity_data["ridewithgps_id"]
+        activity = RideWithGPSActivity.get(
+            RideWithGPSActivity.ridewithgps_id == provider_id
+        )
         for key, value in activity_data.items():
             setattr(activity, key, value)
         activity.save()
@@ -179,17 +195,21 @@ class RideWithGPSProvider(FitnessProvider):
                         timestamp = None
                     gear_id = getattr(trip, "gear_id", None)
                     gear_id_str = str(gear_id) if gear_id is not None else None
-                    
+
                     # Create RideWithGPSActivity object
                     rwgps_activity = RideWithGPSActivity()
                     rwgps_activity.start_time = timestamp
-                    rwgps_activity.distance = getattr(trip, "distance", 0) * 0.00062137  # meters to miles
+                    rwgps_activity.distance = (
+                        getattr(trip, "distance", 0) * 0.00062137
+                    )  # meters to miles
                     rwgps_activity.ridewithgps_id = str(getattr(trip, "id", ""))
                     rwgps_activity.name = str(getattr(trip, "name", ""))
-                    rwgps_activity.equipment = gear.get(gear_id_str, "") if gear_id_str else ""
+                    rwgps_activity.equipment = (
+                        gear.get(gear_id_str, "") if gear_id_str else ""
+                    )
                     # Convert trip object to serializable dict
                     try:
-                        if hasattr(trip, '__dict__'):
+                        if hasattr(trip, "__dict__"):
                             trip_dict = {}
                             for key, value in trip.__dict__.items():
                                 try:
@@ -204,7 +224,7 @@ class RideWithGPSProvider(FitnessProvider):
                             rwgps_activity.raw_data = json.dumps({})
                     except Exception:
                         rwgps_activity.raw_data = json.dumps({})
-                    
+
                     activities.append(rwgps_activity)
                 except Exception as e:
                     print("Exception fetching RideWithGPS Activity:", e)
