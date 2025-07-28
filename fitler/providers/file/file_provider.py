@@ -31,15 +31,17 @@ class FileProvider(FitnessProvider):
 
         if self.config:
             self.debug = self.config.get("debug", False)
-
-        if self.debug:
-            logging.basicConfig(level=logging.DEBUG)
+            if self.debug:
+                logging.basicConfig(level=logging.DEBUG)
 
     @property
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "file"
-    def pull_activities(self, date_filter: Optional[str] = None) -> List['FileActivity']:
+
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List["FileActivity"]:
         """
         Process activity files and return FileActivity objects.
         If date_filter is provided (YYYY-MM format), only returns activities from that month.
@@ -80,8 +82,7 @@ class FileProvider(FitnessProvider):
         # Mark this month as synced
         ProviderSync.create(year_month=date_filter, provider=self.provider_name)
 
-
-    def _pull_all_activities(self) -> List['FileActivity']:
+    def _pull_all_activities(self) -> List["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
         # Find all files matching the glob pattern
         file_paths = glob.glob(self.file_glob)
@@ -105,16 +106,16 @@ class FileProvider(FitnessProvider):
         # Return only activities for the requested month
         return self._get_file_activities_for_month(date_filter)
 
-    def _get_file_activities_for_month(self, date_filter: str) -> List['FileActivity']:
+    def _get_file_activities_for_month(self, date_filter: str) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
         from fitler.providers.file.file_activity import FileActivity
         import datetime
-        
+
         year, month = map(int, date_filter.split("-"))
         file_activities = []
-        
+
         for activity in FileActivity.select():
-            if hasattr(activity, 'start_time') and activity.start_time:
+            if hasattr(activity, "start_time") and activity.start_time:
                 try:
                     # Convert timestamp to datetime for comparison
                     dt = datetime.datetime.fromtimestamp(int(activity.start_time))
@@ -122,9 +123,8 @@ class FileProvider(FitnessProvider):
                         file_activities.append(activity)
                 except (ValueError, TypeError):
                     continue
-        
-        return file_activities
 
+        return file_activities
 
         # Find all files matching the glob pattern
         file_paths = glob.glob(self.file_glob)
@@ -170,7 +170,6 @@ class FileProvider(FitnessProvider):
         # Return only activities for the requested month
         return self._get_file_activities_for_month(date_filter)
         return []
-
 
     def _parse_file(
         self, file_path: str, file_format: str, is_gzipped: bool = False
@@ -251,13 +250,13 @@ class FileProvider(FitnessProvider):
                 return int(start_time_val)
             # Parse as datetime string and convert to timestamp
             import dateparser
+
             dt = dateparser.parse(str(start_time_val))
             if dt:
                 return int(dt.timestamp())
         except (ValueError, TypeError, AttributeError):
             pass
         return None
-
 
     def _calculate_checksum(self, file_path: str) -> str:
         """Calculate SHA256 checksum of a file."""
@@ -288,11 +287,11 @@ class FileProvider(FitnessProvider):
         except DoesNotExist:
             return None
 
-
-    def get_activity_by_id(self, activity_id: str) -> Optional['FileActivity']:
+    def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
         try:
             from fitler.providers.file.file_activity import FileActivity
+
             return FileActivity.get(FileActivity.id == int(activity_id))
         except (ValueError, DoesNotExist):
             return None
@@ -308,9 +307,10 @@ class FileProvider(FitnessProvider):
     def get_gear(self) -> Dict[str, str]:
         """Get all unique equipment from file activities."""
         from fitler.providers.file.file_activity import FileActivity
+
         gear_set = set()
         for activity in FileActivity.select():
-            if hasattr(activity, 'equipment') and activity.equipment:
+            if hasattr(activity, "equipment") and activity.equipment:
                 gear_set.add(str(activity.equipment))
         return {name: name for name in gear_set}
 
@@ -324,7 +324,7 @@ class FileProvider(FitnessProvider):
         """Process a single activity file and store in file_activities table."""
         if self.debug:
             print(f"DEBUG: Processing file: {file_path}")
-        
+
         # Calculate file checksum
         checksum = self._calculate_checksum(file_path)
         file_size = str(os.path.getsize(file_path))
@@ -343,7 +343,9 @@ class FileProvider(FitnessProvider):
                 FileActivity.file_checksum == checksum,
             )
             if self.debug:
-                print(f"DEBUG: Found existing file activity: {existing_file_activity.id}")
+                print(
+                    f"DEBUG: Found existing file activity: {existing_file_activity.id}"
+                )
             return existing_file_activity
 
         except DoesNotExist:
@@ -358,7 +360,9 @@ class FileProvider(FitnessProvider):
                 print("DEBUG: File parsing failed, returning None")
             return None
         if self.debug:
-            print(f"DEBUG: Parsed data keys: {list(parsed_data.keys()) if parsed_data else None}")
+            print(
+                f"DEBUG: Parsed data keys: {list(parsed_data.keys()) if parsed_data else None}"
+            )
 
         if self.debug:
             print("DEBUG: Creating FileActivity record...")
@@ -372,9 +376,9 @@ class FileProvider(FitnessProvider):
             start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),
             activity_type=parsed_data.get("activity_type", ""),
             duration_hms=parsed_data.get("duration_hms", ""),
-            raw_data=json.dumps(parsed_data)
+            raw_data=json.dumps(parsed_data),
         )
-        
+
         if self.debug:
             print(f"DEBUG: Created FileActivity with ID: {file_activity.id}")
         return file_activity
