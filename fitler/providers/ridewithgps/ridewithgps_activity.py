@@ -11,11 +11,7 @@ class RideWithGPSActivity(BaseProviderActivity):
     Stores raw activity data pulled from the RideWithGPS API.
     """
 
-    # RideWithGPS-specific ID field
     ridewithgps_id = CharField(max_length=50, unique=True, index=True)
-
-    # RideWithGPS-specific fields can be added here as needed
-    # For example: visibility, route_id, etc.
 
     class Meta:
         database = db

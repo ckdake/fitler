@@ -177,6 +177,13 @@ class StravaProvider(FitnessProvider):
                 f"{hours:02d}:{minutes:02d}:{seconds:02d}",
             )
 
+        # Equipment/gear information
+        gear = getattr(strava_lib_activity, "gear", None)
+        if gear:
+            gear_name = getattr(gear, "name", None)
+            if gear_name:
+                setattr(strava_activity, "equipment", str(gear_name))
+
         # Store raw data
         raw_data = {
             "id": getattr(strava_lib_activity, "id", None),

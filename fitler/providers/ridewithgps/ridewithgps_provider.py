@@ -88,6 +88,10 @@ class RideWithGPSProvider(FitnessProvider):
                         raw_activity.get("administrative_area", "")
                     )
 
+                # Equipment/gear information
+                if raw_activity.get("gear_name"):
+                    rwgps_activity.equipment = str(raw_activity.get("gear_name", ""))
+
                 # Store raw data as JSON
                 rwgps_activity.raw_data = json.dumps(raw_activity)
 

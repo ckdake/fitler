@@ -68,9 +68,13 @@ class GarminProvider(FitnessProvider):
 
         # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
-        if not existing_sync:
-            # First time processing this month - fetch from Garmin API
-            raw_activities = self.fetch_activities_for_month(date_filter)
+        if existing_sync:
+            print(f"Month {date_filter} already synced for {self.provider_name}")
+            # Always return activities for the requested month from database
+            return self._get_garmin_activities_for_month(date_filter)
+
+        # Get the raw activity data for the month
+        raw_activities = self.fetch_activities_for_month(date_filter)
         print(f"Found {len(raw_activities)} Garmin activities for {date_filter}")
 
         persisted_activities = []
@@ -174,7 +178,9 @@ class GarminProvider(FitnessProvider):
         print(
             f"Synced {len(persisted_activities)} Garmin activities to garmin_activities table"
         )
-        return persisted_activities
+        
+        # Always return activities for the requested month from database
+        return self._get_garmin_activities_for_month(date_filter)
 
     def fetch_activities_for_month(self, year_month: str) -> List[Dict]:
         """
@@ -236,3 +242,23 @@ class GarminProvider(FitnessProvider):
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         """Stub method - not yet implemented."""
         raise NotImplementedError("GarminProvider not yet implemented")
+
+    def _get_garmin_activities_for_month(self, date_filter: str) -> List["GarminActivity"]:
+        """Get GarminActivity objects for a specific month."""
+        from fitler.providers.garmin.garmin_activity import GarminActivity
+        import datetime
+
+        year, month = map(int, date_filter.split("-"))
+        garmin_activities = []
+
+        for activity in GarminActivity.select():
+            if hasattr(activity, "start_time") and activity.start_time:
+                try:
+                    # Convert timestamp to datetime for comparison
+                    dt = datetime.datetime.fromtimestamp(int(activity.start_time))
+                    if dt.year == year and dt.month == month:
+                        garmin_activities.append(activity)
+                except (ValueError, TypeError):
+                    continue
+
+        return garmin_activities
