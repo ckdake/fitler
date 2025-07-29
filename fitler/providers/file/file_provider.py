@@ -2,6 +2,8 @@
 
 This module defines the FileProvider class, which provides an interface
 for processing activity files from the filesystem (GPX, FIT, TCX, etc).
+
+TODO: get this to follow the patterns of the other provider.
 """
 
 import os
@@ -9,6 +11,7 @@ import glob
 import hashlib
 import json
 import datetime
+import dateparser
 import logging
 import tempfile
 import gzip
@@ -109,7 +112,6 @@ class FileProvider(FitnessProvider):
     def _get_file_activities_for_month(self, date_filter: str) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
         from fitler.providers.file.file_activity import FileActivity
-        import datetime
 
         year, month = map(int, date_filter.split("-"))
         file_activities = []
@@ -125,29 +127,6 @@ class FileProvider(FitnessProvider):
                     continue
 
         return file_activities
-
-        # Find all files matching the glob pattern
-        file_paths = glob.glob(self.file_glob)
-        print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
-
-        processed_count = 0
-
-        for file_path in file_paths:
-            try:
-                self._process_file(file_path, date_filter)
-                processed_count += 1
-            except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
-                continue
-
-        print(f"Processed {processed_count} files into file_activities table")
-        # Return only activities for the requested month
-        return self._get_file_activities_for_month(date_filter)
-
-        # Mark this month as synced
-        ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-
-        return []
 
     def _pull_all_activities(self) -> List[Activity]:
         """Process all files matching the glob pattern without date filtering."""
@@ -169,7 +148,6 @@ class FileProvider(FitnessProvider):
         print(f"Processed {processed_count} files into file_activities table")
         # Return only activities for the requested month
         return self._get_file_activities_for_month(date_filter)
-        return []
 
     def _parse_file(
         self, file_path: str, file_format: str, is_gzipped: bool = False
@@ -249,8 +227,6 @@ class FileProvider(FitnessProvider):
             if isinstance(start_time_val, str) and start_time_val.isdigit():
                 return int(start_time_val)
             # Parse as datetime string and convert to timestamp
-            import dateparser
-
             dt = dateparser.parse(str(start_time_val))
             if dt:
                 return int(dt.timestamp())
@@ -265,27 +241,6 @@ class FileProvider(FitnessProvider):
             for chunk in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
-
-    # Required abstract methods (not implemented for files)
-    def create_activity(self, activity: Activity) -> str:
-        raise NotImplementedError("File provider does not support creating activities")
-
-    def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
-        """Get activity by file path."""
-        try:
-            file_activity = FileActivity.get(FileActivity.file_path == activity_id)
-            logical_activity = (
-                Activity.select()
-                .where(
-                    Activity.source == "file",
-                    Activity.original_filename
-                    == os.path.basename(file_activity.file_path),
-                )
-                .first()
-            )
-            return logical_activity
-        except DoesNotExist:
-            return None
 
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
