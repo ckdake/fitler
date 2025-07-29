@@ -68,12 +68,9 @@ class GarminProvider(FitnessProvider):
 
         # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
-        if existing_sync:
-            print(f"Month {date_filter} already synced for {self.provider_name}")
-            return []
-
-        # Get the raw activity data for the month
-        raw_activities = self.fetch_activities_for_month(date_filter)
+        if not existing_sync:
+            # First time processing this month - fetch from Garmin API
+            raw_activities = self.fetch_activities_for_month(date_filter)
         print(f"Found {len(raw_activities)} Garmin activities for {date_filter}")
 
         persisted_activities = []

@@ -48,39 +48,59 @@ class StravaProvider(FitnessProvider):
 
         # Check if already synced
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
-        if existing_sync:
-            print(f"Month {date_filter} already synced for {self.provider_name}")
-            return []
+        if not existing_sync:
+            # First time processing this month - fetch from Strava API
+            raw_activities = self._fetch_strava_activities_for_month(date_filter)
+            print(f"Found {len(raw_activities)} Strava activities for {date_filter}")
 
-        # Get raw activities from Strava API
-        raw_activities = self._fetch_strava_activities_for_month(date_filter)
-        print(f"Found {len(raw_activities)} Strava activities for {date_filter}")
+            processed_count = 0
+            for strava_lib_activity in raw_activities:
+                try:
+                    # Convert stravalib activity to our StravaActivity
+                    strava_activity = self._convert_to_strava_activity(strava_lib_activity)
 
-        strava_activities = []
-        for strava_lib_activity in raw_activities:
-            try:
-                # Convert stravalib activity to our StravaActivity
-                strava_activity = self._convert_to_strava_activity(strava_lib_activity)
+                    # Check for duplicates
+                    existing = StravaActivity.get_or_none(
+                        StravaActivity.strava_id == strava_activity.strava_id
+                    )
+                    if existing:
+                        continue
 
-                # Check for duplicates
-                existing = StravaActivity.get_or_none(
-                    StravaActivity.strava_id == strava_activity.strava_id
-                )
-                if existing:
+                    # Save to database
+                    strava_activity.save()
+                    processed_count += 1
+
+                except Exception as e:
+                    print(f"Error processing Strava activity: {e}")
                     continue
 
-                # Save to database
-                strava_activity.save()
-                strava_activities.append(strava_activity)
+            # Mark this month as synced
+            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+            print(f"Synced {processed_count} Strava activities")
+        else:
+            print(f"Month {date_filter} already synced for {self.provider_name}")
 
-            except Exception as e:
-                print(f"Error processing Strava activity: {e}")
-                continue
+        # Always return activities for the requested month from database
+        return self._get_strava_activities_for_month(date_filter)
 
-        # Mark this month as synced
-        ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+    def _get_strava_activities_for_month(self, date_filter: str) -> List["StravaActivity"]:
+        """Get StravaActivity objects for a specific month."""
+        from fitler.providers.strava.strava_activity import StravaActivity
+        import datetime
 
-        print(f"Synced {len(strava_activities)} Strava activities")
+        year, month = map(int, date_filter.split("-"))
+        strava_activities = []
+
+        for activity in StravaActivity.select():
+            if hasattr(activity, "start_time") and activity.start_time:
+                try:
+                    # Convert timestamp to datetime for comparison
+                    dt = datetime.datetime.fromtimestamp(int(activity.start_time))
+                    if dt.year == year and dt.month == month:
+                        strava_activities.append(activity)
+                except (ValueError, TypeError):
+                    continue
+
         return strava_activities
 
     def _fetch_strava_activities_for_month(self, year_month: str):

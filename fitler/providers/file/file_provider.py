@@ -56,34 +56,30 @@ class FileProvider(FitnessProvider):
 
         # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
-        if existing_sync:
+        if not existing_sync:
+            # First time processing this month - process files
+            file_paths = glob.glob(self.file_glob)
+            print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
+
+            processed_count = 0
+            for file_path in file_paths:
+                try:
+                    file_activity = self._process_file(file_path, date_filter)
+                    if file_activity:
+                        processed_count += 1
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
+                    continue
+
+            print(f"Processed {processed_count} files into file_activities table")
+            
+            # Mark this month as synced
+            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+        else:
             print(f"Month {date_filter} already synced for {self.provider_name}")
-            # Return existing FileActivity objects for this month
-            return self._get_file_activities_for_month(date_filter)
 
-        # Find all files matching the glob pattern
-        file_paths = glob.glob(self.file_glob)
-        print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
-
-        processed_activities = []
-        processed_count = 0
-
-        for file_path in file_paths:
-            try:
-                file_activity = self._process_file(file_path, date_filter)
-                if file_activity:
-                    processed_activities.append(file_activity)
-                    processed_count += 1
-            except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
-                continue
-
-        print(f"Processed {processed_count} files into file_activities table")
-        # Return only activities for the requested month
+        # Always return activities for the requested month from database
         return self._get_file_activities_for_month(date_filter)
-
-        # Mark this month as synced
-        ProviderSync.create(year_month=date_filter, provider=self.provider_name)
 
     def _pull_all_activities(self) -> List["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
@@ -106,8 +102,8 @@ class FileProvider(FitnessProvider):
                 continue
 
         print(f"Processed {processed_count} files into file_activities table")
-        # Return only activities for the requested month
-        return self._get_file_activities_for_month(date_filter)
+        # Return all processed activities (no date filtering for this method)
+        return processed_activities
 
     def _get_file_activities_for_month(self, date_filter: str) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
@@ -127,27 +123,6 @@ class FileProvider(FitnessProvider):
                     continue
 
         return file_activities
-
-    def _pull_all_activities(self) -> List[Activity]:
-        """Process all files matching the glob pattern without date filtering."""
-        # Find all files matching the glob pattern
-        file_paths = glob.glob(self.file_glob)
-        print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
-
-        processed_count = 0
-
-        for file_path in file_paths:
-            try:
-                # Process file without date filter (pass None to skip date checks)
-                self._process_file(file_path, None)
-                processed_count += 1
-            except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
-                continue
-
-        print(f"Processed {processed_count} files into file_activities table")
-        # Return only activities for the requested month
-        return self._get_file_activities_for_month(date_filter)
 
     def _parse_file(
         self, file_path: str, file_format: str, is_gzipped: bool = False
@@ -247,7 +222,7 @@ class FileProvider(FitnessProvider):
         try:
             from fitler.providers.file.file_activity import FileActivity
 
-            return FileActivity.get(FileActivity.id == int(activity_id))
+            return FileActivity.get_by_id(int(activity_id))
         except (ValueError, DoesNotExist):
             return None
 
