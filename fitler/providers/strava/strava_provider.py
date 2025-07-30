@@ -122,27 +122,28 @@ class StravaProvider(FitnessProvider):
         return activities
 
     def _convert_to_strava_activity(self, strava_lib_activity) -> StravaActivity:
-        """Convert a stravalib activity to our StravaActivity object."""
+        """Convert a stravalib activity to our StravaActivity object, always fetching full details for gear info."""
         import json
         from decimal import Decimal
 
         strava_activity = StravaActivity()
 
-        # Basic fields - use setattr to avoid type checker issues
-        setattr(
-            strava_activity, "strava_id", str(getattr(strava_lib_activity, "id", ""))
-        )
-        setattr(
-            strava_activity, "name", str(getattr(strava_lib_activity, "name", "") or "")
-        )
-        setattr(
-            strava_activity,
-            "activity_type",
-            str(getattr(strava_lib_activity, "type", "") or ""),
-        )
+        # Always fetch the full activity details to ensure gear info is present
+        activity_id = getattr(strava_lib_activity, "id", None)
+        full_activity = strava_lib_activity
+        try:
+            # Use the client to fetch full activity details (includes gear)
+            full_activity = self.client.get_activity(activity_id)
+        except Exception:
+            pass  # fallback to the original object if API call fails
+
+        # Basic fields
+        setattr(strava_activity, "strava_id", str(getattr(full_activity, "id", "")))
+        setattr(strava_activity, "name", str(getattr(full_activity, "name", "") or ""))
+        setattr(strava_activity, "activity_type", str(getattr(full_activity, "type", "") or ""))
 
         # Distance - convert from meters to miles
-        distance_m = getattr(strava_lib_activity, "distance", None)
+        distance_m = getattr(full_activity, "distance", None)
         if distance_m:
             setattr(
                 strava_activity,
@@ -151,21 +152,18 @@ class StravaProvider(FitnessProvider):
             )
 
         # Start time as timestamp string
-        start_date = getattr(strava_lib_activity, "start_date", None)
+        start_date = getattr(full_activity, "start_date", None)
         if start_date:
             setattr(strava_activity, "start_time", int(start_date.timestamp()))
 
         # Duration
-        elapsed_time = getattr(strava_lib_activity, "elapsed_time", None)
+        elapsed_time = getattr(full_activity, "elapsed_time", None)
         if elapsed_time:
-            # Handle different types of duration objects
             if hasattr(elapsed_time, "total_seconds"):
                 total_seconds = int(elapsed_time.total_seconds())
             elif hasattr(elapsed_time, "seconds"):
-                # Duration object with seconds attribute
                 total_seconds = int(elapsed_time.seconds)
             else:
-                # Assume it's already an integer seconds value
                 total_seconds = int(elapsed_time)
 
             hours = total_seconds // 3600
@@ -178,19 +176,20 @@ class StravaProvider(FitnessProvider):
             )
 
         # Equipment/gear information
-        gear = getattr(strava_lib_activity, "gear", None)
-        if gear:
+        gear = getattr(full_activity, "gear", None)
+        if gear and hasattr(gear, "name"):
             gear_name = getattr(gear, "name", None)
             if gear_name:
                 setattr(strava_activity, "equipment", str(gear_name))
 
-        # Store raw data
-        raw_data = {
-            "id": getattr(strava_lib_activity, "id", None),
-            "name": getattr(strava_lib_activity, "name", None),
-            "type": str(getattr(strava_lib_activity, "type", None)),
-        }
-        setattr(strava_activity, "strava_data", json.dumps(raw_data))
+        # Store raw data as full activity JSON
+        if hasattr(full_activity, 'model_dump'):
+            raw_data = full_activity.model_dump()
+        elif hasattr(full_activity, 'dict'):
+            raw_data = full_activity.dict()
+        else:
+            raw_data = dict(full_activity)
+        setattr(strava_activity, "raw_data", json.dumps(raw_data, default=str))
 
         return strava_activity
 

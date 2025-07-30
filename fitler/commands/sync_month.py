@@ -250,18 +250,28 @@ def run(year_month):
                 else:
                     # Check if different from authoritative
                     name_wrong = activity["name"] != auth_name if auth_name else False
-                    equip_wrong = (
-                        activity["equipment"] != auth_equipment
-                        if auth_equipment
-                        else False
-                    )
+                    equip_val = (activity["equipment"] or "").strip().lower()
+                    equip_wrong = False
+                    show_auth_equip = False
+                    if auth_equipment:
+                        if (
+                            activity["equipment"] != auth_equipment
+                            or equip_val == ""
+                            or equip_val == "no equipment"
+                        ):
+                            equip_wrong = True
+                            if equip_val == "" or equip_val == "no equipment":
+                                show_auth_equip = True
 
                     name_colored = color_text(
                         activity["name"], False, False, name_wrong
                     )
-                    equip_colored = color_text(
-                        activity["equipment"], False, False, equip_wrong
-                    )
+                    if show_auth_equip:
+                        equip_colored = color_text(auth_equipment, False, True, False)
+                    else:
+                        equip_colored = color_text(
+                            activity["equipment"], False, False, equip_wrong
+                        )
 
                     # Record needed changes
                     if name_wrong and auth_name:
