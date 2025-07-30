@@ -33,7 +33,9 @@ class RideWithGPSProvider(FitnessProvider):
         """Return the name of this provider."""
         return "ridewithgps"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[RideWithGPSActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[RideWithGPSActivity]:
         """
         Pull activities from RideWithGPS for a given month (YYYY-MM).
         Only activities for the specified month are fetched and persisted.
@@ -46,7 +48,9 @@ class RideWithGPSProvider(FitnessProvider):
         year, month = map(int, date_filter.split("-"))
         if not existing_sync:
             trip_summaries = list(self.client.list(f"/users/{self.userid}/trips.json"))
-            print(f"Found {len(trip_summaries)} RideWithGPS trip summaries for {date_filter}")
+            print(
+                f"Found {len(trip_summaries)} RideWithGPS trip summaries for {date_filter}"
+            )
 
             for trip_summary in trip_summaries:
                 try:
@@ -71,15 +75,23 @@ class RideWithGPSProvider(FitnessProvider):
                     rwgps_activity.name = str(trip.name)
                     if hasattr(trip, "distance") and trip.distance is not None:
                         from decimal import Decimal
+
                         # Convert meters to miles
                         miles = float(trip.distance) / 1609.34
                         rwgps_activity.distance = Decimal(str(miles))
                     rwgps_activity.start_time = timestamp
                     if hasattr(trip, "locality") and trip.locality:
                         rwgps_activity.city = str(trip.locality)
-                    if hasattr(trip, "administrative_area") and trip.administrative_area:
+                    if (
+                        hasattr(trip, "administrative_area")
+                        and trip.administrative_area
+                    ):
                         rwgps_activity.state = str(trip.administrative_area)
-                    if hasattr(trip, "gear") and trip.gear and hasattr(trip.gear, "name"):
+                    if (
+                        hasattr(trip, "gear")
+                        and trip.gear
+                        and hasattr(trip.gear, "name")
+                    ):
                         rwgps_activity.equipment = str(trip.gear.name)
                     existing = RideWithGPSActivity.get_or_none(
                         RideWithGPSActivity.ridewithgps_id == str(trip.id)
@@ -105,10 +117,12 @@ class RideWithGPSProvider(FitnessProvider):
             end = datetime.datetime(year, month + 1, 1, tzinfo=datetime.timezone.utc)
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
-        activities = list(RideWithGPSActivity.select().where(
-            (RideWithGPSActivity.start_time >= start_ts) &
-            (RideWithGPSActivity.start_time < end_ts)
-        ))
+        activities = list(
+            RideWithGPSActivity.select().where(
+                (RideWithGPSActivity.start_time >= start_ts)
+                & (RideWithGPSActivity.start_time < end_ts)
+            )
+        )
         return activities
 
     # Abstract method implementations
@@ -147,6 +161,7 @@ class RideWithGPSProvider(FitnessProvider):
         if not dt_val:
             return None
         from dateutil import parser as dt_parser
+
         try:
             return dt_parser.parse(str(dt_val))
         except Exception:

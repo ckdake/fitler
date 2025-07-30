@@ -98,10 +98,10 @@ def test_file_provider_processes_multiple_files(
     mock_activity1.start_time = "1716811800"  # May 27, 2024 timestamp
     mock_activity2 = MagicMock()
     mock_activity2.start_time = "1716811800"  # May 27, 2024 timestamp
-    
+
     # Mock create to return different activities for each call
     mock_create.side_effect = [mock_activity1, mock_activity2]
-    
+
     # Mock select to return both activities
     mock_select.return_value = [mock_activity1, mock_activity2]
 

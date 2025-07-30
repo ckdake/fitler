@@ -178,7 +178,7 @@ class GarminProvider(FitnessProvider):
         print(
             f"Synced {len(persisted_activities)} Garmin activities to garmin_activities table"
         )
-        
+
         # Always return activities for the requested month from database
         return self._get_garmin_activities_for_month(date_filter)
 
@@ -243,7 +243,9 @@ class GarminProvider(FitnessProvider):
         """Stub method - not yet implemented."""
         raise NotImplementedError("GarminProvider not yet implemented")
 
-    def _get_garmin_activities_for_month(self, date_filter: str) -> List["GarminActivity"]:
+    def _get_garmin_activities_for_month(
+        self, date_filter: str
+    ) -> List["GarminActivity"]:
         """Get GarminActivity objects for a specific month."""
         from fitler.providers.garmin.garmin_activity import GarminActivity
         import datetime

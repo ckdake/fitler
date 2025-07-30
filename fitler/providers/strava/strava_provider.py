@@ -57,7 +57,9 @@ class StravaProvider(FitnessProvider):
             for strava_lib_activity in raw_activities:
                 try:
                     # Convert stravalib activity to our StravaActivity
-                    strava_activity = self._convert_to_strava_activity(strava_lib_activity)
+                    strava_activity = self._convert_to_strava_activity(
+                        strava_lib_activity
+                    )
 
                     # Check for duplicates
                     existing = StravaActivity.get_or_none(
@@ -83,7 +85,9 @@ class StravaProvider(FitnessProvider):
         # Always return activities for the requested month from database
         return self._get_strava_activities_for_month(date_filter)
 
-    def _get_strava_activities_for_month(self, date_filter: str) -> List["StravaActivity"]:
+    def _get_strava_activities_for_month(
+        self, date_filter: str
+    ) -> List["StravaActivity"]:
         """Get StravaActivity objects for a specific month."""
         from fitler.providers.strava.strava_activity import StravaActivity
         import datetime
@@ -140,7 +144,11 @@ class StravaProvider(FitnessProvider):
         # Basic fields
         setattr(strava_activity, "strava_id", str(getattr(full_activity, "id", "")))
         setattr(strava_activity, "name", str(getattr(full_activity, "name", "") or ""))
-        setattr(strava_activity, "activity_type", str(getattr(full_activity, "type", "") or ""))
+        setattr(
+            strava_activity,
+            "activity_type",
+            str(getattr(full_activity, "type", "") or ""),
+        )
 
         # Distance - convert from meters to miles
         distance_m = getattr(full_activity, "distance", None)
@@ -183,9 +191,9 @@ class StravaProvider(FitnessProvider):
                 setattr(strava_activity, "equipment", str(gear_name))
 
         # Store raw data as full activity JSON
-        if hasattr(full_activity, 'model_dump'):
+        if hasattr(full_activity, "model_dump"):
             raw_data = full_activity.model_dump()
-        elif hasattr(full_activity, 'dict'):
+        elif hasattr(full_activity, "dict"):
             raw_data = full_activity.dict()
         else:
             raw_data = dict(full_activity)

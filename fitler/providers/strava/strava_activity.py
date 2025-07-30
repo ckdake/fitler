@@ -1,9 +1,9 @@
 """Strava-spe    # Strava-specific ID field
-    strava_id = CharField(max_length=50, unique=True, index=True)
+strava_id = CharField(max_length=50, unique=True, index=True)
 
-    # Strava-specific fields can be added here as needed
-    # For example: kudos_count, comment_count, etc.
-    # Raw data is stored in the base class raw_data fieldtivity model."""
+# Strava-specific fields can be added here as needed
+# For example: kudos_count, comment_count, etc.
+# Raw data is stored in the base class raw_data fieldtivity model."""
 
 from peewee import CharField, TextField
 from fitler.providers.base_activity import BaseProviderActivity

@@ -72,7 +72,7 @@ class FileProvider(FitnessProvider):
                     continue
 
             print(f"Processed {processed_count} files into file_activities table")
-            
+
             # Mark this month as synced
             ProviderSync.create(year_month=date_filter, provider=self.provider_name)
         else:

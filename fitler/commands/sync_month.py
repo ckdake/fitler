@@ -187,7 +187,7 @@ def run(year_month):
     for provider_name, provider_settings in provider_config.items():
         if provider_settings.get("enabled", False):
             enabled_providers.append(provider_name)
-    
+
     # Combine providers that have data with all enabled providers
     all_providers.update(enabled_providers)
     provider_list = sorted(all_providers)
@@ -205,13 +205,13 @@ def run(year_month):
     # New config structure has priorities as numbers (lower = higher priority)
     provider_priorities = {}
     provider_config = config.get("providers", {})
-    
+
     for provider_name, provider_settings in provider_config.items():
         if provider_settings.get("enabled", False):
             # Default priority is 999 for providers without explicit priority
             priority = provider_settings.get("priority", 999)
             provider_priorities[provider_name] = priority
-    
+
     # Sort providers by priority (lower number = higher priority)
     priority_order = sorted(provider_priorities.items(), key=lambda x: x[1])
     provider_priority = [provider for provider, _ in priority_order]
