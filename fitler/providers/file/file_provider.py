@@ -15,6 +15,8 @@ import dateparser
 import logging
 import tempfile
 import gzip
+import multiprocessing
+from multiprocessing import Lock
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fitler.providers.base_provider import FitnessProvider
@@ -62,7 +64,17 @@ class FileProvider(FitnessProvider):
             print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
 
             processed_count = 0
-            for file_path in file_paths:
+
+            # Only parse in worker, DB write in main process
+            with multiprocessing.Pool(processes=8) as pool:
+                results = pool.map(
+                    self._file_processing_worker, [(fp,) for fp in file_paths]
+                )
+
+            processed_count = 0
+            for file_path, parsed_data in results:
+                if not parsed_data:
+                    continue
                 try:
                     file_activity = self._process_file(file_path, date_filter)
                     if file_activity:
@@ -80,6 +92,89 @@ class FileProvider(FitnessProvider):
 
         # Always return activities for the requested month from database
         return self._get_file_activities_for_month(date_filter)
+
+    @staticmethod
+    def _file_processing_worker(args):
+        (file_path,) = args
+        try:
+            # Only parsing is done in the worker
+            # We must re-import here because workers are separate processes
+            import importlib
+            from fitler.providers.file.file_provider import FileProvider
+
+            file_format, is_gzipped = FileProvider._determine_file_format_static(
+                file_path
+            )
+            parsed_data = FileProvider._parse_file_static(
+                file_path, file_format, is_gzipped
+            )
+            return (file_path, parsed_data)
+        except Exception as e:
+            print(f"Error parsing file {file_path}: {e}")
+            return (file_path, None)
+
+    @staticmethod
+    def _determine_file_format(file_path: str) -> tuple[str, bool]:
+        file_lower = file_path.lower()
+
+        if ".fit.gz" in file_lower:
+            return "fit", True
+        elif ".tcx.gz" in file_lower:
+            return "tcx", True
+        elif ".gpx.gz" in file_lower:
+            return "gpx", True
+        elif file_lower.endswith(".gpx"):
+            return "gpx", False
+        elif file_lower.endswith(".tcx"):
+            return "tcx", False
+        elif file_lower.endswith(".fit"):
+            return "fit", False
+        else:
+            raise ValueError(f"Unknown file format: {file_path}")
+
+    @staticmethod
+    def _parse_file(
+        file_path: str, file_format: str, is_gzipped: bool = False
+    ) -> Optional[dict]:
+        """Parse an activity file and return activity data."""
+        import gzip
+        import tempfile
+
+        fp = None
+        read_file = file_path
+        try:
+            if is_gzipped:
+                fp = tempfile.NamedTemporaryFile()
+                with gzip.open(file_path, "rb") as f:
+                    data = f.read()
+                    if file_format in ["gpx", "tcx"]:
+                        data = data.lstrip()
+                    fp.write(data)
+                read_file = fp.name
+            if file_format == "gpx":
+                from .formats.gpx import parse_gpx
+
+                result = parse_gpx(read_file)
+            elif file_format == "fit":
+                from .formats.fit import parse_fit
+
+                result = parse_fit(read_file)
+            elif file_format == "tcx":
+                from .formats.tcx import parse_tcx
+
+                result = parse_tcx(read_file)
+            else:
+                print(f"Unsupported file format: {file_format}")
+                return None
+
+            return result
+
+        except Exception as e:
+            print(f"Error parsing {file_format} file {file_path}: {e}")
+            return None
+        finally:
+            if fp:
+                fp.close()
 
     def _pull_all_activities(self) -> List["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
@@ -124,72 +219,6 @@ class FileProvider(FitnessProvider):
 
         return file_activities
 
-    def _parse_file(
-        self, file_path: str, file_format: str, is_gzipped: bool = False
-    ) -> Optional[dict]:
-        """Parse an activity file and return activity data."""
-        read_file = file_path
-        fp = None
-
-        try:
-            # Handle gzipped files
-            if is_gzipped:
-                fp = tempfile.NamedTemporaryFile()
-                with gzip.open(file_path, "rb") as f:
-                    data = f.read()
-                    # For text-based formats (GPX, TCX), strip leading whitespace
-                    # For binary formats (FIT), keep the data as-is
-                    if file_format in ["gpx", "tcx"]:
-                        data = data.lstrip()
-                    fp.write(data)
-                read_file = fp.name
-
-            # Parse based on format
-            if file_format == "gpx":
-                from .formats.gpx import parse_gpx
-
-                result = parse_gpx(read_file)
-            elif file_format == "fit":
-                from .formats.fit import parse_fit
-
-                result = parse_fit(read_file)
-            elif file_format == "tcx":
-                from .formats.tcx import parse_tcx
-
-                result = parse_tcx(read_file)
-            else:
-                print(f"Unsupported file format: {file_format}")
-                return None
-
-            return result
-
-        except Exception as e:
-            print(f"Error parsing {file_format} file {file_path}: {e}")
-            return None
-        finally:
-            # Clean up temporary file
-            if fp:
-                fp.close()
-
-    def _determine_file_format(self, file_path: str) -> tuple[str, bool]:
-        """Determine file format and whether it's gzipped."""
-        file_lower = file_path.lower()
-
-        if ".fit.gz" in file_lower:
-            return "fit", True
-        elif ".tcx.gz" in file_lower:
-            return "tcx", True
-        elif ".gpx.gz" in file_lower:
-            return "gpx", True
-        elif file_lower.endswith(".gpx"):
-            return "gpx", False
-        elif file_lower.endswith(".tcx"):
-            return "tcx", False
-        elif file_lower.endswith(".fit"):
-            return "fit", False
-        else:
-            raise ValueError(f"Unknown file format: {file_path}")
-
     def _convert_start_time_to_int(self, start_time_val) -> Optional[int]:
         """Convert various start_time formats to Unix timestamp integer."""
         if not start_time_val:
@@ -216,6 +245,18 @@ class FileProvider(FitnessProvider):
             for chunk in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
+
+    @staticmethod
+    def _file_processing_worker(args):
+        (file_path,) = args
+        try:
+            file_format, is_gzipped = FileProvider._determine_file_format(file_path)
+            parsed_data = FileProvider._parse_file(file_path, file_format, is_gzipped)
+            return (file_path, parsed_data)
+        except Exception as e:
+            print(f"Error parsing file {file_path}: {e}")
+            return (file_path, None)
+            pass  # File not processed yet, continue
 
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
@@ -247,68 +288,3 @@ class FileProvider(FitnessProvider):
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         """File provider does not support setting gear."""
         raise NotImplementedError("File provider does not support setting gear")
-
-    def _process_file(
-        self, file_path: str, date_filter: Optional[str]
-    ) -> Optional["FileActivity"]:
-        """Process a single activity file and store in file_activities table."""
-        if self.debug:
-            print(f"DEBUG: Processing file: {file_path}")
-
-        # Calculate file checksum
-        checksum = self._calculate_checksum(file_path)
-        file_size = str(os.path.getsize(file_path))
-        if self.debug:
-            print(f"DEBUG: Checksum: {checksum}, Size: {file_size}")
-
-        # Determine file format and if it is gzipped
-        file_format, is_gzipped = self._determine_file_format(file_path)
-        if self.debug:
-            print(f"DEBUG: Format: {file_format}, Gzipped: {is_gzipped}")
-
-        # Check if we have already processed this exact file
-        try:
-            existing_file_activity = FileActivity.get(
-                FileActivity.file_path == file_path,
-                FileActivity.file_checksum == checksum,
-            )
-            if self.debug:
-                print(
-                    f"DEBUG: Found existing file activity: {existing_file_activity.id}"
-                )
-            return existing_file_activity
-
-        except DoesNotExist:
-            if self.debug:
-                print("DEBUG: File not processed before, continuing")
-            pass  # File not processed yet, continue
-
-        # Parse the file based on format
-        parsed_data = self._parse_file(file_path, file_format, is_gzipped)
-        if not parsed_data:
-            if self.debug:
-                print("DEBUG: File parsing failed, returning None")
-            return None
-        if self.debug:
-            print(
-                f"DEBUG: Parsed data keys: {list(parsed_data.keys()) if parsed_data else None}"
-            )
-
-        if self.debug:
-            print("DEBUG: Creating FileActivity record...")
-        file_activity = FileActivity.create(
-            file_path=file_path,
-            file_checksum=checksum,
-            file_size=file_size,
-            file_format=file_format,
-            name=parsed_data.get("name", ""),
-            distance=parsed_data.get("distance", 0),
-            start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),
-            activity_type=parsed_data.get("activity_type", ""),
-            duration_hms=parsed_data.get("duration_hms", ""),
-            raw_data=json.dumps(parsed_data),
-        )
-
-        if self.debug:
-            print(f"DEBUG: Created FileActivity with ID: {file_activity.id}")
-        return file_activity
