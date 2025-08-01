@@ -59,7 +59,7 @@ class FileProvider(FitnessProvider):
             return "fit", False
         else:
             raise ValueError(f"Unknown file format: {file_path}")
-    
+
     @staticmethod
     def _calculate_checksum(file_path: str) -> str:
         """Calculate SHA256 checksum of a file."""
@@ -68,7 +68,7 @@ class FileProvider(FitnessProvider):
             for chunk in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
-    
+
     @staticmethod
     def _convert_start_time_to_int(start_time_val) -> Optional[int]:
         """Convert various start_time formats to Unix timestamp integer."""
@@ -88,7 +88,7 @@ class FileProvider(FitnessProvider):
         except (ValueError, TypeError, AttributeError):
             pass
         return None
-    
+
     @staticmethod
     def _parse_file(file_path: str) -> Optional[dict]:
         """Parse an activity file and return activity data."""
@@ -143,7 +143,7 @@ class FileProvider(FitnessProvider):
         except Exception as e:
             print(f"Error parsing file {file_path}: {e}")
             return (file_path, None)
-        
+
     def _pull_all_activities(self) -> List["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
         file_paths = glob.glob(self.file_glob)
@@ -154,6 +154,7 @@ class FileProvider(FitnessProvider):
             try:
                 checksum = FileProvider._calculate_checksum(file_path)
                 from fitler.providers.file.file_activity import FileActivity
+
                 FileActivity.get(
                     FileActivity.file_path == file_path,
                     FileActivity.file_checksum == checksum,
@@ -170,7 +171,8 @@ class FileProvider(FitnessProvider):
         if unprocessed_file_paths:
             with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
                 results = pool.map(
-                    self._file_processing_worker, [(fp,) for fp in unprocessed_file_paths]
+                    self._file_processing_worker,
+                    [(fp,) for fp in unprocessed_file_paths],
                 )
 
             for file_path, parsed_data in results:
@@ -184,11 +186,15 @@ class FileProvider(FitnessProvider):
                     print(f"Error processing file {file_path}: {e}")
                     continue
 
-            print(f"Processed {len(processed_activities)} files into file_activities table")
+            print(
+                f"Processed {len(processed_activities)} files into file_activities table"
+            )
 
         return self._get_file_activities()
 
-    def _get_file_activities(self, date_filter: Optional[str] = None) -> List["FileActivity"]:
+    def _get_file_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
         from fitler.providers.file.file_activity import FileActivity
 
