@@ -13,9 +13,6 @@ load_dotenv()
 
 
 def main():
-    import sys
-
-    print("DEBUG sys.argv:", sys.argv)
     """Main function for the Fitler CLI."""
     parser = argparse.ArgumentParser(description="Fitler CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
