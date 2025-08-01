@@ -138,16 +138,6 @@ You can also use the Python API in your own scripts to process files, sync with 
 
 ---
 
-## Development
-
-- All core code lives in the `fitler/` package.
-- Providers are in `fitler/providers/`
-- File format handlers are in `fitler/providers/file/formats/`
-- Database models are in `fitler/metadata.py`
-- CLI commands are in `fitler/commands/`
-
----
-
 ## Running Tests
 
 Fitler uses [pytest](https://pytest.org/) for testing. To run all tests:
@@ -220,23 +210,14 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
     * Output as all kml (lib already included)
     * Output as all geojson: https://pypi.org/project/geojson/ 
 
-
-    * Correlate each entry with Strava API: https://pypi.org/project/stravaio/ (basics of pulling are in, need to figure out pulling all and matching, add more fields to db, what about writing? Updating Name based on authoritative? CK strava has some old janky names)
-    * Correlate each entry with RidewithGPS API: Needs an open source python client lib! https://ridewithgps.com/api
-    * Correlate each entry with Garmin: https://pypi.org/project/garminconnect/ 
-
-
     * Load files from S3 bucket or somewhere else instead of local: https://pypi.org/project/boto3/ 
 
     * use multiprocessing to spin off workers for individual file parsing, as well as doing each API in parallel: https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing 
     * cache things and use shas to know when files have been processed into cache
 
 
-    * Can we get whoop scores for each one?  (via Habitdash export?)
     * What is in TrainingPeaks?
     * What is in Wandrer.earth?
     * What about the weather?
     * What about choochoo?
     * What else?
-
-
