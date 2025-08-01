@@ -41,26 +41,6 @@ class FileProvider(FitnessProvider):
         """Return the name of this provider."""
         return "file"
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List["FileActivity"]:
-        """
-        Process activity files and return FileActivity objects.
-        If date_filter is provided (YYYY-MM format), only returns activities from that month.
-        If date_filter is None, processes all files and returns all FileActivity objects.
-        """
-        if date_filter is None:
-            return self._pull_all_activities()
-
-        existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
-        if not existing_sync:
-            self._pull_all_activities()
-            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-        else:
-            print(f"Month {date_filter} already synced for {self.provider_name}")
-
-        return self._get_file_activities_for_month(date_filter)
-
     @staticmethod
     def _determine_file_format(file_path: str) -> tuple[str, bool]:
         file_lower = file_path.lower()
@@ -79,7 +59,36 @@ class FileProvider(FitnessProvider):
             return "fit", False
         else:
             raise ValueError(f"Unknown file format: {file_path}")
-
+    
+    @staticmethod
+    def _calculate_checksum(file_path: str) -> str:
+        """Calculate SHA256 checksum of a file."""
+        sha256_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(chunk)
+        return sha256_hash.hexdigest()
+    
+    @staticmethod
+    def _convert_start_time_to_int(start_time_val) -> Optional[int]:
+        """Convert various start_time formats to Unix timestamp integer."""
+        if not start_time_val:
+            return None
+        try:
+            # If it's already an integer, return it
+            if isinstance(start_time_val, int):
+                return start_time_val
+            # If it's a string that looks like a timestamp
+            if isinstance(start_time_val, str) and start_time_val.isdigit():
+                return int(start_time_val)
+            # Parse as datetime string and convert to timestamp
+            dt = dateparser.parse(str(start_time_val))
+            if dt:
+                return int(dt.timestamp())
+        except (ValueError, TypeError, AttributeError):
+            pass
+        return None
+    
     @staticmethod
     def _parse_file(file_path: str) -> Optional[dict]:
         """Parse an activity file and return activity data."""
@@ -125,82 +134,81 @@ class FileProvider(FitnessProvider):
             if fp:
                 fp.close()
 
+    @staticmethod
+    def _file_processing_worker(args):
+        (file_path,) = args
+        try:
+            parsed_data = FileProvider._parse_file(file_path)
+            return (file_path, parsed_data)
+        except Exception as e:
+            print(f"Error parsing file {file_path}: {e}")
+            return (file_path, None)
+        
     def _pull_all_activities(self) -> List["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
-        # Find all files matching the glob pattern
         file_paths = glob.glob(self.file_glob)
         print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
+
+        unprocessed_file_paths = []
+        for file_path in file_paths:
+            try:
+                checksum = FileProvider._calculate_checksum(file_path)
+                from fitler.providers.file.file_activity import FileActivity
+                FileActivity.get(
+                    FileActivity.file_path == file_path,
+                    FileActivity.file_checksum == checksum,
+                )
+                continue
+            except DoesNotExist:
+                unprocessed_file_paths.append(file_path)
+
+        print(f"Processing {len(unprocessed_file_paths)} new files...")
 
         processed_activities = []
         processed_count = 0
 
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            results = pool.map(
-                self._file_processing_worker, [(fp,) for fp in file_paths]
-            )
+        if unprocessed_file_paths:
+            with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+                results = pool.map(
+                    self._file_processing_worker, [(fp,) for fp in unprocessed_file_paths]
+                )
 
-        processed_count = 0
-        for file_path, parsed_data in results:
-            if not parsed_data:
-                continue
-            try:
-                file_activity = self._process_parsed_data(parsed_data)
-                if file_activity:
-                    processed_count += 1
-            except Exception as e:
-                print(f"Error processing file {file_path}: {e}")
-                continue
+            for file_path, parsed_data in results:
+                if not parsed_data:
+                    continue
+                try:
+                    file_activity = self._process_parsed_data(parsed_data)
+                    if file_activity:
+                        processed_count += 1
+                except Exception as e:
+                    print(f"Error processing file {file_path}: {e}")
+                    continue
 
-        print(f"Processed {processed_count} files into file_activities table")
-        # Return all processed activities (no date filtering for this method)
-        return processed_activities
+            print(f"Processed {len(processed_activities)} files into file_activities table")
 
-    def _get_file_activities_for_month(self, date_filter: str) -> List["FileActivity"]:
+        return self._get_file_activities()
+
+    def _get_file_activities(self, date_filter: Optional[str] = None) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
         from fitler.providers.file.file_activity import FileActivity
 
-        year, month = map(int, date_filter.split("-"))
         file_activities = []
 
-        for activity in FileActivity.select():
-            if hasattr(activity, "start_time") and activity.start_time:
-                try:
-                    # Convert timestamp to datetime for comparison
-                    dt = datetime.datetime.fromtimestamp(int(activity.start_time))
-                    if dt.year == year and dt.month == month:
-                        file_activities.append(activity)
-                except (ValueError, TypeError):
-                    continue
+        if date_filter:
+            year, month = map(int, date_filter.split("-"))
+            for activity in FileActivity.select():
+                if hasattr(activity, "start_time") and activity.start_time:
+                    try:
+                        # Convert timestamp to datetime for comparison
+                        dt = datetime.datetime.fromtimestamp(int(activity.start_time))
+                        if dt.year == year and dt.month == month:
+                            file_activities.append(activity)
+                    except (ValueError, TypeError):
+                        continue
+        else:
+            file_activities = list(FileActivity.select())
 
         return file_activities
-
-    def _convert_start_time_to_int(self, start_time_val) -> Optional[int]:
-        """Convert various start_time formats to Unix timestamp integer."""
-        if not start_time_val:
-            return None
-        try:
-            # If it's already an integer, return it
-            if isinstance(start_time_val, int):
-                return start_time_val
-            # If it's a string that looks like a timestamp
-            if isinstance(start_time_val, str) and start_time_val.isdigit():
-                return int(start_time_val)
-            # Parse as datetime string and convert to timestamp
-            dt = dateparser.parse(str(start_time_val))
-            if dt:
-                return int(dt.timestamp())
-        except (ValueError, TypeError, AttributeError):
-            pass
-        return None
-
-    @staticmethod
-    def _calculate_checksum(file_path: str) -> str:
-        """Calculate SHA256 checksum of a file."""
-        sha256_hash = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                sha256_hash.update(chunk)
-        return sha256_hash.hexdigest()
 
     def _process_parsed_data(self, parsed_data: dict) -> Optional["FileActivity"]:
         """Process a single activity files parsed data and store in file_activities table."""
@@ -226,15 +234,25 @@ class FileProvider(FitnessProvider):
         )
         return file_activity
 
-    @staticmethod
-    def _file_processing_worker(args):
-        (file_path,) = args
-        try:
-            parsed_data = FileProvider._parse_file(file_path)
-            return (file_path, parsed_data)
-        except Exception as e:
-            print(f"Error parsing file {file_path}: {e}")
-            return (file_path, None)
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List["FileActivity"]:
+        """
+        Process activity files and return FileActivity objects.
+        If date_filter is provided (YYYY-MM format), only returns activities from that month.
+        If date_filter is None, processes all files and returns all FileActivity objects.
+        """
+        if date_filter is None:
+            return self._pull_all_activities()
+
+        existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
+        if not existing_sync:
+            self._pull_all_activities()
+            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+        else:
+            print(f"Month {date_filter} already synced for {self.provider_name}")
+
+        return self._get_file_activities(date_filter)
 
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
