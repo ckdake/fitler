@@ -129,6 +129,7 @@ class StravaProvider(FitnessProvider):
         """Convert a stravalib activity to our StravaActivity object, always fetching full details for gear info."""
         import json
         from decimal import Decimal
+        import time
 
         strava_activity = StravaActivity()
 
@@ -137,7 +138,9 @@ class StravaProvider(FitnessProvider):
         full_activity = strava_lib_activity
         try:
             # Use the client to fetch full activity details (includes gear)
-            full_activity = self.client.get_activity(activity_id)
+            if activity_id is not None:
+                time.sleep(1)  # Throttle API calls to avoid rate limit
+                full_activity = self.client.get_activity(int(activity_id))
         except Exception:
             pass  # fallback to the original object if API call fails
 
