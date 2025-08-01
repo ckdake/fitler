@@ -1,84 +1,86 @@
-"""Pull command for syncing activities from providers."""
-
-import argparse
+import datetime
 from fitler.core import Fitler
 
-
-def run(args=None):
-    """Run the pull command."""
-    parser = argparse.ArgumentParser(description="Pull activities from providers")
-    parser.add_argument(
-        "provider",
-        nargs="?",
-        choices=[
-            "files",
-            "strava",
-            "ridewithgps",
-            "garmin",
-            "spreadsheet",
-            "stravajson",
-        ],
-        help="Provider to pull from (if not specified, pulls from all enabled providers)",
+def print_activities(provider_name, activities, id_field, home_tz):
+    print(f"\n{provider_name} (for selected month):")
+    print(
+        f"{'ID':<12} {'Name':<30} {'Raw Timestamp':<12} {'Local Time':<19} {'Distance (mi)':>12}"
     )
-    parser.add_argument(
-        "--date",
-        help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
-    )
+    print("-" * 85)
+    for act in activities:
+        act_id = getattr(act, id_field, None)
+        name = getattr(act, "name", None) or getattr(act, "notes", "")
 
-    parsed_args = parser.parse_args(args)
+        # start_time is stored as a Unix timestamp (integer/string)
+        start_time = getattr(act, "start_time", None)
+        date_str = ""
+        raw_timestamp = "None"
+
+        if start_time:
+            try:
+                # Convert Unix timestamp to datetime
+                if isinstance(start_time, str):
+                    timestamp = int(start_time)
+                else:
+                    timestamp = int(start_time)
+
+                # Create UTC datetime from timestamp
+                utc_dt = datetime.datetime.fromtimestamp(
+                    timestamp, datetime.timezone.utc
+                )
+                # Convert to local timezone
+                local_dt = utc_dt.astimezone(home_tz)
+
+                raw_timestamp = str(timestamp)
+                date_str = f"{local_dt.strftime('%Y-%m-%d %H:%M')} {local_dt.tzname()}"
+            except (ValueError, TypeError):
+                date_str = "invalid"
+                raw_timestamp = str(start_time) if start_time else "None"
+
+        dist = getattr(act, "distance", 0)
+        line = (
+            f"{str(act_id):<12} {str(name)[:28]:<30} "
+            f"{str(raw_timestamp):<12} {str(date_str):<19} {dist:12.2f}"
+        )
+        print(line)
+
+def get_months():
+    now = datetime.datetime.now()
+    earliest = datetime.datetime(2000, 1, 1)
+    months = []
+    current = now.replace(day=1)
+    while current >= earliest:
+        months.append(current.strftime("%Y-%m"))
+        if current.month == 1:
+            current = current.replace(year=current.year - 1, month=12)
+        else:
+            current = current.replace(month=current.month - 1)
+    return months
+        
+def run(year_month):
+    """Show activities for a specific year and month (format: YYYY-MM)."""
+    if not year_month:
+        print("Please provide a year and month in YYYY-MM format")
+        return
 
     with Fitler() as fitler:
-        if parsed_args.provider:
-            # Pull from specific provider
-            provider_instance = _get_provider_instance(fitler, parsed_args.provider)
-            if provider_instance:
-                print(f"Pulling activities from {parsed_args.provider}...")
-                activities = provider_instance.pull_activities(parsed_args.date)
-                print(
-                    f"Pulled {len(activities)} activities from {parsed_args.provider}"
-                )
-            else:
-                print(
-                    f"Provider {parsed_args.provider} not available or not configured"
-                )
-        else:
-            # Pull from all enabled providers
-            enabled_provider_names = fitler.enabled_providers
-            if not enabled_provider_names:
-                print("No providers are enabled. Check your configuration.")
-                return
+        enabled_providers = fitler.enabled_providers
+        if not enabled_providers:
+            print("No providers are enabled. Check your configuration.")
+            return
+    
+        activities = fitler.pull_activities(year_month)
 
-            total_activities = 0
-            for provider_name in enabled_provider_names:
-                provider_instance = _get_provider_instance(fitler, provider_name)
-                if provider_instance:
-                    print(f"Pulling activities from {provider_name}...")
-                    try:
-                        activities = provider_instance.pull_activities(parsed_args.date)
-                        count = len(activities)
-                        total_activities += count
-                        print(f"Pulled {count} activities from {provider_name}")
-                    except Exception as e:
-                        print(f"Error pulling from {provider_name}: {e}")
-                else:
-                    print(f"Could not initialize provider: {provider_name}")
+        home_tz = fitler.home_tz
 
-            print(f"Total activities pulled: {total_activities}")
+        months = [year_month] if year_month else get_months()
+        for month in months:
+            print(f"\n=== {month} ===")
+            activities = fitler.pull_activities(year_month)
 
-
-def _get_provider_instance(fitler: Fitler, provider_name: str):
-    """Get a provider instance by name."""
-    if provider_name == "files" or provider_name == "file":
-        return fitler.file
-    elif provider_name == "strava":
-        return fitler.strava
-    elif provider_name == "ridewithgps":
-        return fitler.ridewithgps
-    elif provider_name == "garmin":
-        return fitler.garmin
-    elif provider_name == "spreadsheet":
-        return fitler.spreadsheet
-    elif provider_name == "stravajson":
-        return fitler.stravajson
-    else:
-        return None
+            for provider_name, provider_activities in activities.items():
+                if provider_activities:  # Only show providers that have activities
+                    display_name = provider_name.title()  # Capitalize first letter
+                    print_activities(
+                        display_name, provider_activities, "provider_id", home_tz
+                    )

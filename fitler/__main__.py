@@ -28,13 +28,6 @@ def main():
         "migrate",
         help="Initialize or upgrade the database. Run this after installation or updates.",
     )
-    show_month_parser = subparsers.add_parser(
-        "show-month",
-        help="Show all activities for a given month (YYYY-MM) from all sources",
-    )
-    show_month_parser.add_argument(
-        "year_month", type=str, help="Year and month in YYYY-MM format"
-    )
     sync_month_parser = subparsers.add_parser(
         "sync-month",
         help=(
@@ -46,20 +39,7 @@ def main():
         "year_month", type=str, help="Year and month in YYYY-MM format"
     )
     subparsers.add_parser("help", help="Show usage and documentation")
-    pull_parser = subparsers.add_parser("pull", help="Pull activities from providers")
-    pull_parser.add_argument(
-        "provider",
-        nargs="?",
-        choices=[
-            "files",
-            "strava",
-            "ridewithgps",
-            "garmin",
-            "spreadsheet",
-            "stravajson",
-        ],
-        help="Provider to pull from (if not specified, pulls from all enabled providers)",
-    )
+    pull_parser = subparsers.add_parser("pull", help="Pull activities from all providers")
     pull_parser.add_argument(
         "--date",
         help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
@@ -79,10 +59,6 @@ def main():
         from fitler.commands.configure import run
 
         run()
-    elif args.command == "show-month":
-        from fitler.commands.show_month import run
-
-        run(args.year_month)
     elif args.command == "sync-month":
         from fitler.commands.sync_month import run
 
