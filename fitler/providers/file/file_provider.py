@@ -81,10 +81,10 @@ class FileProvider(FitnessProvider):
             raise ValueError(f"Unknown file format: {file_path}")
 
     @staticmethod
-    def _parse_file(
-        file_path: str, file_format: str, is_gzipped: bool = False
-    ) -> Optional[dict]:
+    def _parse_file(file_path: str) -> Optional[dict]:
         """Parse an activity file and return activity data."""
+
+        file_format, is_gzipped = FileProvider._determine_file_format(file_path)
 
         fp = None
         read_file = file_path
@@ -113,6 +113,9 @@ class FileProvider(FitnessProvider):
                 print(f"Unsupported file format: {file_format}")
                 return None
 
+            result["file_path"] = file_path
+            result["file_checksum"] = FileProvider._calculate_checksum(file_path)
+            result["file_size"] = os.path.getsize(file_path)
             return result
 
         except Exception as e:
@@ -131,15 +134,17 @@ class FileProvider(FitnessProvider):
         processed_activities = []
         processed_count = 0
 
-        with multiprocessing.Pool(processes=8) as pool:
-            results = pool.map(self._file_processing_worker, [(fp,) for fp in file_paths])
+        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+            results = pool.map(
+                self._file_processing_worker, [(fp,) for fp in file_paths]
+            )
 
         processed_count = 0
-        for (file_path, parsed_data) in results:
+        for file_path, parsed_data in results:
             if not parsed_data:
                 continue
             try:
-                file_activity = self._process_file(file_path)
+                file_activity = self._process_parsed_data(parsed_data)
                 if file_activity:
                     processed_count += 1
             except Exception as e:
@@ -188,7 +193,8 @@ class FileProvider(FitnessProvider):
             pass
         return None
 
-    def _calculate_checksum(self, file_path: str) -> str:
+    @staticmethod
+    def _calculate_checksum(file_path: str) -> str:
         """Calculate SHA256 checksum of a file."""
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
@@ -196,33 +202,21 @@ class FileProvider(FitnessProvider):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
 
-    def _process_file(self, file_path: str) -> Optional["FileActivity"]:
-        """Process a single activity file and store in file_activities table."""
-
-        checksum = self._calculate_checksum(file_path)
-        file_size = str(os.path.getsize(file_path))
-        file_format, is_gzipped = self._determine_file_format(file_path)
-
-        # Check if we have already processed this exact file
+    def _process_parsed_data(self, parsed_data: dict) -> Optional["FileActivity"]:
+        """Process a single activity files parsed data and store in file_activities table."""
         try:
             existing_file_activity = FileActivity.get(
-                FileActivity.file_path == file_path,
-                FileActivity.file_checksum == checksum,
+                FileActivity.file_path == parsed_data.get("file_path"),
+                FileActivity.file_checksum == parsed_data.get("file_checksum"),
             )
             return existing_file_activity
-
         except DoesNotExist:
             pass
 
-        parsed_data = self._parse_file(file_path, file_format, is_gzipped)
-        if not parsed_data:
-            return None
-
         file_activity = FileActivity.create(
-            file_path=file_path,
-            file_checksum=checksum,
-            file_size=file_size,
-            file_format=file_format,
+            file_path=parsed_data.get("file_path"),
+            file_checksum=parsed_data.get("file_checksum"),
+            file_size=parsed_data.get("file_size"),
             name=parsed_data.get("name", ""),
             distance=parsed_data.get("distance", 0),
             start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),
@@ -236,8 +230,7 @@ class FileProvider(FitnessProvider):
     def _file_processing_worker(args):
         (file_path,) = args
         try:
-            file_format, is_gzipped = FileProvider._determine_file_format(file_path)
-            parsed_data = FileProvider._parse_file(file_path, file_format, is_gzipped)
+            parsed_data = FileProvider._parse_file(file_path)
             return (file_path, parsed_data)
         except Exception as e:
             print(f"Error parsing file {file_path}: {e}")
