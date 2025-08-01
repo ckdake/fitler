@@ -1,12 +1,13 @@
 """Command to manage database migrations."""
 
+from fitler.database import migrate_tables, get_all_models
+
 
 def run():
     """Run database migrations."""
     print("Running database migrations...")
 
     try:
-        from fitler.database import migrate_tables, get_all_models
 
         models = get_all_models()
         migrate_tables(models)

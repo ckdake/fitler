@@ -4,7 +4,7 @@ from peewee import CharField
 from fitler.providers.base_activity import BaseProviderActivity
 
 
-class StravaActivity(BaseProviderActivity):
+class StravaJsonActivity(BaseProviderActivity):
     """Strava-specific activity data.
 
     Stores raw activity data pulled from the Strava API.
