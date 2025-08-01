@@ -1,10 +1,11 @@
 """Core Activity model for fitler."""
 
 from typing import List, Optional, Dict, Any
+from datetime import datetime, date
 import json
 import dateparser
 import pytz
-from datetime import datetime, date
+
 from peewee import (
     Model,
     DateTimeField,
@@ -17,8 +18,16 @@ from peewee import (
     SQL,
 )
 
-# Import database here to set up the connection
 from fitler.database import db
+
+from fitler.providers.strava.strava_activity import StravaActivity
+from fitler.providers.garmin.garmin_activity import GarminActivity
+from fitler.providers.ridewithgps.ridewithgps_activity import (
+    RideWithGPSActivity,
+)
+from fitler.providers.spreadsheet.spreadsheet_activity import (
+    SpreadsheetActivity,
+)
 
 
 class Activity(Model):
@@ -337,15 +346,6 @@ class Activity(Model):
 
         Returns a dict with provider names as keys and activity objects as values.
         """
-        from fitler.providers.strava.strava_activity import StravaActivity
-        from fitler.providers.garmin.garmin_activity import GarminActivity
-        from fitler.providers.ridewithgps.ridewithgps_activity import (
-            RideWithGPSActivity,
-        )
-        from fitler.providers.spreadsheet.spreadsheet_activity import (
-            SpreadsheetActivity,
-        )
-
         linked = {}
 
         # Check each provider

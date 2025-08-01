@@ -7,8 +7,12 @@ updating activities, and managing gear.
 
 import os
 from typing import List, Optional, Dict, Any
-from pyrwgps import RideWithGPS
+from decimal import Decimal
 import datetime
+
+from dateutil import parser as dt_parser
+
+from pyrwgps import RideWithGPS
 
 from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
@@ -73,8 +77,6 @@ class RideWithGPSProvider(FitnessProvider):
                     rwgps_activity.ridewithgps_id = str(trip.id)
                     rwgps_activity.name = str(trip.name)
                     if hasattr(trip, "distance") and trip.distance is not None:
-                        from decimal import Decimal
-
                         # Convert meters to miles
                         miles = float(trip.distance) / 1609.34
                         rwgps_activity.distance = Decimal(str(miles))
@@ -159,7 +161,6 @@ class RideWithGPSProvider(FitnessProvider):
     def _parse_iso8601(self, dt_val):
         if not dt_val:
             return None
-        from dateutil import parser as dt_parser
 
         try:
             return dt_parser.parse(str(dt_val))

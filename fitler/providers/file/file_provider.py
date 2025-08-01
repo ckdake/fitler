@@ -1,9 +1,6 @@
 """File provider for Fitler.
-
 This module defines the FileProvider class, which provides an interface
 for processing activity files from the filesystem (GPX, FIT, TCX, etc).
-
-TODO: get this to follow the patterns of the other provider.
 """
 
 import os
@@ -11,16 +8,22 @@ import glob
 import hashlib
 import json
 import datetime
-import dateparser
 import logging
 import tempfile
 import gzip
 import multiprocessing
 from typing import List, Optional, Dict, Any
+
+import dateparser
+from peewee import DoesNotExist
+
 from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
 from fitler.providers.file.file_activity import FileActivity
-from peewee import DoesNotExist
+
+from .formats.gpx import parse_gpx
+from .formats.fit import parse_fit
+from .formats.tcx import parse_tcx
 
 
 class FileProvider(FitnessProvider):
@@ -107,16 +110,10 @@ class FileProvider(FitnessProvider):
                     fp.write(data)
                 read_file = fp.name
             if file_format == "gpx":
-                from .formats.gpx import parse_gpx
-
                 result = parse_gpx(read_file)
             elif file_format == "fit":
-                from .formats.fit import parse_fit
-
                 result = parse_fit(read_file)
             elif file_format == "tcx":
-                from .formats.tcx import parse_tcx
-
                 result = parse_tcx(read_file)
             else:
                 print(f"Unsupported file format: {file_format}")
@@ -154,7 +151,6 @@ class FileProvider(FitnessProvider):
         for file_path in file_paths:
             try:
                 checksum = FileProvider._calculate_checksum(file_path)
-                from fitler.providers.file.file_activity import FileActivity
 
                 FileActivity.get(
                     FileActivity.file_path == file_path,
@@ -197,8 +193,6 @@ class FileProvider(FitnessProvider):
         self, date_filter: Optional[str] = None
     ) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
-        from fitler.providers.file.file_activity import FileActivity
-
         file_activities = []
 
         if date_filter:
@@ -265,8 +259,6 @@ class FileProvider(FitnessProvider):
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
         try:
-            from fitler.providers.file.file_activity import FileActivity
-
             return FileActivity.get_by_id(int(activity_id))
         except (ValueError, DoesNotExist):
             return None
@@ -281,8 +273,6 @@ class FileProvider(FitnessProvider):
 
     def get_gear(self) -> Dict[str, str]:
         """Get all unique equipment from file activities."""
-        from fitler.providers.file.file_activity import FileActivity
-
         gear_set = set()
         for activity in FileActivity.select():
             if hasattr(activity, "equipment") and activity.equipment:

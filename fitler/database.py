@@ -3,6 +3,14 @@
 from typing import List, Type
 from peewee import Model, SqliteDatabase
 
+from .activity import Activity
+from .provider_sync import ProviderSync
+from .providers.strava.strava_activity import StravaActivity
+from .providers.garmin.garmin_activity import GarminActivity
+from .providers.ridewithgps.ridewithgps_activity import RideWithGPSActivity
+from .providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
+from .providers.file.file_activity import FileActivity
+
 # Initialize database
 db = SqliteDatabase("metadata.sqlite3")
 
@@ -16,14 +24,6 @@ def migrate_tables(models: List[Type[Model]]) -> None:
 
 def get_all_models() -> List[Type[Model]]:
     """Get all models that should be created in the database."""
-    from .activity import Activity
-    from .provider_sync import ProviderSync
-    from .providers.strava.strava_activity import StravaActivity
-    from .providers.garmin.garmin_activity import GarminActivity
-    from .providers.ridewithgps.ridewithgps_activity import RideWithGPSActivity
-    from .providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
-    from .providers.file.file_activity import FileActivity
-
     return [
         Activity,
         ProviderSync,

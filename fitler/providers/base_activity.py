@@ -4,6 +4,9 @@ This module defines the base class that all provider-specific activity models
 should inherit from, providing common fields and functionality.
 """
 
+from datetime import datetime, timezone
+import zoneinfo
+
 from peewee import (
     Model,
     CharField,
@@ -79,7 +82,6 @@ class BaseProviderActivity(Model):
             return ""
 
         try:
-            from datetime import datetime, timezone
 
             # Convert timestamp to date string
             dt = datetime.fromtimestamp(self.start_time, timezone.utc)
@@ -99,8 +101,6 @@ class BaseProviderActivity(Model):
         if not start_time_val:
             return None
         try:
-            from datetime import datetime, timezone
-
             return datetime.fromtimestamp(start_time_val, timezone.utc).date()
         except (ValueError, TypeError):
             return None
@@ -112,9 +112,6 @@ class BaseProviderActivity(Model):
         if not start_time_val:
             return ""
         try:
-            from datetime import datetime, timezone
-            import zoneinfo
-
             dt = datetime.fromtimestamp(start_time_val, timezone.utc)
             # Default to US/Eastern if no timezone provided
             local_tz = zoneinfo.ZoneInfo("US/Eastern")

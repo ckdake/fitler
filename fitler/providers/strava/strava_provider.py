@@ -4,6 +4,14 @@ import os
 import logging
 from typing import List, Optional, Dict, Any
 import datetime
+import json
+from decimal import Decimal
+import time
+
+from dateutil.relativedelta import relativedelta
+import pytz
+
+from stravalib import Client
 
 from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
@@ -28,8 +36,6 @@ class StravaProvider(FitnessProvider):
 
         if self.debug:
             logging.basicConfig(level=logging.DEBUG)
-
-        from stravalib import Client
 
         self.client = Client(access_token=token)
 
@@ -89,8 +95,6 @@ class StravaProvider(FitnessProvider):
         self, date_filter: str
     ) -> List["StravaActivity"]:
         """Get StravaActivity objects for a specific month."""
-        from fitler.providers.strava.strava_activity import StravaActivity
-        import datetime
 
         year, month = map(int, date_filter.split("-"))
         strava_activities = []
@@ -109,9 +113,6 @@ class StravaProvider(FitnessProvider):
 
     def _fetch_strava_activities_for_month(self, year_month: str):
         """Fetch raw stravalib activities for the given year_month."""
-        from dateutil.relativedelta import relativedelta
-        import pytz
-
         year, month = map(int, year_month.split("-"))
         tz = pytz.UTC
         start_date = tz.localize(datetime.datetime(year, month, 1))
@@ -127,10 +128,6 @@ class StravaProvider(FitnessProvider):
 
     def _convert_to_strava_activity(self, strava_lib_activity) -> StravaActivity:
         """Convert a stravalib activity to our StravaActivity object"""
-        import json
-        from decimal import Decimal
-        import time
-
         strava_activity = StravaActivity()
 
         # Always fetch the full activity details to ensure gear info is present

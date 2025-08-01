@@ -6,11 +6,13 @@ for interacting with activity data stored in local spreadsheet files.
 
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+import decimal
 import json
-import openpyxl
 from zoneinfo import ZoneInfo
-from dateutil import parser as dateparser
 import datetime
+
+from dateutil import parser as dateparser
+import openpyxl
 
 from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
@@ -127,13 +129,9 @@ class SpreadsheetProvider(FitnessProvider):
         # Accept numeric types directly
         if isinstance(hms, (int, float)):
             return float(hms)
-        try:
-            import decimal
+        if isinstance(hms, decimal.Decimal):
+            return float(hms)
 
-            if isinstance(hms, decimal.Decimal):
-                return float(hms)
-        except ImportError:
-            pass
         # Accept string types only
         if not isinstance(hms, str):
             return None

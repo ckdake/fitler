@@ -10,6 +10,10 @@ from typing import List, Optional, Dict, Any
 import json
 import datetime
 
+from decimal import Decimal
+
+import dateutil.parser
+
 import garminconnect
 from garth.exc import GarthHTTPError
 from garminconnect import (
@@ -98,8 +102,6 @@ class GarminProvider(FitnessProvider):
 
                 # Distance conversion from meters to miles
                 if raw_activity.get("distance"):
-                    from decimal import Decimal
-
                     distance_meters = float(raw_activity.get("distance", 0))
                     garmin_activity.distance = Decimal(
                         str(distance_meters * 0.000621371)
@@ -107,11 +109,7 @@ class GarminProvider(FitnessProvider):
 
                 # Start time
                 if raw_activity.get("startTimeGMT"):
-                    # Convert Garmin timestamp to epoch
                     start_time_str = raw_activity.get("startTimeGMT")
-                    # Handle Garmin timestamp format
-                    import dateutil.parser
-
                     dt = dateutil.parser.parse(start_time_str)
                     garmin_activity.start_time = int(dt.timestamp())
 
@@ -133,8 +131,6 @@ class GarminProvider(FitnessProvider):
 
                 # Performance metrics
                 if raw_activity.get("maxSpeed"):
-                    from decimal import Decimal
-
                     # Convert m/s to mph
                     max_speed_ms = float(raw_activity.get("maxSpeed", 0))
                     garmin_activity.max_speed = Decimal(str(max_speed_ms * 2.237))
@@ -246,9 +242,6 @@ class GarminProvider(FitnessProvider):
         self, date_filter: str
     ) -> List["GarminActivity"]:
         """Get GarminActivity objects for a specific month."""
-        from fitler.providers.garmin.garmin_activity import GarminActivity
-        import datetime
-
         year, month = map(int, date_filter.split("-"))
         garmin_activities = []
 
