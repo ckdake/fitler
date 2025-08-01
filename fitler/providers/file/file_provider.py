@@ -16,11 +16,8 @@ import logging
 import tempfile
 import gzip
 import multiprocessing
-from multiprocessing import Lock
-from pathlib import Path
 from typing import List, Optional, Dict, Any
 from fitler.providers.base_provider import FitnessProvider
-from fitler.activity import Activity
 from fitler.provider_sync import ProviderSync
 from fitler.providers.file.file_activity import FileActivity
 from peewee import DoesNotExist
@@ -52,66 +49,17 @@ class FileProvider(FitnessProvider):
         If date_filter is provided (YYYY-MM format), only returns activities from that month.
         If date_filter is None, processes all files and returns all FileActivity objects.
         """
-        # If no date filter, process all files without sync checking
         if date_filter is None:
             return self._pull_all_activities()
 
-        # Check if this month has already been synced for this provider
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         if not existing_sync:
-            # First time processing this month - process files
-            file_paths = glob.glob(self.file_glob)
-            print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
-
-            processed_count = 0
-
-            # Only parse in worker, DB write in main process
-            with multiprocessing.Pool(processes=8) as pool:
-                results = pool.map(
-                    self._file_processing_worker, [(fp,) for fp in file_paths]
-                )
-
-            processed_count = 0
-            for file_path, parsed_data in results:
-                if not parsed_data:
-                    continue
-                try:
-                    file_activity = self._process_file(file_path, date_filter)
-                    if file_activity:
-                        processed_count += 1
-                except Exception as e:
-                    print(f"Error processing file {file_path}: {e}")
-                    continue
-
-            print(f"Processed {processed_count} files into file_activities table")
-
-            # Mark this month as synced
+            self._pull_all_activities()
             ProviderSync.create(year_month=date_filter, provider=self.provider_name)
         else:
             print(f"Month {date_filter} already synced for {self.provider_name}")
 
-        # Always return activities for the requested month from database
         return self._get_file_activities_for_month(date_filter)
-
-    @staticmethod
-    def _file_processing_worker(args):
-        (file_path,) = args
-        try:
-            # Only parsing is done in the worker
-            # We must re-import here because workers are separate processes
-            import importlib
-            from fitler.providers.file.file_provider import FileProvider
-
-            file_format, is_gzipped = FileProvider._determine_file_format_static(
-                file_path
-            )
-            parsed_data = FileProvider._parse_file_static(
-                file_path, file_format, is_gzipped
-            )
-            return (file_path, parsed_data)
-        except Exception as e:
-            print(f"Error parsing file {file_path}: {e}")
-            return (file_path, None)
 
     @staticmethod
     def _determine_file_format(file_path: str) -> tuple[str, bool]:
@@ -137,8 +85,6 @@ class FileProvider(FitnessProvider):
         file_path: str, file_format: str, is_gzipped: bool = False
     ) -> Optional[dict]:
         """Parse an activity file and return activity data."""
-        import gzip
-        import tempfile
 
         fp = None
         read_file = file_path
@@ -185,12 +131,16 @@ class FileProvider(FitnessProvider):
         processed_activities = []
         processed_count = 0
 
-        for file_path in file_paths:
+        with multiprocessing.Pool(processes=8) as pool:
+            results = pool.map(self._file_processing_worker, [(fp,) for fp in file_paths])
+
+        processed_count = 0
+        for (file_path, parsed_data) in results:
+            if not parsed_data:
+                continue
             try:
-                # Process file without date filter (pass None to skip date checks)
-                file_activity = self._process_file(file_path, None)
+                file_activity = self._process_file(file_path)
                 if file_activity:
-                    processed_activities.append(file_activity)
                     processed_count += 1
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
@@ -246,6 +196,42 @@ class FileProvider(FitnessProvider):
                 sha256_hash.update(chunk)
         return sha256_hash.hexdigest()
 
+    def _process_file(self, file_path: str) -> Optional["FileActivity"]:
+        """Process a single activity file and store in file_activities table."""
+
+        checksum = self._calculate_checksum(file_path)
+        file_size = str(os.path.getsize(file_path))
+        file_format, is_gzipped = self._determine_file_format(file_path)
+
+        # Check if we have already processed this exact file
+        try:
+            existing_file_activity = FileActivity.get(
+                FileActivity.file_path == file_path,
+                FileActivity.file_checksum == checksum,
+            )
+            return existing_file_activity
+
+        except DoesNotExist:
+            pass
+
+        parsed_data = self._parse_file(file_path, file_format, is_gzipped)
+        if not parsed_data:
+            return None
+
+        file_activity = FileActivity.create(
+            file_path=file_path,
+            file_checksum=checksum,
+            file_size=file_size,
+            file_format=file_format,
+            name=parsed_data.get("name", ""),
+            distance=parsed_data.get("distance", 0),
+            start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),
+            activity_type=parsed_data.get("activity_type", ""),
+            duration_hms=parsed_data.get("duration_hms", ""),
+            raw_data=json.dumps(parsed_data),
+        )
+        return file_activity
+
     @staticmethod
     def _file_processing_worker(args):
         (file_path,) = args
@@ -256,7 +242,6 @@ class FileProvider(FitnessProvider):
         except Exception as e:
             print(f"Error parsing file {file_path}: {e}")
             return (file_path, None)
-            pass  # File not processed yet, continue
 
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""
