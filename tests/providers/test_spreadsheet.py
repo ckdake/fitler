@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from fitler.providers.spreadsheet import SpreadsheetProvider
 from fitler.activity import Activity
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
-from fitler.providers.base_activity import BaseProviderActivity
+from fitler.providers.base_provider_activity import BaseProviderActivity
 import datetime
 
 

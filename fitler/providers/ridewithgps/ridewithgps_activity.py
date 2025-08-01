@@ -1,8 +1,8 @@
 """RideWithGPS-specific activity model."""
 
 from peewee import CharField
-from fitler.providers.base_activity import BaseProviderActivity
-from fitler.database import db
+from fitler.providers.base_provider_activity import BaseProviderActivity
+from fitler.db import db
 
 
 class RideWithGPSActivity(BaseProviderActivity):

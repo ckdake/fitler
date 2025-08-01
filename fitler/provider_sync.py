@@ -1,5 +1,6 @@
 from peewee import Model, CharField
-from fitler.database import db
+from fitler.db import db
+
 
 class ProviderSync(Model):
     """Tracks which months have been synced for each provider."""

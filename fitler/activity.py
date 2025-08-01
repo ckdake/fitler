@@ -12,7 +12,8 @@ from peewee import (
     SQL,
 )
 
-from fitler.database import db
+from fitler.db import db
+
 
 class Activity(Model):
     """

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from fitler.providers.file.file_provider import FileProvider
 from fitler.providers.file.file_activity import FileActivity
-from fitler.providers.base_activity import BaseProviderActivity
+from fitler.providers.base_provider_activity import BaseProviderActivity
 from fitler.provider_sync import ProviderSync
 
 

@@ -16,7 +16,7 @@ from peewee import (
     TextField,
     SQL,
 )
-from fitler.database import db
+from fitler.db import db
 
 
 class BaseProviderActivity(Model):

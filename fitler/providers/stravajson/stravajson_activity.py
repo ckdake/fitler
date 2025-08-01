@@ -1,7 +1,8 @@
 """StravaJson-specific activity model."""
 
 from peewee import CharField
-from fitler.providers.base_activity import BaseProviderActivity
+from fitler.providers.base_provider_activity import BaseProviderActivity
+from fitler.db import db
 
 
 class StravaJsonActivity(BaseProviderActivity):
@@ -17,7 +18,7 @@ class StravaJsonActivity(BaseProviderActivity):
     # For example: kudos_count, comment_count, etc.
 
     class Meta:
-        database = BaseProviderActivity.Meta.database
+        database = db
         table_name = "strava_activities"
 
     @property

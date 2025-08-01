@@ -28,7 +28,9 @@ class StravaJsonProvider(FitnessProvider):
         """Return the name of this provider."""
         return "stravajson"
 
-    def pull_activities(self, date_filter: Optional[str] = None) -> List[StravaJsonActivity]:
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[StravaJsonActivity]:
         """Pull activities from JSON files - not yet implemented."""
         print("StravaJSON provider: pulling activities not implemented yet")
         return []
@@ -62,7 +64,7 @@ class StravaJsonActivities(FitnessProvider):
     def __init__(self, folder):
         self.folder = folder
 
-    def fetch_activities(self) -> List[Activity]:
+    def fetch_activities(self) -> List[StravaJsonActivity]:
         activities = []
         gen = glob.iglob(self.folder)
         for file in gen:
@@ -70,7 +72,7 @@ class StravaJsonActivities(FitnessProvider):
                 data = json.load(f)
                 parsed_date = dateparser.parse(data.get("start_date_local"))
                 start_date = parsed_date.strftime("%Y-%m-%d") if parsed_date else None
-                activity = Activity(
+                activity = StravaJsonActivity(
                     name=data.get("name"),
                     start_date=start_date,
                     start_time=data.get("start_date_local"),
@@ -81,22 +83,22 @@ class StravaJsonActivities(FitnessProvider):
                 activities.append(activity)
         return activities
 
-    def upload_activity(self, activity: Activity) -> str:
+    def upload_activity(self, activity: StravaJsonActivity) -> str:
         raise NotImplementedError(
             "StravaJsonActivities does not support uploading activities."
         )
 
-    def create_activity(self, activity: Activity) -> str:
+    def create_activity(self, activity: StravaJsonActivity) -> str:
         raise NotImplementedError(
             "StravaJsonActivities does not support creating activities."
         )
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[Activity]:
+    def get_activity_by_id(self, activity_id: str) -> Optional[StravaJsonActivity]:
         raise NotImplementedError(
             "StravaJsonActivities does not support fetching by ID."
         )
 
-    def update_activity(self, activity_id: str, activity: Activity) -> bool:
+    def update_activity(self, activity_id: str, activity: StravaJsonActivity) -> bool:
         raise NotImplementedError(
             "StravaJsonActivities does not support updating activities."
         )
