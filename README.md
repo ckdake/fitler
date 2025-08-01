@@ -212,10 +212,6 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
     * Load files from S3 bucket or somewhere else instead of local: https://pypi.org/project/boto3/ 
 
-    * use multiprocessing to spin off workers for individual file parsing, as well as doing each API in parallel: https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing 
-    * cache things and use shas to know when files have been processed into cache
-
-
     * What is in TrainingPeaks?
     * What is in Wandrer.earth?
     * What about the weather?
