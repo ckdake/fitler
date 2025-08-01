@@ -13,9 +13,12 @@ load_dotenv()
 
 
 def main():
+    import sys
+
+    print("DEBUG sys.argv:", sys.argv)
     """Main function for the Fitler CLI."""
     parser = argparse.ArgumentParser(description="Fitler CLI")
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser(
         "auth-strava", help="Authenticate with Strava and get an access token"
@@ -39,7 +42,9 @@ def main():
         "year_month", type=str, help="Year and month in YYYY-MM format"
     )
     subparsers.add_parser("help", help="Show usage and documentation")
-    pull_parser = subparsers.add_parser("pull", help="Pull activities from all providers")
+    pull_parser = subparsers.add_parser(
+        "pull", help="Pull activities from all providers"
+    )
     pull_parser.add_argument(
         "--date",
         help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
@@ -70,13 +75,11 @@ def main():
     elif args.command == "pull":
         from fitler.commands.pull import run
 
-        # Convert args to list format expected by pull command
-        pull_args = []
-        if hasattr(args, "provider") and args.provider:
-            pull_args.append(args.provider)
-        if hasattr(args, "date") and args.date:
-            pull_args.extend(["--date", args.date])
-        run(pull_args if pull_args else None)
+        # Only pass --date if set, otherwise pass None
+        pull_args = (
+            ["--date", args.date] if hasattr(args, "date") and args.date else None
+        )
+        run(pull_args)
     elif args.command == "help" or args.command is None:
         print(
             """
