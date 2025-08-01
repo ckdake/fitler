@@ -8,13 +8,12 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import json
 import openpyxl
+from zoneinfo import ZoneInfo
 from dateutil import parser as dateparser
 import datetime
 
 from fitler.providers.base_provider import FitnessProvider
-from fitler.provider_sync import ProviderSync
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
-from peewee import DoesNotExist
 
 
 class SpreadsheetProvider(FitnessProvider):
@@ -174,11 +173,6 @@ class SpreadsheetProvider(FitnessProvider):
         if not dt_val:
             return None
         try:
-            # Import here to avoid circular imports
-            from pathlib import Path
-            import json
-            from zoneinfo import ZoneInfo
-
             # Get home timezone from config
             config_path = Path("fitler_config.json")
             with open(config_path) as f:

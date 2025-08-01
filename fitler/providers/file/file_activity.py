@@ -1,6 +1,6 @@
 """File-specific activity model."""
 
-from peewee import CharField, TextField
+from peewee import CharField
 from fitler.providers.base_activity import BaseProviderActivity
 from fitler.database import db
 

@@ -125,6 +125,7 @@ class FileProvider(FitnessProvider):
             result["file_path"] = file_path
             result["file_checksum"] = FileProvider._calculate_checksum(file_path)
             result["file_size"] = os.path.getsize(file_path)
+            result["file_format"] = file_format
             return result
 
         except Exception as e:
@@ -231,6 +232,7 @@ class FileProvider(FitnessProvider):
             file_path=parsed_data.get("file_path"),
             file_checksum=parsed_data.get("file_checksum"),
             file_size=parsed_data.get("file_size"),
+            file_format=parsed_data.get("file_format", None),
             name=parsed_data.get("name", ""),
             distance=parsed_data.get("distance", 0),
             start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),

@@ -21,7 +21,6 @@ from garminconnect import (
 from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
 from fitler.providers.garmin.garmin_activity import GarminActivity
-from peewee import DoesNotExist
 
 
 class GarminProvider(FitnessProvider):

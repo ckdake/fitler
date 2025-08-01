@@ -43,13 +43,11 @@ class FitnessProvider(ABC):
 
     @abstractmethod
     def get_activity_by_id(self, activity_id: str) -> Optional[Any]:
-        """Fetch a single activity by its provider-specific ID. Returns provider-specific activity object or None."""
+        """Fetch a single activity by its provider-specific ID."""
         pass
 
     @abstractmethod
     def update_activity(self, activity_data: Dict[str, Any]) -> Any:
-        """Update an existing activity with new data. Returns updated provider-specific activity object."""
-        pass
         """Update an existing activity on the provider."""
         pass
 

@@ -12,8 +12,7 @@ from .providers.ridewithgps import RideWithGPSProvider
 from .providers.garmin import GarminProvider
 from .providers.file import FileProvider
 from .providers.stravajson import StravaJsonProvider
-from fitler.activity import Activity
-from fitler.providers.base_activity import BaseProviderActivity
+from .providers.base_activity import BaseProviderActivity
 from .database import db
 
 CONFIG_PATH = Path("fitler_config.json")

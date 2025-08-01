@@ -6,7 +6,6 @@ updating activities, and managing gear.
 """
 
 import os
-import json
 from typing import List, Optional, Dict, Any
 from pyrwgps import RideWithGPS
 import datetime

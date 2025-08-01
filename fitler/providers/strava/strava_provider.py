@@ -126,7 +126,7 @@ class StravaProvider(FitnessProvider):
         return activities
 
     def _convert_to_strava_activity(self, strava_lib_activity) -> StravaActivity:
-        """Convert a stravalib activity to our StravaActivity object, always fetching full details for gear info."""
+        """Convert a stravalib activity to our StravaActivity object"""
         import json
         from decimal import Decimal
         import time

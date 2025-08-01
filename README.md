@@ -189,12 +189,8 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
 ## TODO
 
+    * File provider manually fixed, go through other providers and manually fix them to work the ~same way. make sure we're not making API calls if the month is synced.
     * Write some tests...
-    * Build a config object and load it from JSON. Which sources are active and which one is primary, and what "rules" are in place. e.g.:
-    ** Spreadsheet is at PATH, and is "primary"
-    ** Strava is active, add strava_id to "primary", add "name" from strava to "notes" in primary, add "equipment" from "primary" to RidewithGPS
-    ** RidewithGPS is active, add ridewithgps_id to "primary", add "notes" from primary to "name" in RidewithGPS, add "equipment" from "primary" to RidewithGPS
-
     * Get everything out of gpx files: https://pypi.org/project/gpxpy/  (basics are in, need to fill out metadata, add more fields to db!)
     * Get everything out of tcx files: https://pypi.org/project/python-tcxparser/ (basics are in, need to fill out metadata, add more fields to db!) 
     * Get everything out of fit files: https://github.com/dtcooper/python-fitparse/ (basics are in, need to fill out metadata, add more fields to db!)

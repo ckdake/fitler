@@ -5,7 +5,7 @@ strava_id = CharField(max_length=50, unique=True, index=True)
 # For example: kudos_count, comment_count, etc.
 # Raw data is stored in the base class raw_data fieldtivity model."""
 
-from peewee import CharField, TextField
+from peewee import CharField
 from fitler.providers.base_activity import BaseProviderActivity
 from fitler.database import db
 
