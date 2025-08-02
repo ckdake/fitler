@@ -38,7 +38,7 @@ class StravaProvider(FitnessProvider):
         self.client = Client(
             access_token=token,
             refresh_token=refresh_token,
-            token_expires=int(token_expires)
+            token_expires=int(token_expires),
         )
 
     @property

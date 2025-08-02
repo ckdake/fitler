@@ -67,7 +67,9 @@ class SpreadsheetProvider(FitnessProvider):
                 return None
 
     @staticmethod
-    def _convert_to_gmt_timestamp(dt_val: Union[str, datetime, date], source_tz: str) -> int:
+    def _convert_to_gmt_timestamp(
+        dt_val: Union[str, datetime, date], source_tz: str
+    ) -> int:
         """Convert a date/datetime/str to a GMT Unix timestamp, assuming local time in source_tz."""
         tz = ZoneInfo(source_tz)
 
@@ -146,8 +148,10 @@ class SpreadsheetProvider(FitnessProvider):
             pass
 
         activity_kwargs: Dict[str, Any] = {}
-    
-        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0], self.config.get("home_timezone", "UTC"))
+
+        start_time = self._convert_to_gmt_timestamp(
+            parsed_data["row"][0], self.config.get("home_timezone", "UTC")
+        )
         activity_kwargs["start_time"] = start_time
 
         if parsed_data["row"][1]:

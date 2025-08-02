@@ -95,7 +95,8 @@ def process_activity_for_display(activity, provider: str) -> dict:
         "equipment": getattr(activity, "equipment", "") or "",
     }
 
-def generate_correlation_key(timestamp: int, distance: float) -> str: 
+
+def generate_correlation_key(timestamp: int, distance: float) -> str:
     """Generate a correlation key for matching activities across providers."""
     if not timestamp or not distance:
         return ""
