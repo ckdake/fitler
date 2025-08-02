@@ -30,7 +30,7 @@ class SpreadsheetProvider(FitnessProvider):
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "spreadsheet"
-    
+
     @staticmethod
     def _seconds_to_hms(seconds: Optional[float]) -> str:
         if seconds is None:
@@ -40,7 +40,7 @@ class SpreadsheetProvider(FitnessProvider):
             return str(datetime.timedelta(seconds=seconds))
         except Exception:
             return ""
-        
+
     @staticmethod
     def _hms_to_seconds(hms: Optional[str]) -> Optional[float]:
         if not hms:
@@ -67,7 +67,7 @@ class SpreadsheetProvider(FitnessProvider):
                 return t.minute * 60 + t.second
             except Exception:
                 return None
-            
+
     @staticmethod
     def _parse_spreadsheet_datetime(dt_val):
         # Spreadsheet times are in local time
@@ -117,9 +117,9 @@ class SpreadsheetProvider(FitnessProvider):
         if sheet is None:
             print(f"No active sheet found in {xlsx_file}")
             return []
-        
+
         print(f"Processing spreadsheet file: {xlsx_file}")
-        
+
         processed_count = 0
 
         for i, row in enumerate(sheet.iter_rows(values_only=True)):
@@ -130,20 +130,16 @@ class SpreadsheetProvider(FitnessProvider):
                 SpreadsheetActivity.spreadsheet_id == i
             )
             if existing_activity is None:
-                activity = self._process_parsed_data({
-                    "file_name": str(xlsx_file),
-                    "spreadsheet_id": i,
-                    "row": row
-                    })
+                activity = self._process_parsed_data(
+                    {"file_name": str(xlsx_file), "spreadsheet_id": i, "row": row}
+                )
                 if activity:
                     processed_count += 1
-                              
-        print(
-            f"Processed {processed_count} new spreadsheet activities"
-        )
+
+        print(f"Processed {processed_count} new spreadsheet activities")
 
         return self._get_activities()
-    
+
     def _get_activities(
         self, date_filter: Optional[str] = None
     ) -> List["SpreadsheetActivity"]:
@@ -165,7 +161,7 @@ class SpreadsheetProvider(FitnessProvider):
             file_activities = list(SpreadsheetActivity.select())
 
         return file_activities
-    
+
     def _process_parsed_data(self, parsed_data: dict) -> Optional[SpreadsheetActivity]:
         try:
             existing_activity = SpreadsheetActivity.get(
@@ -195,7 +191,9 @@ class SpreadsheetProvider(FitnessProvider):
         # duration_hms is stored as HH:MM:SS, but we want .duration in seconds
         if parsed_data["row"][7]:
             try:
-                activity_kwargs["duration"] = self._hms_to_seconds(str(parsed_data["row"][7]))
+                activity_kwargs["duration"] = self._hms_to_seconds(
+                    str(parsed_data["row"][7])
+                )
             except (ValueError, TypeError):
                 pass
         if parsed_data["row"][8]:

@@ -50,18 +50,17 @@ class FileProvider(FitnessProvider):
 
         if ".fit.gz" in file_lower:
             return "fit", True
-        elif ".tcx.gz" in file_lower:
+        if ".tcx.gz" in file_lower:
             return "tcx", True
-        elif ".gpx.gz" in file_lower:
+        if ".gpx.gz" in file_lower:
             return "gpx", True
-        elif file_lower.endswith(".gpx"):
+        if file_lower.endswith(".gpx"):
             return "gpx", False
-        elif file_lower.endswith(".tcx"):
+        if file_lower.endswith(".tcx"):
             return "tcx", False
-        elif file_lower.endswith(".fit"):
+        if file_lower.endswith(".fit"):
             return "fit", False
-        else:
-            raise ValueError(f"Unknown file format: {file_path}")
+        raise ValueError(f"Unknown file format: {file_path}")
 
     @staticmethod
     def _calculate_checksum(file_path: str) -> str:
@@ -187,9 +186,7 @@ class FileProvider(FitnessProvider):
                     print(f"Error processing file {file_path}: {e}")
                     continue
 
-            print(
-                f"Processed {processed_count} new file activities"
-            )
+            print(f"Processed {processed_count} new file activities")
 
         return self._get_activities()
 

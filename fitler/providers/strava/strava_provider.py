@@ -23,8 +23,6 @@ class StravaProvider(FitnessProvider):
         self,
         token: str,
         refresh_token: Optional[str] = None,
-        client_id: Optional[str] = None,
-        client_secret: Optional[str] = None,
         token_expires: Optional[str] = None,
         config: Optional[Dict[str, Any]] = None,
     ):
@@ -37,7 +35,11 @@ class StravaProvider(FitnessProvider):
         if self.debug:
             logging.basicConfig(level=logging.DEBUG)
 
-        self.client = Client(access_token=token)
+        self.client = Client(
+            access_token=token,
+            refresh_token=refresh_token,
+            token_expires=int(token_expires)
+        )
 
     @property
     def provider_name(self) -> str:

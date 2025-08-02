@@ -16,6 +16,9 @@ class SpreadsheetActivity(BaseProviderActivity):
 
     # Spreadsheet-specific fields
     # This might include things like manual notes, custom categories, etc.
+    garmin_id = CharField(max_length=50, null=True, index=True)
+    strava_id = CharField(max_length=50, null=True, index=True)
+    ridewithgps_id = CharField(max_length=50, null=True, index=True)
 
     class Meta:
         database = db

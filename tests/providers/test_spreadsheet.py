@@ -85,22 +85,17 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
     ) as mock_get_or_none:
         mock_get_or_none.return_value = None
 
-        # Mock SpreadsheetActivity.save() method
-        with patch.object(SpreadsheetActivity, "save") as mock_save:
-            provider = SpreadsheetProvider(
-                "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-            )
-            activities = provider.pull_activities()
+        provider = SpreadsheetProvider(
+            "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+        )
+        activities = provider.pull_activities()
 
-            # Should return list of SpreadsheetActivity objects
-            assert isinstance(activities, list)
-            assert len(activities) == 1  # One data row from mock_sheet
-            assert isinstance(activities[0], SpreadsheetActivity)
-            assert activities[0].equipment == "Bike"
-            assert activities[0].spreadsheet_id == 2  # Row 2 (header is row 1)
-
-            # Verify save was called
-            mock_save.assert_called_once()
+        # Should return list of SpreadsheetActivity objects
+        assert isinstance(activities, list)
+        assert len(activities) == 1  # One data row from mock_sheet
+        assert isinstance(activities[0], SpreadsheetActivity)
+        assert activities[0].equipment == "Bike"
+        assert activities[0].spreadsheet_id == "1"  # Row 1 (first data row, as string)
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -114,10 +109,19 @@ def test_get_activity_by_id(mock_path, mock_load_workbook, mock_sheet):
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
+    # Insert a mock activity into the test DB
+    from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
+
+    SpreadsheetActivity.create(
+        start_time="2024-06-01T10:00:00Z",
+        activity_type="Ride",
+        spreadsheet_id=2,
+        equipment="Bike",
+    )
     activity = provider.get_activity_by_id("2")
     assert isinstance(activity, BaseProviderActivity)
     assert activity.equipment == "Bike"
-    assert activity.spreadsheet_id == 2
+    assert activity.spreadsheet_id == "2"
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")

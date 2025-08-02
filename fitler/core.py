@@ -82,8 +82,6 @@ class Fitler:
                 self._strava = StravaProvider(
                     token,
                     refresh_token=os.environ.get("STRAVA_REFRESH_TOKEN"),
-                    client_id=os.environ.get("STRAVA_CLIENT_ID"),
-                    client_secret=os.environ.get("STRAVA_CLIENT_SECRET"),
                     token_expires=os.environ.get("STRAVA_TOKEN_EXPIRES"),
                     config=enhanced_config,
                 )

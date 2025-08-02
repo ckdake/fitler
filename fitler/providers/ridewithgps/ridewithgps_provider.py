@@ -47,12 +47,12 @@ class RideWithGPSProvider(FitnessProvider):
             print("RideWithGPS provider: pulling all activities not implemented yet")
             return []
 
-        existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         year, month = map(int, date_filter.split("-"))
-        if not existing_sync:
+
+        if not ProviderSync.get_or_none(date_filter, self.provider_name):
             trip_summaries = list(self.client.list(f"/users/{self.userid}/trips.json"))
             print(
-                f"Found {len(trip_summaries)} RideWithGPS trip summaries for {date_filter}"
+                f"Found {len(trip_summaries)} RideWithGPS trip summaries"
             )
 
             for trip_summary in trip_summaries:

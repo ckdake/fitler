@@ -17,7 +17,7 @@ class GarminActivity(BaseProviderActivity):
     # Garmin-specific fields can be added here as needed
     # For example: training_effect, recovery_time, etc.
 
-    class Meta:
+    class Meta: # type: ignore
         database = db
         table_name = "garmin_activities"
 

@@ -24,7 +24,6 @@ class FitnessProvider(ABC):
     @abstractmethod
     def provider_name(self) -> str:
         """Return the name of this provider."""
-        pass
 
     @abstractmethod
     def pull_activities(self, date_filter: Optional[str] = None) -> List:
@@ -34,29 +33,23 @@ class FitnessProvider(ABC):
         Fetches from provider API/source and persists to database.
         Returns a list of provider-specific activity objects.
         """
-        pass
 
     @abstractmethod
     def create_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Create a new activity from activity data. Returns provider-specific activity object."""
-        pass
 
     @abstractmethod
     def get_activity_by_id(self, activity_id: str) -> Optional[Any]:
         """Fetch a single activity by its provider-specific ID."""
-        pass
 
     @abstractmethod
     def update_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Update an existing activity on the provider."""
-        pass
 
     @abstractmethod
     def get_gear(self) -> Dict[str, str]:
         """Fetch gear/equipment from the provider, if supported."""
-        pass
 
     @abstractmethod
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         """Set the gear/equipment for a specific activity on the provider."""
-        pass

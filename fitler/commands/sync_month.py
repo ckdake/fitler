@@ -238,7 +238,9 @@ def run(year_month):
 
         for provider in provider_list:
             sync_name = provider_config.get(provider, {}).get("sync_name", True)
-            sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
+            sync_equipment = provider_config.get(provider, {}).get(
+                "sync_equipment", True
+            )
             if provider in providers:
                 activity = providers[provider]
                 # Color code based on authority
@@ -249,8 +251,12 @@ def run(year_month):
                     if provider == auth_provider:
                         name_colored = color_text(activity["name"], True, False, False)
                     else:
-                        name_wrong = activity["name"] != auth_name if auth_name else False
-                        name_colored = color_text(activity["name"], False, False, name_wrong)
+                        name_wrong = (
+                            activity["name"] != auth_name if auth_name else False
+                        )
+                        name_colored = color_text(
+                            activity["name"], False, False, name_wrong
+                        )
                         if name_wrong and auth_name:
                             all_changes.append(
                                 ActivityChange(
@@ -265,7 +271,9 @@ def run(year_month):
                 # Equipment column
                 if sync_equipment:
                     if provider == auth_provider:
-                        equip_colored = color_text(activity["equipment"], True, False, False)
+                        equip_colored = color_text(
+                            activity["equipment"], True, False, False
+                        )
                     else:
                         equip_val = (activity["equipment"] or "").strip().lower()
                         equip_wrong = False
@@ -280,9 +288,13 @@ def run(year_month):
                                 if equip_val == "" or equip_val == "no equipment":
                                     show_auth_equip = True
                         if show_auth_equip:
-                            equip_colored = color_text(auth_equipment, False, True, False)
+                            equip_colored = color_text(
+                                auth_equipment, False, True, False
+                            )
                         else:
-                            equip_colored = color_text(activity["equipment"], False, False, equip_wrong)
+                            equip_colored = color_text(
+                                activity["equipment"], False, False, equip_wrong
+                            )
                         if equip_wrong and auth_equipment:
                             all_changes.append(
                                 ActivityChange(
@@ -299,10 +311,16 @@ def run(year_month):
                 missing_id = color_text("TBD", False, True, False)
                 table_row.append(missing_id)
                 if sync_name:
-                    missing_name = color_text(auth_name, False, True, False) if auth_name else ""
+                    missing_name = (
+                        color_text(auth_name, False, True, False) if auth_name else ""
+                    )
                     table_row.append(missing_name)
                 if sync_equipment:
-                    missing_equip = color_text(auth_equipment, False, True, False) if auth_equipment else ""
+                    missing_equip = (
+                        color_text(auth_equipment, False, True, False)
+                        if auth_equipment
+                        else ""
+                    )
                     table_row.append(missing_equip)
                 # Record that this activity should be added to this provider
                 if sync_name and auth_name:
