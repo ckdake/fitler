@@ -108,7 +108,7 @@ class RideWithGPSProvider(FitnessProvider):
                     continue
 
             ProviderSync.create(year_month=date_filter, provider=self.provider_name)
-            print(f"Sync complete for {date_filter}")
+            print(f"RideWithGPS Sync complete for {date_filter}")
 
         # Always return all activities for this month from the database
         start = datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc)
