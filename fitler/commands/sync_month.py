@@ -237,82 +237,75 @@ def run(year_month):
         table_row = [row["start"].strftime("%Y-%m-%d %H:%M")]
 
         for provider in provider_list:
+            sync_name = provider_config.get(provider, {}).get("sync_name", True)
+            sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
             if provider in providers:
                 activity = providers[provider]
                 # Color code based on authority
                 id_colored = color_id(activity["id"], True)
-
-                if provider == auth_provider:
-                    name_colored = color_text(activity["name"], True, False, False)
-                    equip_colored = color_text(
-                        activity["equipment"], True, False, False
-                    )
-                else:
-                    # Check if different from authoritative
-                    name_wrong = activity["name"] != auth_name if auth_name else False
-                    equip_val = (activity["equipment"] or "").strip().lower()
-                    equip_wrong = False
-                    show_auth_equip = False
-                    if auth_equipment:
-                        if (
-                            activity["equipment"] != auth_equipment
-                            or equip_val == ""
-                            or equip_val == "no equipment"
-                        ):
-                            equip_wrong = True
-                            if equip_val == "" or equip_val == "no equipment":
-                                show_auth_equip = True
-
-                    name_colored = color_text(
-                        activity["name"], False, False, name_wrong
-                    )
-                    if show_auth_equip:
-                        equip_colored = color_text(auth_equipment, False, True, False)
+                table_row.append(id_colored)
+                # Name column
+                if sync_name:
+                    if provider == auth_provider:
+                        name_colored = color_text(activity["name"], True, False, False)
                     else:
-                        equip_colored = color_text(
-                            activity["equipment"], False, False, equip_wrong
-                        )
-
-                    # Record needed changes
-                    if name_wrong and auth_name:
-                        all_changes.append(
-                            ActivityChange(
-                                change_type=ChangeType.UPDATE_NAME,
-                                provider=provider,
-                                activity_id=str(activity["id"]),
-                                old_value=activity["name"],
-                                new_value=auth_name,
+                        name_wrong = activity["name"] != auth_name if auth_name else False
+                        name_colored = color_text(activity["name"], False, False, name_wrong)
+                        if name_wrong and auth_name:
+                            all_changes.append(
+                                ActivityChange(
+                                    change_type=ChangeType.UPDATE_NAME,
+                                    provider=provider,
+                                    activity_id=str(activity["id"]),
+                                    old_value=activity["name"],
+                                    new_value=auth_name,
+                                )
                             )
-                        )
-
-                    if equip_wrong and auth_equipment:
-                        all_changes.append(
-                            ActivityChange(
-                                change_type=ChangeType.UPDATE_EQUIPMENT,
-                                provider=provider,
-                                activity_id=str(activity["id"]),
-                                old_value=activity["equipment"],
-                                new_value=auth_equipment,
+                    table_row.append(name_colored)
+                # Equipment column
+                if sync_equipment:
+                    if provider == auth_provider:
+                        equip_colored = color_text(activity["equipment"], True, False, False)
+                    else:
+                        equip_val = (activity["equipment"] or "").strip().lower()
+                        equip_wrong = False
+                        show_auth_equip = False
+                        if auth_equipment:
+                            if (
+                                activity["equipment"] != auth_equipment
+                                or equip_val == ""
+                                or equip_val == "no equipment"
+                            ):
+                                equip_wrong = True
+                                if equip_val == "" or equip_val == "no equipment":
+                                    show_auth_equip = True
+                        if show_auth_equip:
+                            equip_colored = color_text(auth_equipment, False, True, False)
+                        else:
+                            equip_colored = color_text(activity["equipment"], False, False, equip_wrong)
+                        if equip_wrong and auth_equipment:
+                            all_changes.append(
+                                ActivityChange(
+                                    change_type=ChangeType.UPDATE_EQUIPMENT,
+                                    provider=provider,
+                                    activity_id=str(activity["id"]),
+                                    old_value=activity["equipment"],
+                                    new_value=auth_equipment,
+                                )
                             )
-                        )
-
-                table_row.extend([id_colored, name_colored, equip_colored])
+                    table_row.append(equip_colored)
             else:
                 # Missing from this provider
                 missing_id = color_text("TBD", False, True, False)
-                missing_name = (
-                    color_text(auth_name, False, True, False) if auth_name else ""
-                )
-                missing_equip = (
-                    color_text(auth_equipment, False, True, False)
-                    if auth_equipment
-                    else ""
-                )
-
-                table_row.extend([missing_id, missing_name, missing_equip])
-
+                table_row.append(missing_id)
+                if sync_name:
+                    missing_name = color_text(auth_name, False, True, False) if auth_name else ""
+                    table_row.append(missing_name)
+                if sync_equipment:
+                    missing_equip = color_text(auth_equipment, False, True, False) if auth_equipment else ""
+                    table_row.append(missing_equip)
                 # Record that this activity should be added to this provider
-                if auth_name:  # Only suggest adding if there's a name
+                if sync_name and auth_name:
                     all_changes.append(
                         ActivityChange(
                             change_type=ChangeType.ADD_ACTIVITY,
@@ -330,13 +323,13 @@ def run(year_month):
     # Build headers
     headers = ["Start"]
     for provider in provider_list:
-        headers.extend(
-            [
-                f"{provider.title()} ID",
-                f"{provider.title()} Name",
-                f"{provider.title()} Equip",
-            ]
-        )
+        sync_name = provider_config.get(provider, {}).get("sync_name", True)
+        sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
+        headers.append(f"{provider.title()} ID")
+        if sync_name:
+            headers.append(f"{provider.title()} Name")
+        if sync_equipment:
+            headers.append(f"{provider.title()} Equip")
     headers.append("Distance (mi)")
 
     print(
