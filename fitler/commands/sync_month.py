@@ -101,12 +101,10 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
         return ""
 
     try:
-        # Convert timestamp to local date string
         dt = datetime.fromtimestamp(timestamp, ZoneInfo("US/Eastern"))
         date_str = dt.strftime("%Y-%m-%d")
 
-        # Round distance to nearest 0.1 mile for fuzzy matching
-        rounded_distance = round(float(distance) * 10) / 10
+        rounded_distance = round(float(distance), 1)
 
         return f"{date_str}_{rounded_distance}"
     except (ValueError, TypeError):
