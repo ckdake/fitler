@@ -4,14 +4,12 @@ This module defines the SpreadsheetProvider class, which provides an interface
 for interacting with activity data stored in local spreadsheet files.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Union, Optional
 from pathlib import Path
 import decimal
-import json
+from datetime import datetime, timezone, date
 from zoneinfo import ZoneInfo
-import datetime
 
-from dateutil import parser as dateparser
 import openpyxl
 from peewee import DoesNotExist
 
@@ -58,33 +56,32 @@ class SpreadsheetProvider(FitnessProvider):
         if hasattr(hms, "value") or hasattr(hms, "is_date"):
             return None
         try:
-            t = datetime.datetime.strptime(hms, "%H:%M:%S")
+            t = datetime.strptime(hms, "%H:%M:%S")
             return t.hour * 3600 + t.minute * 60 + t.second
         except Exception:
             try:
                 # Try MM:SS
-                t = datetime.datetime.strptime(hms, "%M:%S")
+                t = datetime.strptime(hms, "%M:%S")
                 return t.minute * 60 + t.second
             except Exception:
                 return None
 
     @staticmethod
-    def _convert_to_gmt_timestamp(dt_val, source_tz):
-        """Convert a YYYY-MM-DD or datetime string to a GMT Unix timestamp.
-        Dates from spreadsheet are assumed to be in the configured home timezone."""
-        if not dt_val:
-            return None
-        try:
-            # Parse the date string (assumes home timezone)
-            dt = dateparser.parse(str(dt_val))
-            if dt and dt.tzinfo is None:
-                # If no timezone, use configured home timezone
-                dt = dt.replace(tzinfo=source_tz)
-            # Convert to GMT/UTC and return Unix timestamp
-            utc_dt = dt.astimezone(datetime.timezone.utc)
-            return int(utc_dt.timestamp())
-        except Exception:
-            return None
+    def _convert_to_gmt_timestamp(dt_val: Union[str, datetime, date], source_tz: str) -> int:
+        """Convert a date/datetime/str to a GMT Unix timestamp, assuming local time in source_tz."""
+        tz = ZoneInfo(source_tz)
+
+        if isinstance(dt_val, str):
+            dt = datetime.fromisoformat(dt_val)
+        elif isinstance(dt_val, datetime):
+            dt = dt_val
+        elif isinstance(dt_val, date):
+            dt = datetime(dt_val.year, dt_val.month, dt_val.day)
+        else:
+            raise TypeError(f"Unsupported type for dt_val: {type(dt_val)}")
+
+        dt = dt.replace(tzinfo=tz)
+        return int(dt.astimezone(timezone.utc).timestamp())
 
     def _pull_all_activities(self) -> List[SpreadsheetActivity]:
         xlsx_file = Path(self.path)
@@ -129,7 +126,7 @@ class SpreadsheetProvider(FitnessProvider):
                 if hasattr(activity, "start_time") and activity.start_time:
                     try:
                         # Convert timestamp to datetime for comparison
-                        dt = datetime.datetime.fromtimestamp(int(activity.start_time))
+                        dt = datetime.fromtimestamp(int(activity.start_time))
                         if dt.year == year and dt.month == month:
                             file_activities.append(activity)
                     except (ValueError, TypeError):
@@ -149,8 +146,8 @@ class SpreadsheetProvider(FitnessProvider):
             pass
 
         activity_kwargs: Dict[str, Any] = {}
-        # Convert date to GMT timestamp
-        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0], self.config.get("home_timezone"))
+    
+        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0], self.config.get("home_timezone", "UTC"))
         activity_kwargs["start_time"] = start_time
 
         if parsed_data["row"][1]:

@@ -1,5 +1,6 @@
 from typing import Optional, NamedTuple
 from enum import Enum
+from zoneinfo import ZoneInfo
 from fitler.core import Fitler
 from datetime import datetime, timezone
 from collections import defaultdict
@@ -94,15 +95,14 @@ def process_activity_for_display(activity, provider: str) -> dict:
         "equipment": getattr(activity, "equipment", "") or "",
     }
 
-
-def generate_correlation_key(timestamp: int, distance: float) -> str:
+def generate_correlation_key(timestamp: int, distance: float) -> str: 
     """Generate a correlation key for matching activities across providers."""
     if not timestamp or not distance:
         return ""
 
     try:
-        # Convert timestamp to date string
-        dt = datetime.fromtimestamp(timestamp, timezone.utc)
+        # Convert timestamp to local date string
+        dt = datetime.fromtimestamp(timestamp, ZoneInfo("US/Eastern"))
         date_str = dt.strftime("%Y-%m-%d")
 
         # Round distance to nearest 0.1 mile for fuzzy matching
