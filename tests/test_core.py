@@ -116,8 +116,8 @@ class TestFitlerCore:
         os.environ,
         {
             "STRAVA_ACCESS_TOKEN": "test_token",
-            "STRAVA_CLIENT_ID": "12345",
-            "STRAVA_CLIENT_SECRET": "secret",
+            "STRAVA_REFRESH_TOKEN": "12345",
+            "STRAVA_TOKEN_EXPIRES": "1738568400",
         },
     )
     def test_enabled_providers_with_strava_env(self, tmp_path):

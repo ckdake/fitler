@@ -396,3 +396,15 @@ def test_spreadsheet_provider_timezone_access():
 
     tz = ZoneInfo(timezone)
     assert str(tz) == "America/Los_Angeles"
+
+
+def test_convert_to_gmt_timestamp_date_only_eastern():
+    """Test _convert_to_gmt_timestamp with date-only string and US/Eastern timezone."""
+    from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
+    from zoneinfo import ZoneInfo
+    # Feb 3, 2025 in US/Eastern should be 2025-02-03 00:00:00-05:00
+    # Which is 2025-02-03 05:00:00 UTC
+    dt_str = "2025-02-03" # How this appears in the spreadsheet
+    tz = ZoneInfo("US/Eastern") # Where the activity was recorded
+    ts = SpreadsheetProvider._convert_to_gmt_timestamp(dt_str, tz)
+    assert ts == 1738568400 # 2025-02-03 05:00:00 UTC = 1738568400

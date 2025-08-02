@@ -69,40 +69,17 @@ class SpreadsheetProvider(FitnessProvider):
                 return None
 
     @staticmethod
-    def _parse_spreadsheet_datetime(dt_val):
-        # Spreadsheet times are in local time
-        if not dt_val:
-            return None
-        # Try to parse as datetime
-        dt = None
-        try:
-            dt = dateparser.parse(str(dt_val))
-        except Exception:
-            return None
-        # Attach local timezone if naive
-        if dt and dt.tzinfo is None:
-            # Use the system's local timezone
-            dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
-        return dt
-
-    @staticmethod
-    def _convert_to_gmt_timestamp(dt_val):
+    def _convert_to_gmt_timestamp(dt_val, source_tz):
         """Convert a YYYY-MM-DD or datetime string to a GMT Unix timestamp.
         Dates from spreadsheet are assumed to be in the configured home timezone."""
         if not dt_val:
             return None
         try:
-            # Get home timezone from config
-            config_path = Path("fitler_config.json")
-            with open(config_path) as f:
-                config = json.load(f)
-            home_tz = ZoneInfo(config.get("home_timezone", "US/Eastern"))
-
             # Parse the date string (assumes home timezone)
             dt = dateparser.parse(str(dt_val))
             if dt and dt.tzinfo is None:
                 # If no timezone, use configured home timezone
-                dt = dt.replace(tzinfo=home_tz)
+                dt = dt.replace(tzinfo=source_tz)
             # Convert to GMT/UTC and return Unix timestamp
             utc_dt = dt.astimezone(datetime.timezone.utc)
             return int(utc_dt.timestamp())
@@ -173,7 +150,7 @@ class SpreadsheetProvider(FitnessProvider):
 
         activity_kwargs: Dict[str, Any] = {}
         # Convert date to GMT timestamp
-        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0])
+        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0], self.config.get("home_timezone"))
         activity_kwargs["start_time"] = start_time
 
         if parsed_data["row"][1]:
