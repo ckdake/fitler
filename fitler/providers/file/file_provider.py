@@ -162,7 +162,6 @@ class FileProvider(FitnessProvider):
 
         print(f"Processing {len(unprocessed_file_paths)} new files...")
 
-        processed_activities = []
         processed_count = 0
 
         if unprocessed_file_paths:
@@ -176,20 +175,25 @@ class FileProvider(FitnessProvider):
                 if not parsed_data:
                     continue
                 try:
-                    file_activity = self._process_parsed_data(parsed_data)
-                    if file_activity:
-                        processed_count += 1
+                    existing_file_activity = FileActivity.get_or_none(
+                        FileActivity.file_path == parsed_data.get("file_path"),
+                        FileActivity.file_checksum == parsed_data.get("file_checksum"),
+                    )
+                    if existing_file_activity is None:
+                        file_activity = self._process_parsed_data(parsed_data)
+                        if file_activity:
+                            processed_count += 1
                 except Exception as e:
                     print(f"Error processing file {file_path}: {e}")
                     continue
 
             print(
-                f"Processed {len(processed_activities)} files into file_activities table"
+                f"Processed {processed_count} new file activities"
             )
 
-        return self._get_file_activities()
+        return self._get_activities()
 
-    def _get_file_activities(
+    def _get_activities(
         self, date_filter: Optional[str] = None
     ) -> List["FileActivity"]:
         """Get FileActivity objects for a specific month."""
@@ -213,15 +217,6 @@ class FileProvider(FitnessProvider):
 
     def _process_parsed_data(self, parsed_data: dict) -> Optional["FileActivity"]:
         """Process a single activity files parsed data and store in file_activities table."""
-        try:
-            existing_file_activity = FileActivity.get(
-                FileActivity.file_path == parsed_data.get("file_path"),
-                FileActivity.file_checksum == parsed_data.get("file_checksum"),
-            )
-            return existing_file_activity
-        except DoesNotExist:
-            pass
-
         file_activity = FileActivity.create(
             file_path=parsed_data.get("file_path"),
             file_checksum=parsed_data.get("file_checksum"),
@@ -254,7 +249,7 @@ class FileProvider(FitnessProvider):
         else:
             print(f"Month {date_filter} already synced for {self.provider_name}")
 
-        return self._get_file_activities(date_filter)
+        return self._get_activities(date_filter)
 
     def get_activity_by_id(self, activity_id: str) -> Optional["FileActivity"]:
         """Get a specific activity by its file activity ID."""

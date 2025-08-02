@@ -13,8 +13,10 @@ import datetime
 
 from dateutil import parser as dateparser
 import openpyxl
+from peewee import DoesNotExist
 
 from fitler.providers.base_provider import FitnessProvider
+from fitler.provider_sync import ProviderSync
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
 
 
@@ -28,93 +30,9 @@ class SpreadsheetProvider(FitnessProvider):
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "spreadsheet"
-
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List[SpreadsheetActivity]:
-        """
-        Load all activities from spreadsheet into database, then return filtered activities.
-        If date_filter is None, returns all activities.
-        If date_filter is provided (YYYY-MM), returns only activities from that month.
-        """
-        # First, load all activities from the spreadsheet file
-        all_activities = self.fetch_activities()
-        print(f"Found {len(all_activities)} activities in spreadsheet")
-
-        persisted_activities = []
-        for activity in all_activities:
-            try:
-                # Check for duplicates based on spreadsheet_id (row number)
-                existing = SpreadsheetActivity.get_or_none(
-                    SpreadsheetActivity.spreadsheet_id == activity.spreadsheet_id
-                )
-                if existing:
-                    # Update existing activity with fresh data from spreadsheet
-                    for attr in [
-                        "start_time",
-                        "activity_type",
-                        "location_name",
-                        "city",
-                        "state",
-                        "temperature",
-                        "equipment",
-                        "duration",
-                        "distance",
-                        "max_speed",
-                        "avg_heart_rate",
-                        "max_heart_rate",
-                        "calories",
-                        "max_elevation",
-                        "total_elevation_gain",
-                        "with_names",
-                        "avg_cadence",
-                        "strava_id",
-                        "garmin_id",
-                        "ridewithgps_id",
-                        "notes",
-                        "name",
-                        "source_file",
-                        "source_file_type",
-                    ]:
-                        if hasattr(activity, attr):
-                            setattr(existing, attr, getattr(activity, attr))
-                    existing.save()
-                    persisted_activities.append(existing)
-                else:
-                    # Save new activity to database
-                    activity.save()
-                    persisted_activities.append(activity)
-
-            except Exception as e:
-                print(f"Error persisting spreadsheet activity: {e}")
-                continue
-
-        print(
-            f"Persisted {len(persisted_activities)} spreadsheet activities to database"
-        )
-
-        # If no date filter, return all persisted activities
-        if date_filter is None:
-            return persisted_activities
-
-        # Filter activities by the requested month
-        filtered_activities = []
-        year, month = map(int, date_filter.split("-"))
-
-        for activity in persisted_activities:
-            if hasattr(activity, "start_time") and activity.start_time:
-                try:
-                    # Convert timestamp to datetime for comparison
-                    dt = datetime.datetime.fromtimestamp(int(activity.start_time))
-                    if dt.year == year and dt.month == month:
-                        filtered_activities.append(activity)
-                except (ValueError, TypeError):
-                    continue
-
-        print(f"Returning {len(filtered_activities)} activities for {date_filter}")
-        return filtered_activities
-
-    def _seconds_to_hms(self, seconds: Optional[float]) -> str:
+    
+    @staticmethod
+    def _seconds_to_hms(seconds: Optional[float]) -> str:
         if seconds is None:
             return ""
         try:
@@ -122,8 +40,9 @@ class SpreadsheetProvider(FitnessProvider):
             return str(datetime.timedelta(seconds=seconds))
         except Exception:
             return ""
-
-    def _hms_to_seconds(self, hms: Optional[str]) -> Optional[float]:
+        
+    @staticmethod
+    def _hms_to_seconds(hms: Optional[str]) -> Optional[float]:
         if not hms:
             return None
         # Accept numeric types directly
@@ -148,8 +67,9 @@ class SpreadsheetProvider(FitnessProvider):
                 return t.minute * 60 + t.second
             except Exception:
                 return None
-
-    def _parse_spreadsheet_datetime(self, dt_val):
+            
+    @staticmethod
+    def _parse_spreadsheet_datetime(dt_val):
         # Spreadsheet times are in local time
         if not dt_val:
             return None
@@ -165,7 +85,8 @@ class SpreadsheetProvider(FitnessProvider):
             dt = dt.replace(tzinfo=datetime.datetime.now().astimezone().tzinfo)
         return dt
 
-    def _convert_to_gmt_timestamp(self, dt_val):
+    @staticmethod
+    def _convert_to_gmt_timestamp(dt_val):
         """Convert a YYYY-MM-DD or datetime string to a GMT Unix timestamp.
         Dates from spreadsheet are assumed to be in the configured home timezone."""
         if not dt_val:
@@ -188,154 +109,156 @@ class SpreadsheetProvider(FitnessProvider):
         except Exception:
             return None
 
-    def fetch_activities(self) -> List[SpreadsheetActivity]:
+    def _pull_all_activities(self) -> List[SpreadsheetActivity]:
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
 
         if sheet is None:
+            print(f"No active sheet found in {xlsx_file}")
             return []
+        
+        print(f"Processing spreadsheet file: {xlsx_file}")
+        
+        processed_count = 0
 
-        activities: List[SpreadsheetActivity] = []
         for i, row in enumerate(sheet.iter_rows(values_only=True)):
             if i == 0:
                 continue  # Skip header row
-            activity_kwargs: Dict[str, Any] = {}
-            # Convert date to GMT timestamp
-            start_time = self._convert_to_gmt_timestamp(row[0])
-            activity_kwargs["start_time"] = start_time
 
-            if row[1]:
-                activity_kwargs["activity_type"] = row[1]
-            if row[2]:
-                activity_kwargs["location_name"] = row[2]
-            if row[3]:
-                activity_kwargs["city"] = row[3]
-            if row[4]:
-                activity_kwargs["state"] = row[4]
-            if row[5]:
-                activity_kwargs["temperature"] = row[5]
-            if row[6]:
-                activity_kwargs["equipment"] = row[6]
-            # duration_hms is stored as HH:MM:SS, but we want .duration in seconds
-            if row[7]:
-                try:
-                    activity_kwargs["duration"] = self._hms_to_seconds(str(row[7]))
-                except (ValueError, TypeError):
-                    pass
-            if row[8]:
-                activity_kwargs["distance"] = row[8]
-            if row[9]:
-                activity_kwargs["max_speed"] = row[9]
-            if row[10]:
-                activity_kwargs["avg_heart_rate"] = row[10]
-            if row[11]:
-                activity_kwargs["max_heart_rate"] = row[11]
-            if row[12]:
-                activity_kwargs["calories"] = row[12]
-            if row[13]:
-                activity_kwargs["max_elevation"] = row[13]
-            if row[14]:
-                activity_kwargs["total_elevation_gain"] = row[14]
-            if row[15]:
-                activity_kwargs["with_names"] = row[15]
-            if row[16]:
-                activity_kwargs["avg_cadence"] = row[16]
-            if row[17]:
-                activity_kwargs["strava_id"] = row[17]
-            if row[18]:
-                activity_kwargs["garmin_id"] = row[18]
-            if row[19]:
-                activity_kwargs["ridewithgps_id"] = row[19]
-            if row[20]:
-                activity_kwargs["notes"] = row[20]
-                # Use notes field as name if not empty
-                activity_kwargs["name"] = row[20]
-            activity_kwargs["source_file"] = str(xlsx_file)
-            activity_kwargs["source_file_type"] = "spreadsheet"
-            activity_kwargs["spreadsheet_id"] = i + 1
-            activities.append(SpreadsheetActivity(**activity_kwargs))
-        return activities
+            existing_activity = SpreadsheetActivity.get_or_none(
+                SpreadsheetActivity.spreadsheet_id == i
+            )
+            if existing_activity is None:
+                activity = self._process_parsed_data({
+                    "file_name": str(xlsx_file),
+                    "spreadsheet_id": i,
+                    "row": row
+                    })
+                if activity:
+                    processed_count += 1
+                              
+        print(
+            f"Processed {processed_count} new spreadsheet activities"
+        )
 
-    def fetch_activities_for_month(self, year_month: str) -> List[SpreadsheetActivity]:
+        return self._get_activities()
+    
+    def _get_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List["SpreadsheetActivity"]:
+        """Get SpreadsheetActivity objects for a specific month."""
+        file_activities = []
+
+        if date_filter:
+            year, month = map(int, date_filter.split("-"))
+            for activity in SpreadsheetActivity.select():
+                if hasattr(activity, "start_time") and activity.start_time:
+                    try:
+                        # Convert timestamp to datetime for comparison
+                        dt = datetime.datetime.fromtimestamp(int(activity.start_time))
+                        if dt.year == year and dt.month == month:
+                            file_activities.append(activity)
+                    except (ValueError, TypeError):
+                        continue
+        else:
+            file_activities = list(SpreadsheetActivity.select())
+
+        return file_activities
+    
+    def _process_parsed_data(self, parsed_data: dict) -> Optional[SpreadsheetActivity]:
+        try:
+            existing_activity = SpreadsheetActivity.get(
+                SpreadsheetActivity.spreadsheet_id == parsed_data.get("spreadsheet_id")
+            )
+            return existing_activity
+        except DoesNotExist:
+            pass
+
+        activity_kwargs: Dict[str, Any] = {}
+        # Convert date to GMT timestamp
+        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0])
+        activity_kwargs["start_time"] = start_time
+
+        if parsed_data["row"][1]:
+            activity_kwargs["activity_type"] = parsed_data["row"][1]
+        if parsed_data["row"][2]:
+            activity_kwargs["location_name"] = parsed_data["row"][2]
+        if parsed_data["row"][3]:
+            activity_kwargs["city"] = parsed_data["row"][3]
+        if parsed_data["row"][4]:
+            activity_kwargs["state"] = parsed_data["row"][4]
+        if parsed_data["row"][5]:
+            activity_kwargs["temperature"] = parsed_data["row"][5]
+        if parsed_data["row"][6]:
+            activity_kwargs["equipment"] = parsed_data["row"][6]
+        # duration_hms is stored as HH:MM:SS, but we want .duration in seconds
+        if parsed_data["row"][7]:
+            try:
+                activity_kwargs["duration"] = self._hms_to_seconds(str(parsed_data["row"][7]))
+            except (ValueError, TypeError):
+                pass
+        if parsed_data["row"][8]:
+            activity_kwargs["distance"] = parsed_data["row"][8]
+        if parsed_data["row"][9]:
+            activity_kwargs["max_speed"] = parsed_data["row"][9]
+        if parsed_data["row"][10]:
+            activity_kwargs["avg_heart_rate"] = parsed_data["row"][10]
+        if parsed_data["row"][11]:
+            activity_kwargs["max_heart_rate"] = parsed_data["row"][11]
+        if parsed_data["row"][12]:
+            activity_kwargs["calories"] = parsed_data["row"][12]
+        if parsed_data["row"][13]:
+            activity_kwargs["max_elevation"] = parsed_data["row"][13]
+        if parsed_data["row"][14]:
+            activity_kwargs["total_elevation_gain"] = parsed_data["row"][14]
+        if parsed_data["row"][15]:
+            activity_kwargs["with_names"] = parsed_data["row"][15]
+        if parsed_data["row"][16]:
+            activity_kwargs["avg_cadence"] = parsed_data["row"][16]
+        if parsed_data["row"][17]:
+            activity_kwargs["strava_id"] = parsed_data["row"][17]
+        if parsed_data["row"][18]:
+            activity_kwargs["garmin_id"] = parsed_data["row"][18]
+        if parsed_data["row"][19]:
+            activity_kwargs["ridewithgps_id"] = parsed_data["row"][19]
+        if parsed_data["row"][20]:
+            activity_kwargs["notes"] = parsed_data["row"][20]
+            # Use notes field as name if not empty
+            activity_kwargs["name"] = parsed_data["row"][20]
+        activity_kwargs["source_file"] = parsed_data.get("file_name", "")
+        activity_kwargs["source_file_type"] = "spreadsheet"
+        activity_kwargs["spreadsheet_id"] = parsed_data["spreadsheet_id"]
+
+        spreadsheet_activity = SpreadsheetActivity.create(**activity_kwargs)
+        return spreadsheet_activity
+
+    def pull_activities(
+        self, date_filter: Optional[str] = None
+    ) -> List[SpreadsheetActivity]:
         """
-        Return activities for the given year_month (YYYY-MM).
+        Process spreadsheet and return SpreadsheetActivity objects.
+        If date_filter is None, returns all activities.
+        If date_filter is provided (YYYY-MM), returns only activities from that month.
         """
-        all_activities = self.fetch_activities()
-        filtered = []
-        for act in all_activities:
-            start_time = getattr(act, "start_time", None)
-            if start_time:
-                try:
-                    # Convert GMT timestamp to local time for comparison
-                    dt = datetime.datetime.fromtimestamp(int(start_time))
-                    date_str = dt.strftime("%Y-%m")
-                    if date_str == year_month:
-                        filtered.append(act)
-                except (ValueError, TypeError):
-                    continue
-        return filtered
+        if date_filter is None:
+            return self._pull_all_activities()
+
+        existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
+        if not existing_sync:
+            self._pull_all_activities()
+            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+        else:
+            print(f"Month {date_filter} already synced for {self.provider_name}")
+
+        return self._get_activities(date_filter)
 
     def get_activity_by_id(self, activity_id: str) -> Optional[SpreadsheetActivity]:
-        xlsx_file = Path(self.path)
-        wb_obj = openpyxl.load_workbook(xlsx_file)
-        sheet = wb_obj.active
-
-        if sheet is None:
+        """Get a specific activity by its file activity ID."""
+        try:
+            return SpreadsheetActivity.get_by_id(int(activity_id))
+        except (ValueError, DoesNotExist):
             return None
-
-        row_idx = int(activity_id)
-        if row_idx <= 1 or row_idx > sheet.max_row:
-            return None
-
-        row = [cell.value for cell in sheet[row_idx]]
-        activity_kwargs: Dict[str, Any] = {}
-        start_time = self._convert_to_gmt_timestamp(row[0]) if row[0] else None
-        activity_kwargs["start_time"] = start_time
-        if row[1]:
-            activity_kwargs["activity_type"] = row[1]
-        if row[2]:
-            activity_kwargs["location_name"] = row[2]
-        if row[3]:
-            activity_kwargs["city"] = row[3]
-        if row[4]:
-            activity_kwargs["state"] = row[4]
-        if row[5]:
-            activity_kwargs["temperature"] = row[5]
-        if row[6]:
-            activity_kwargs["equipment"] = row[6]
-        if row[7]:
-            activity_kwargs["duration"] = self._hms_to_seconds(str(row[7]))
-        if row[8]:
-            activity_kwargs["distance"] = row[8]
-        if row[9]:
-            activity_kwargs["max_speed"] = row[9]
-        if row[10]:
-            activity_kwargs["avg_heart_rate"] = row[10]
-        if row[11]:
-            activity_kwargs["max_heart_rate"] = row[11]
-        if row[12]:
-            activity_kwargs["calories"] = row[12]
-        if row[13]:
-            activity_kwargs["max_elevation"] = row[13]
-        if row[14]:
-            activity_kwargs["total_elevation_gain"] = row[14]
-        if row[15]:
-            activity_kwargs["with_names"] = row[15]
-        if row[16]:
-            activity_kwargs["avg_cadence"] = row[16]
-        if row[17]:
-            activity_kwargs["strava_id"] = row[17]
-        if row[18]:
-            activity_kwargs["garmin_id"] = row[18]
-        if row[19]:
-            activity_kwargs["ridewithgps_id"] = row[19]
-        if row[20]:
-            activity_kwargs["notes"] = row[20]
-        activity_kwargs["source_file"] = str(xlsx_file)
-        activity_kwargs["source_file_type"] = "spreadsheet"
-        activity_kwargs["spreadsheet_id"] = row_idx
-        return SpreadsheetActivity(**activity_kwargs)
 
     def update_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Update an existing SpreadsheetActivity with new data."""
