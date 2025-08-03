@@ -1,6 +1,7 @@
 """Strava provider for Fitler."""
 
 import os
+import re
 import logging
 from typing import List, Optional, Dict, Any
 import datetime
@@ -23,7 +24,7 @@ class StravaProvider(FitnessProvider):
         self,
         token: str,
         refresh_token: Optional[str] = None,
-        token_expires: Optional[str] = None,
+        token_expires: Optional[str] = "0",
         config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(config)
@@ -45,6 +46,23 @@ class StravaProvider(FitnessProvider):
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "strava"
+
+    @staticmethod
+    def _normalize_strava_gear_name(gear_name: str) -> str:
+        """
+        Extracts the year (YYYY) and the word(s) before it from a Strava gear name,
+        and returns a string in the format 'YYYY EquipmentName'.
+        If the gear name already starts with the year, return it unchanged.
+        """
+        match = re.search(r'(\b\d{4}\b)', gear_name)
+        if match:
+            year = match.group(1)
+            before_year = gear_name[:match.start()].strip()
+            # If the gear name already starts with the year, return as is
+            if gear_name.strip().startswith(year):
+                return gear_name
+            return f"{year} {before_year}"
+        return gear_name
 
     def pull_activities(
         self, date_filter: Optional[str] = None
@@ -132,16 +150,12 @@ class StravaProvider(FitnessProvider):
         """Convert a stravalib activity to our StravaActivity object"""
         strava_activity = StravaActivity()
 
-        # Always fetch the full activity details to ensure gear info is present
         activity_id = getattr(strava_lib_activity, "id", None)
         full_activity = strava_lib_activity
-        try:
-            # Use the client to fetch full activity details (includes gear)
-            if activity_id is not None:
-                time.sleep(1)  # Throttle API calls to avoid rate limit
-                full_activity = self.client.get_activity(int(activity_id))
-        except Exception:
-            pass  # fallback to the original object if API call fails
+
+        if activity_id is not None:
+            time.sleep(1)  # Throttle API calls to avoid rate limit
+            full_activity = self.client.get_activity(int(activity_id))
 
         # Basic fields
         setattr(strava_activity, "strava_id", str(getattr(full_activity, "id", "")))
@@ -190,7 +204,7 @@ class StravaProvider(FitnessProvider):
         if gear and hasattr(gear, "name"):
             gear_name = getattr(gear, "name", None)
             if gear_name:
-                setattr(strava_activity, "equipment", str(gear_name))
+                setattr(strava_activity, "equipment", self._normalize_strava_gear_name(str(gear_name)))
 
         # Store raw data as full activity JSON
         if hasattr(full_activity, "model_dump"):
