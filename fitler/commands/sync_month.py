@@ -135,7 +135,9 @@ def run(year_month):
         # Group activities by correlation key (date + distance)
         grouped = defaultdict(list)
         for act in all_acts:
-            correlation_key = generate_correlation_key(act["timestamp"], act["distance"])
+            correlation_key = generate_correlation_key(
+                act["timestamp"], act["distance"]
+            )
             if correlation_key:  # Only group activities with valid correlation keys
                 grouped[correlation_key].append(act)
 
@@ -150,7 +152,9 @@ def run(year_month):
             # Find the earliest start time in the group for ordering
             start = min(
                 (
-                    datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(home_tz)
+                    datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(
+                        home_tz
+                    )
                     if a["timestamp"]
                     else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
                 )
@@ -248,7 +252,9 @@ def run(year_month):
                     # Name column
                     if sync_name:
                         if provider == auth_provider:
-                            name_colored = color_text(activity["name"], True, False, False)
+                            name_colored = color_text(
+                                activity["name"], True, False, False
+                            )
                         else:
                             name_wrong = (
                                 activity["name"] != auth_name if auth_name else False
@@ -302,8 +308,8 @@ def run(year_month):
                                         activity_id=str(activity["id"]),
                                         old_value=activity["equipment"],
                                         new_value=auth_equipment,
+                                    )
                                 )
-                            )
                         table_row.append(equip_colored)
                 else:
                     # Missing from this provider
@@ -311,7 +317,9 @@ def run(year_month):
                     table_row.append(missing_id)
                     if sync_name:
                         missing_name = (
-                            color_text(auth_name, False, True, False) if auth_name else ""
+                            color_text(auth_name, False, True, False)
+                            if auth_name
+                            else ""
                         )
                         table_row.append(missing_name)
                     if sync_equipment:
@@ -341,7 +349,9 @@ def run(year_month):
         headers = ["Start"]
         for provider in provider_list:
             sync_name = provider_config.get(provider, {}).get("sync_name", True)
-            sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
+            sync_equipment = provider_config.get(provider, {}).get(
+                "sync_equipment", True
+            )
             headers.append(f"{provider.title()} ID")
             if sync_name:
                 headers.append(f"{provider.title()} Name")
@@ -361,7 +371,9 @@ def run(year_month):
         )
 
         print("\nLegend:")
-        print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
+        print(
+            f"{green_bg}Green{reset} = Source of truth (from highest priority provider)"
+        )
         print(f"{yellow_bg}Yellow{reset} = New entry to be created")
         print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
 
@@ -379,19 +391,20 @@ def run(year_month):
                         print(f"* {change}")
 
             # Interactive prompting for supported changes
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("Interactive Updates")
-            print("="*50)
-            
+            print("=" * 50)
+
             # Only prompt for ridewithgps equipment updates for now
             ridewithgps_equipment_changes = [
-                change for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
+                change
+                for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
                 if change.provider == "ridewithgps"
             ]
-            
+
             if ridewithgps_equipment_changes:
                 print("\nProcessing RideWithGPS equipment updates...")
-                
+
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
                 if not ridewithgps_provider:
@@ -400,16 +413,24 @@ def run(year_month):
                     for change in ridewithgps_equipment_changes:
                         prompt = f"\n{change}? (y/n): "
                         response = input(prompt).strip().lower()
-                        
-                        if response == 'y':
+
+                        if response == "y":
                             try:
-                                success = ridewithgps_provider.set_gear(change.new_value, change.activity_id)
+                                success = ridewithgps_provider.set_gear(
+                                    change.new_value, change.activity_id
+                                )
                                 if success:
-                                    print(f"✓ Successfully updated gear for activity {change.activity_id}")
+                                    print(
+                                        f"✓ Successfully updated gear for activity {change.activity_id}"
+                                    )
                                 else:
-                                    print(f"✗ Failed to update gear for activity {change.activity_id}")
+                                    print(
+                                        f"✗ Failed to update gear for activity {change.activity_id}"
+                                    )
                             except Exception as e:
-                                print(f"✗ Error updating gear for activity {change.activity_id}: {e}")
+                                print(
+                                    f"✗ Error updating gear for activity {change.activity_id}: {e}"
+                                )
                         else:
                             print("Skipped")
         else:

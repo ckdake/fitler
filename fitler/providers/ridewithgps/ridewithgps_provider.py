@@ -151,7 +151,7 @@ class RideWithGPSProvider(FitnessProvider):
     def get_all_gear(self) -> Dict[str, str]:
         """Get gear from RideWithGPS user info."""
         gear_dict = {}
-        if hasattr(self, 'user_info') and hasattr(self.user_info, 'gear'):
+        if hasattr(self, "user_info") and hasattr(self.user_info, "gear"):
             for gear_item in self.user_info.gear:
                 gear_id = str(gear_item.id)
                 gear_name = gear_item.name
@@ -161,24 +161,32 @@ class RideWithGPSProvider(FitnessProvider):
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear for a RideWithGPS trip by gear name."""
         try:
-            # Get all gear and find the ID for the given name
             all_gear = self.get_all_gear()
             gear_id = None
             for gid, gname in all_gear.items():
                 if gname == gear_name:
                     gear_id = gid
                     break
-            
+
             if gear_id is None:
                 print(f"Gear '{gear_name}' not found in RideWithGPS gear list")
                 return False
-            
-            # Use PATCH to update just the gear_id for the trip
-            response = self.client.post(
-                path=f"/trips/{activity_id}",
-                params={"trip": {"gear_id": int(gear_id)}}
+
+            response = self.client.patch(
+                path=f"/trips/{activity_id}.json",
+                params={
+                    "trip": {
+                        "gear_id": int(gear_id),
+                    }
+                },
             )
+
+            if hasattr(response, "error"):
+                print(f"API returned error: {response.error}")
+                return False
+
             return True
+
         except Exception as e:
             print(f"Error setting gear for RideWithGPS trip {activity_id}: {e}")
             return False

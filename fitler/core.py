@@ -28,7 +28,7 @@ class Fitler:
 
         # Initialize database
         db.connect(reuse_if_open=True)
-        
+
         # Always migrate tables on startup
         migrate_tables(get_all_models())
 
