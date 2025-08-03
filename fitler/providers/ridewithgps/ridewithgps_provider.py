@@ -36,7 +36,7 @@ class RideWithGPSProvider(FitnessProvider):
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "ridewithgps"
-    
+
     @staticmethod
     def _parse_iso8601(dt_val):
         if not dt_val:
@@ -147,16 +147,30 @@ class RideWithGPSProvider(FitnessProvider):
             RideWithGPSActivity.ridewithgps_id == activity_id
         )
 
-    def update_activity(self, activity_data: Dict) -> RideWithGPSActivity:
-        """Update an existing RideWithGPSActivity with new data."""
+    # TODO: "pull" the activity again after setting gear to update our local copy.
+    def update_activity(self, activity_data: Dict) -> bool:
+        """Update an existing RideWithGPS trip via API."""
         provider_id = activity_data["ridewithgps_id"]
-        activity = RideWithGPSActivity.get(
-            RideWithGPSActivity.ridewithgps_id == provider_id
-        )
-        for key, value in activity_data.items():
-            setattr(activity, key, value)
-        activity.save()
-        return activity
+
+        try:
+            trip_data = {
+                k: v for k, v in activity_data.items() if k != "ridewithgps_id"
+            }
+
+            response = self.client.patch(
+                path=f"/trips/{provider_id}.json", params={"trip": trip_data}
+            )
+
+            # Check if there's an error in the response
+            if hasattr(response, "error"):
+                print(f"API returned error: {response.error}")
+                return False
+
+            return True
+
+        except Exception as e:
+            print(f"Error updating RideWithGPS trip {provider_id}: {e}")
+            return False
 
     def get_all_gear(self) -> Dict[str, str]:
         """Get gear from RideWithGPS user info."""

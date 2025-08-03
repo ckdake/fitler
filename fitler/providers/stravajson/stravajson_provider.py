@@ -6,10 +6,7 @@ It supports fetching activities from a folder of JSON files, but does not suppor
 uploading, creating, updating, or managing gear.
 """
 
-import glob
-import json
 from typing import List, Optional, Dict, Any
-import dateparser
 
 from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.stravajson.stravajson_activity import StravaJsonActivity

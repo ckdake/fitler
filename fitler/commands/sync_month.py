@@ -395,43 +395,81 @@ def run(year_month):
             print("Interactive Updates")
             print("=" * 50)
 
-            # Only prompt for ridewithgps equipment updates for now
+            # Prompt for ridewithgps equipment updates
             ridewithgps_equipment_changes = [
                 change
                 for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
                 if change.provider == "ridewithgps"
             ]
 
-            if ridewithgps_equipment_changes:
-                print("\nProcessing RideWithGPS equipment updates...")
+            # Prompt for ridewithgps name updates
+            ridewithgps_name_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_NAME]
+                if change.provider == "ridewithgps"
+            ]
 
+            if ridewithgps_equipment_changes or ridewithgps_name_changes:
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
                 if not ridewithgps_provider:
                     print("RideWithGPS provider not available")
                 else:
-                    for change in ridewithgps_equipment_changes:
-                        prompt = f"\n{change}? (y/n): "
-                        response = input(prompt).strip().lower()
+                    # Process equipment updates
+                    if ridewithgps_equipment_changes:
+                        print("\nProcessing RideWithGPS equipment updates...")
+                        for change in ridewithgps_equipment_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
 
-                        if response == "y":
-                            try:
-                                success = ridewithgps_provider.set_gear(
-                                    change.new_value, change.activity_id
-                                )
-                                if success:
-                                    print(
-                                        f"✓ Successfully updated gear for activity {change.activity_id}"
+                            if response == "y":
+                                try:
+                                    success = ridewithgps_provider.set_gear(
+                                        change.new_value, change.activity_id
                                     )
-                                else:
+                                    if success:
+                                        print(
+                                            f"✓ Gear for {change.activity_id}"
+                                        )
+                                    else:
+                                        print(
+                                            f"✗ Gear for {change.activity_id}"
+                                        )
+                                except Exception as e:
                                     print(
-                                        f"✗ Failed to update gear for activity {change.activity_id}"
+                                        f"✗ Gear for {change.activity_id}: {e}"
                                     )
-                            except Exception as e:
-                                print(
-                                    f"✗ Error updating gear for activity {change.activity_id}: {e}"
-                                )
-                        else:
-                            print("Skipped")
+                            else:
+                                print("Skipped")
+
+                    # Process name updates
+                    if ridewithgps_name_changes:
+                        print("\nProcessing RideWithGPS name updates...")
+                        for change in ridewithgps_name_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = ridewithgps_provider.update_activity(
+                                        {
+                                            "ridewithgps_id": change.activity_id,
+                                            "name": change.new_value,
+                                        }
+                                    )
+                                    if success:
+                                        print(
+                                            f"✓ Name for {change.activity_id}"
+                                        )
+                                    else:
+                                        print(
+                                            f"✗ Name for {change.activity_id}"
+                                        )
+                                except Exception as e:
+                                    print(
+                                        f"✗ Name for {change.activity_id}: {e}"
+                                    )
+                            else:
+                                print("Skipped")
         else:
             print("\nNo changes needed - all activities are synchronized!")
