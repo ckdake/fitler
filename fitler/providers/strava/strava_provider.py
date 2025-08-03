@@ -233,16 +233,16 @@ class StravaProvider(FitnessProvider):
     def update_activity(self, activity_data: Dict[str, Any]) -> bool:
         """Update an existing Strava activity via API."""
         provider_id = activity_data["strava_id"]
-        
+
         try:
             # Remove the provider_id from the data before sending to API
             update_data = {k: v for k, v in activity_data.items() if k != "strava_id"}
-            
+
             # Use stravalib to update the activity
             self.client.update_activity(activity_id=int(provider_id), **update_data)
-            
+
             return True
-                    
+
         except Exception as e:
             print(f"Error updating Strava activity {provider_id}: {e}")
             return False

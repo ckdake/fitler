@@ -29,17 +29,12 @@ class TestStravaProviderUpdate:
 
         # Create provider with mocked client
         provider = StravaProvider(
-            token="test_token",
-            refresh_token="test_refresh",
-            token_expires="999999999"
+            token="test_token", refresh_token="test_refresh", token_expires="999999999"
         )
         provider.client = mock_client
 
         # Test data
-        activity_data = {
-            "strava_id": "12345",
-            "name": "Updated Activity Name"
-        }
+        activity_data = {"strava_id": "12345", "name": "Updated Activity Name"}
 
         # Call update_activity
         result = provider.update_activity(activity_data)
@@ -49,8 +44,7 @@ class TestStravaProviderUpdate:
 
         # Verify the API was called correctly
         mock_client.update_activity.assert_called_once_with(
-            activity_id=12345,
-            name="Updated Activity Name"
+            activity_id=12345, name="Updated Activity Name"
         )
 
     def test_update_activity_multiple_fields(self):
@@ -61,9 +55,7 @@ class TestStravaProviderUpdate:
 
         # Create provider with mocked client
         provider = StravaProvider(
-            token="test_token",
-            refresh_token="test_refresh",
-            token_expires="999999999"
+            token="test_token", refresh_token="test_refresh", token_expires="999999999"
         )
         provider.client = mock_client
 
@@ -71,7 +63,7 @@ class TestStravaProviderUpdate:
         activity_data = {
             "strava_id": "67890",
             "name": "New Name",
-            "description": "New description"
+            "description": "New description",
         }
 
         # Call update_activity
@@ -82,9 +74,7 @@ class TestStravaProviderUpdate:
 
         # Verify the API was called with all fields except strava_id
         mock_client.update_activity.assert_called_once_with(
-            activity_id=67890,
-            name="New Name",
-            description="New description"
+            activity_id=67890, name="New Name", description="New description"
         )
 
     def test_update_activity_api_failure(self):
@@ -95,17 +85,12 @@ class TestStravaProviderUpdate:
 
         # Create provider with mocked client
         provider = StravaProvider(
-            token="test_token",
-            refresh_token="test_refresh",
-            token_expires="999999999"
+            token="test_token", refresh_token="test_refresh", token_expires="999999999"
         )
         provider.client = mock_client
 
         # Test data
-        activity_data = {
-            "strava_id": "12345",
-            "name": "Updated Name"
-        }
+        activity_data = {"strava_id": "12345", "name": "Updated Name"}
 
         # Call update_activity and expect it to handle the exception
         result = provider.update_activity(activity_data)
@@ -124,9 +109,7 @@ class TestStravaProviderUpdate:
 
         # Create provider with mocked client
         provider = StravaProvider(
-            token="test_token",
-            refresh_token="test_refresh",
-            token_expires="999999999"
+            token="test_token", refresh_token="test_refresh", token_expires="999999999"
         )
         provider.client = mock_client
 
@@ -134,7 +117,7 @@ class TestStravaProviderUpdate:
         activity_data = {
             "strava_id": "12345",
             "name": "Test Name",
-            "some_other_field": "some_value"
+            "some_other_field": "some_value",
         }
 
         # Call update_activity
@@ -143,7 +126,5 @@ class TestStravaProviderUpdate:
         # Verify that strava_id was not passed to the API
         # but other fields were passed
         mock_client.update_activity.assert_called_once_with(
-            activity_id=12345,
-            name="Test Name",
-            some_other_field="some_value"
+            activity_id=12345, name="Test Name", some_other_field="some_value"
         )

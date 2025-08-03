@@ -50,80 +50,75 @@ def test_get_activity_by_id(monkeypatch, mock_client):
 def test_update_activity_name_success():
     """Test successful name update via RideWithGPS API."""
     provider = RideWithGPSProvider()
-    
+
     # Mock successful API response
     provider.client.patch = MagicMock(return_value=SimpleNamespace())
-    
+
     # Test data
-    activity_data = {
-        "ridewithgps_id": "12345",
-        "name": "Updated Activity Name"
-    }
-    
+    activity_data = {"ridewithgps_id": "12345", "name": "Updated Activity Name"}
+
     # Call update_activity
     result = provider.update_activity(activity_data)
-    
+
     # Verify the result
     assert result is True
-    
+
     # Verify the API was called correctly
     provider.client.patch.assert_called_once_with(
-        path="/trips/12345.json",
-        params={"trip": {"name": "Updated Activity Name"}}
+        path="/trips/12345.json", params={"trip": {"name": "Updated Activity Name"}}
     )
 
 
 def test_update_activity_multiple_fields():
     """Test updating multiple fields via RideWithGPS API."""
     provider = RideWithGPSProvider()
-    
+
     # Mock successful API response
     provider.client.patch = MagicMock(return_value=SimpleNamespace())
-    
+
     # Test data with multiple fields
     activity_data = {
         "ridewithgps_id": "67890",
         "name": "New Name",
         "description": "New description",
-        "visibility": 1
+        "visibility": 1,
     }
-    
+
     # Call update_activity
     result = provider.update_activity(activity_data)
-    
+
     # Verify the result
     assert result is True
-    
+
     # Verify the API was called with all fields except ridewithgps_id
     provider.client.patch.assert_called_once_with(
         path="/trips/67890.json",
-        params={"trip": {
-            "name": "New Name",
-            "description": "New description", 
-            "visibility": 1
-        }}
+        params={
+            "trip": {
+                "name": "New Name",
+                "description": "New description",
+                "visibility": 1,
+            }
+        },
     )
 
 
 def test_update_activity_api_failure():
     """Test handling of API failure during update."""
     provider = RideWithGPSProvider()
-    
+
     # Mock API failure
     provider.client.patch = MagicMock(side_effect=Exception("API Error"))
-    
+
     # Test data
-    activity_data = {
-        "ridewithgps_id": "12345",
-        "name": "Updated Name"
-    }
-    
+    activity_data = {"ridewithgps_id": "12345", "name": "Updated Name"}
+
     # Call update_activity and expect it to handle the exception
     result = provider.update_activity(activity_data)
-    
+
     # Verify the result is False due to the exception
     assert result is False
-    
+
     # Verify the API was called
     provider.client.patch.assert_called_once()
 
@@ -131,20 +126,17 @@ def test_update_activity_api_failure():
 def test_update_activity_api_error_response():
     """Test handling of API error response during update."""
     provider = RideWithGPSProvider()
-    
+
     # Mock API response with error
     error_response = SimpleNamespace(error="Some API error")
     provider.client.patch = MagicMock(return_value=error_response)
-    
+
     # Test data
-    activity_data = {
-        "ridewithgps_id": "12345",
-        "name": "Updated Name"
-    }
-    
+    activity_data = {"ridewithgps_id": "12345", "name": "Updated Name"}
+
     # Call update_activity
     result = provider.update_activity(activity_data)
-    
+
     # Verify the result is False due to the error response
     assert result is False
 
@@ -152,28 +144,25 @@ def test_update_activity_api_error_response():
 def test_update_activity_removes_provider_id():
     """Test that ridewithgps_id is removed from the data sent to API."""
     provider = RideWithGPSProvider()
-    
+
     # Mock successful API response
     provider.client.patch = MagicMock(return_value=SimpleNamespace())
-    
+
     # Test data
     activity_data = {
         "ridewithgps_id": "12345",
         "name": "Test Name",
-        "some_other_field": "some_value"
+        "some_other_field": "some_value",
     }
-    
+
     # Call update_activity
     provider.update_activity(activity_data)
-    
+
     # Verify that ridewithgps_id was not passed to the API
     # but other fields were passed
     provider.client.patch.assert_called_once_with(
         path="/trips/12345.json",
-        params={"trip": {
-            "name": "Test Name",
-            "some_other_field": "some_value"
-        }}
+        params={"trip": {"name": "Test Name", "some_other_field": "some_value"}},
     )
 
 

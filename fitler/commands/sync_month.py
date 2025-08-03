@@ -416,12 +416,18 @@ def run(year_month):
                 if change.provider == "strava"
             ]
 
-            if ridewithgps_equipment_changes or ridewithgps_name_changes or strava_name_changes:
+            if (
+                ridewithgps_equipment_changes
+                or ridewithgps_name_changes
+                or strava_name_changes
+            ):
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
                 strava_provider = fitler.strava
-                
-                if not ridewithgps_provider and (ridewithgps_equipment_changes or ridewithgps_name_changes):
+
+                if not ridewithgps_provider and (
+                    ridewithgps_equipment_changes or ridewithgps_name_changes
+                ):
                     print("RideWithGPS provider not available")
                 elif not strava_provider and strava_name_changes:
                     print("Strava provider not available")
@@ -439,17 +445,11 @@ def run(year_month):
                                         change.new_value, change.activity_id
                                     )
                                     if success:
-                                        print(
-                                            f"✓ Gear for {change.activity_id}"
-                                        )
+                                        print(f"✓ Gear for {change.activity_id}")
                                     else:
-                                        print(
-                                            f"✗ Gear for {change.activity_id}"
-                                        )
+                                        print(f"✗ Gear for {change.activity_id}")
                                 except Exception as e:
-                                    print(
-                                        f"✗ Gear for {change.activity_id}: {e}"
-                                    )
+                                    print(f"✗ Gear for {change.activity_id}: {e}")
                             else:
                                 print("Skipped")
 
@@ -469,17 +469,11 @@ def run(year_month):
                                         }
                                     )
                                     if success:
-                                        print(
-                                            f"✓ Name for {change.activity_id}"
-                                        )
+                                        print(f"✓ Name for {change.activity_id}")
                                     else:
-                                        print(
-                                            f"✗ Name for {change.activity_id}"
-                                        )
+                                        print(f"✗ Name for {change.activity_id}")
                                 except Exception as e:
-                                    print(
-                                        f"✗ Name for {change.activity_id}: {e}"
-                                    )
+                                    print(f"✗ Name for {change.activity_id}: {e}")
                             else:
                                 print("Skipped")
 
@@ -499,17 +493,11 @@ def run(year_month):
                                         }
                                     )
                                     if success:
-                                        print(
-                                            f"✓ Name for {change.activity_id}"
-                                        )
+                                        print(f"✓ Name for {change.activity_id}")
                                     else:
-                                        print(
-                                            f"✗ Name for {change.activity_id}"
-                                        )
+                                        print(f"✗ Name for {change.activity_id}")
                                 except Exception as e:
-                                    print(
-                                        f"✗ Name for {change.activity_id}: {e}"
-                                    )
+                                    print(f"✗ Name for {change.activity_id}: {e}")
                             else:
                                 print("Skipped")
         else:
