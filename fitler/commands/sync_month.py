@@ -5,6 +5,7 @@ from fitler.core import Fitler
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
+from decimal import Decimal, ROUND_HALF_DOWN
 
 
 class ChangeType(Enum):
@@ -104,10 +105,9 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
     try:
         dt = datetime.fromtimestamp(timestamp, ZoneInfo("US/Eastern"))
         date_str = dt.strftime("%Y-%m-%d")
+        d = Decimal(str(distance)).quantize(Decimal("1"), rounding=ROUND_HALF_DOWN)
 
-        rounded_distance = round(float(distance), 1)
-
-        return f"{date_str}_{rounded_distance}"
+        return f"{date_str}_{d:.1f}"
     except (ValueError, TypeError):
         return ""
 
