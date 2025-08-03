@@ -197,9 +197,6 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
     * Get everything out of KML files: https://pypi.org/project/pykml/
     * Get everything out of a spreadsheet with headers: https://pypi.org/project/openpyxl/ (basics are in, work better with headers)
 
-    * Store everything in KM and s per all the filespecs (instead of conversions to mph/miles/etc)
-    * Correctly use a datetime with tz information as start time and primary index
-
     * Output as all fit (lib already included)
     * Output as all tcx (lib already included)
     * Output as all gpx (lib already included)
@@ -213,3 +210,5 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
     * What about the weather?
     * What about choochoo?
     * What else?
+
+    * switch to fitdecode
