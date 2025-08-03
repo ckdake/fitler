@@ -409,14 +409,25 @@ def run(year_month):
                 if change.provider == "ridewithgps"
             ]
 
-            if ridewithgps_equipment_changes or ridewithgps_name_changes:
+            # Prompt for strava name updates
+            strava_name_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_NAME]
+                if change.provider == "strava"
+            ]
+
+            if ridewithgps_equipment_changes or ridewithgps_name_changes or strava_name_changes:
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
-                if not ridewithgps_provider:
+                strava_provider = fitler.strava
+                
+                if not ridewithgps_provider and (ridewithgps_equipment_changes or ridewithgps_name_changes):
                     print("RideWithGPS provider not available")
+                elif not strava_provider and strava_name_changes:
+                    print("Strava provider not available")
                 else:
                     # Process equipment updates
-                    if ridewithgps_equipment_changes:
+                    if ridewithgps_equipment_changes and ridewithgps_provider:
                         print("\nProcessing RideWithGPS equipment updates...")
                         for change in ridewithgps_equipment_changes:
                             prompt = f"\n{change}? (y/n): "
@@ -442,8 +453,8 @@ def run(year_month):
                             else:
                                 print("Skipped")
 
-                    # Process name updates
-                    if ridewithgps_name_changes:
+                    # Process ridewithgps name updates
+                    if ridewithgps_name_changes and ridewithgps_provider:
                         print("\nProcessing RideWithGPS name updates...")
                         for change in ridewithgps_name_changes:
                             prompt = f"\n{change}? (y/n): "
@@ -454,6 +465,36 @@ def run(year_month):
                                     success = ridewithgps_provider.update_activity(
                                         {
                                             "ridewithgps_id": change.activity_id,
+                                            "name": change.new_value,
+                                        }
+                                    )
+                                    if success:
+                                        print(
+                                            f"✓ Name for {change.activity_id}"
+                                        )
+                                    else:
+                                        print(
+                                            f"✗ Name for {change.activity_id}"
+                                        )
+                                except Exception as e:
+                                    print(
+                                        f"✗ Name for {change.activity_id}: {e}"
+                                    )
+                            else:
+                                print("Skipped")
+
+                    # Process strava name updates
+                    if strava_name_changes and strava_provider:
+                        print("\nProcessing Strava name updates...")
+                        for change in strava_name_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = strava_provider.update_activity(
+                                        {
+                                            "strava_id": change.activity_id,
                                             "name": change.new_value,
                                         }
                                     )

@@ -14,7 +14,7 @@ def run():
     authorize_url = client.authorization_url(
         client_id=client_id,
         redirect_uri=redirect_uri,
-        scope="activity:read_all",
+        scope=["activity:read_all", "activity:write"],
     )
     print("Opening browser for Strava authorization...")
     webbrowser.open(authorize_url)

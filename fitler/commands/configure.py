@@ -30,9 +30,9 @@ def run():
     spreadsheet_priority = 0
     if enable_spreadsheet:
         spreadsheet_path = input(
-            "Path to activity spreadsheet (default: /home/vscode/exerciselog.xlsx): "
+            "Path to activity spreadsheet (default: /home/vscode/Documents/exerciselog.xlsx): "
         ).strip()
-        spreadsheet_path = spreadsheet_path or "/home/vscode/exerciselog.xlsx"
+        spreadsheet_path = spreadsheet_path or "/home/vscode/Documents/exerciselog.xlsx"
         spreadsheet_priority = int(
             input("Priority (1-5, lower is higher priority, default: 1): ").strip()
             or "1"

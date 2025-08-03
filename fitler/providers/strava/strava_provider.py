@@ -230,14 +230,22 @@ class StravaProvider(FitnessProvider):
         """Get a StravaActivity by its provider ID."""
         return StravaActivity.get_or_none(StravaActivity.strava_id == activity_id)
 
-    def update_activity(self, activity_data: Dict[str, Any]) -> StravaActivity:
-        """Update an existing StravaActivity with new data."""
+    def update_activity(self, activity_data: Dict[str, Any]) -> bool:
+        """Update an existing Strava activity via API."""
         provider_id = activity_data["strava_id"]
-        activity = StravaActivity.get(StravaActivity.strava_id == provider_id)
-        for key, value in activity_data.items():
-            setattr(activity, key, value)
-        activity.save()
-        return activity
+        
+        try:
+            # Remove the provider_id from the data before sending to API
+            update_data = {k: v for k, v in activity_data.items() if k != "strava_id"}
+            
+            # Use stravalib to update the activity
+            self.client.update_activity(activity_id=int(provider_id), **update_data)
+            
+            return True
+                    
+        except Exception as e:
+            print(f"Error updating Strava activity {provider_id}: {e}")
+            return False
 
     def get_all_gear(self) -> Dict[str, str]:
         raise NotImplementedError("Getting gear from Strava not implemented")
