@@ -234,7 +234,7 @@ class GarminProvider(FitnessProvider):
         """Create a new GarminActivity from activity data."""
         return GarminActivity.create(**activity_data)
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Stub method - not yet implemented."""
         raise NotImplementedError("GarminProvider not yet implemented")
 

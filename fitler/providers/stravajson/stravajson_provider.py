@@ -55,6 +55,6 @@ class StravaJsonProvider(FitnessProvider):
             "StravaJsonProvider does not support creating activities."
         )
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear - not supported for JSON files."""
         raise NotImplementedError("StravaJsonProvider does not support setting gear.")

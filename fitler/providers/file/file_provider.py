@@ -271,6 +271,6 @@ class FileProvider(FitnessProvider):
                 gear_set.add(str(activity.equipment))
         return {name: name for name in gear_set}
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """File provider does not support setting gear."""
         raise NotImplementedError("File provider does not support setting gear")

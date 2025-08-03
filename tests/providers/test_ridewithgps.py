@@ -68,6 +68,50 @@ def test_get_all_gear():
     assert gear == expected_gear
 
 
-@pytest.mark.skip(reason="RideWithGPS provider tests need updating for new API")
-def test_set_all_gear(mock_client):
-    pass
+def test_set_gear():
+    """Test that set_gear looks up gear_id by name and makes the correct API call."""
+    provider = RideWithGPSProvider()
+    
+    # Mock the client.post method
+    provider.client.post = MagicMock(return_value=True)
+    
+    # Test setting gear by name
+    result = provider.set_gear("2021 Commencal Meta AM HT 29", "315572559")
+    
+    # Verify the API call was made correctly with the looked-up gear_id
+    provider.client.post.assert_called_once_with(
+        path="/trips/315572559",
+        params={"trip": {"gear_id": 275581}}
+    )
+    
+    assert result is True
+
+
+def test_set_gear_not_found():
+    """Test that set_gear handles gear name not found gracefully."""
+    provider = RideWithGPSProvider()
+    
+    # Mock the client.post method (should not be called)
+    provider.client.post = MagicMock()
+    
+    # Test setting gear with name that doesn't exist
+    result = provider.set_gear("Nonexistent Gear", "315572559")
+    
+    # Verify the API call was NOT made
+    provider.client.post.assert_not_called()
+    
+    assert result is False
+
+
+def test_set_gear_failure():
+    """Test that set_gear handles API failures gracefully."""
+    provider = RideWithGPSProvider()
+    
+    # Mock the client.post method to raise an exception
+    provider.client.post = MagicMock(side_effect=Exception("API Error"))
+    
+    # Test setting gear with failure
+    result = provider.set_gear("2021 Commencal Meta AM HT 29", "315572559")
+    
+    assert result is False
+

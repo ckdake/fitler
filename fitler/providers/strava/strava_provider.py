@@ -242,5 +242,5 @@ class StravaProvider(FitnessProvider):
     def get_all_gear(self) -> Dict[str, str]:
         raise NotImplementedError("Getting gear from Strava not implemented")
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         raise NotImplementedError("Setting gear on Strava not implemented")

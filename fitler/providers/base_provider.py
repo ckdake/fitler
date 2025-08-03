@@ -51,5 +51,5 @@ class FitnessProvider(ABC):
         """Fetch gear/equipment from the provider, if supported."""
 
     @abstractmethod
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set the gear/equipment for a specific activity on the provider."""

@@ -311,7 +311,7 @@ class SpreadsheetProvider(FitnessProvider):
         # Use the equipment name as both key and value
         return {name: name for name in gear_set}
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set the gear/equipment for a specific activity."""
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
@@ -325,6 +325,6 @@ class SpreadsheetProvider(FitnessProvider):
             return False
 
         # Equipment is in column 7 (1-based)
-        sheet.cell(row=row_idx, column=7, value=gear_id)
+        sheet.cell(row=row_idx, column=7, value=gear_name)
         wb_obj.save(xlsx_file)
         return True

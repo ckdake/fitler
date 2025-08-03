@@ -158,8 +158,30 @@ class RideWithGPSProvider(FitnessProvider):
                 gear_dict[gear_id] = gear_name
         return gear_dict
 
-    def set_gear(self, gear_id: str, activity_id: str) -> bool:
-        raise NotImplementedError("Setting gear on RideWithGPS not implemented")
+    def set_gear(self, gear_name: str, activity_id: str) -> bool:
+        """Set gear for a RideWithGPS trip by gear name."""
+        try:
+            # Get all gear and find the ID for the given name
+            all_gear = self.get_all_gear()
+            gear_id = None
+            for gid, gname in all_gear.items():
+                if gname == gear_name:
+                    gear_id = gid
+                    break
+            
+            if gear_id is None:
+                print(f"Gear '{gear_name}' not found in RideWithGPS gear list")
+                return False
+            
+            # Use PATCH to update just the gear_id for the trip
+            response = self.client.post(
+                path=f"/trips/{activity_id}",
+                params={"trip": {"gear_id": int(gear_id)}}
+            )
+            return True
+        except Exception as e:
+            print(f"Error setting gear for RideWithGPS trip {activity_id}: {e}")
+            return False
 
     # Minimal ISO8601 parser helper (required for date filtering)
     def _parse_iso8601(self, dt_val):
