@@ -16,6 +16,15 @@ def run():
     debug_input = input("\nEnable debug mode? (y/N): ").strip().lower()
     config["debug"] = debug_input == "y"
 
+    # Metadata database path
+    print("\n--- Database Configuration ---")
+    metadata_db_path = input(
+        "Path to metadata database (default: /home/vscode/Documents/fitler-metadata.sqlite3): "
+    ).strip()
+    config["metadata_db"] = (
+        metadata_db_path or "/home/vscode/Documents/fitler-metadata.sqlite3"
+    )
+
     # Create providers block
     config["providers"] = {}
 
@@ -30,9 +39,8 @@ def run():
     spreadsheet_priority = 0
     if enable_spreadsheet:
         spreadsheet_path = input(
-            "Path to activity spreadsheet (default: /home/vscode/Documents/exerciselog.xlsx): "
+            "Path to activity spreadsheet (e.g.: /home/vscode/Documents/exerciselog.xlsx): "
         ).strip()
-        spreadsheet_path = spreadsheet_path or "/home/vscode/Documents/exerciselog.xlsx"
         spreadsheet_priority = int(
             input("Priority (1-5, lower is higher priority, default: 1): ").strip()
             or "1"
@@ -51,9 +59,8 @@ def run():
     file_glob = ""
     if enable_file:
         file_glob = input(
-            "Glob for activity files (default: ./export*/activities/*): "
+            "Glob for activity files (e.g: ./export*/activities/*): "
         ).strip()
-        file_glob = file_glob or "./export*/activities/*"
 
     config["providers"]["file"] = {"enabled": enable_file, "glob": file_glob}
 
