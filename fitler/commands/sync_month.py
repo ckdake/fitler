@@ -416,14 +416,23 @@ def run(year_month):
                 if change.provider == "strava"
             ]
 
+            # Prompt for garmin name updates
+            garmin_name_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_NAME]
+                if change.provider == "garmin"
+            ]
+
             if (
                 ridewithgps_equipment_changes
                 or ridewithgps_name_changes
                 or strava_name_changes
+                or garmin_name_changes
             ):
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
                 strava_provider = fitler.strava
+                garmin_provider = fitler.garmin
 
                 if not ridewithgps_provider and (
                     ridewithgps_equipment_changes or ridewithgps_name_changes
@@ -431,6 +440,8 @@ def run(year_month):
                     print("RideWithGPS provider not available")
                 elif not strava_provider and strava_name_changes:
                     print("Strava provider not available")
+                elif not garmin_provider and garmin_name_changes:
+                    print("Garmin provider not available")
                 else:
                     # Process equipment updates
                     if ridewithgps_equipment_changes and ridewithgps_provider:
@@ -489,6 +500,30 @@ def run(year_month):
                                     success = strava_provider.update_activity(
                                         {
                                             "strava_id": change.activity_id,
+                                            "name": change.new_value,
+                                        }
+                                    )
+                                    if success:
+                                        print(f"✓ Name for {change.activity_id}")
+                                    else:
+                                        print(f"✗ Name for {change.activity_id}")
+                                except Exception as e:
+                                    print(f"✗ Name for {change.activity_id}: {e}")
+                            else:
+                                print("Skipped")
+
+                    # Process garmin name updates
+                    if garmin_name_changes and garmin_provider:
+                        print("\nProcessing Garmin name updates...")
+                        for change in garmin_name_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = garmin_provider.update_activity(
+                                        {
+                                            "garmin_id": change.activity_id,
                                             "name": change.new_value,
                                         }
                                     )
