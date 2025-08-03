@@ -219,11 +219,11 @@ class TestFitlerCore:
                     mock_get_db.return_value = mock_db
 
                     fitler = Fitler()
-                    
+
                     # Test cleanup directly
                     with patch("fitler.core.get_db", return_value=mock_db):
                         fitler.cleanup()
-                    
+
                     mock_db.close.assert_called_once()
 
     def test_context_manager(self, tmp_path):

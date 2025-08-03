@@ -248,7 +248,55 @@ class StravaProvider(FitnessProvider):
             return False
 
     def get_all_gear(self) -> Dict[str, str]:
-        raise NotImplementedError("Getting gear from Strava not implemented")
+        """Get all gear from Strava athlete profile."""
+        try:
+            athlete = self.client.get_athlete()
+            gear_dict = {}
+
+            # Add bikes
+            if hasattr(athlete, "bikes") and athlete.bikes:
+                for bike in athlete.bikes:
+                    if hasattr(bike, "id") and hasattr(bike, "name"):
+                        gear_id = str(bike.id)
+                        gear_name = str(bike.name)
+                        gear_dict[gear_id] = gear_name
+
+            # Add shoes
+            if hasattr(athlete, "shoes") and athlete.shoes:
+                for shoe in athlete.shoes:
+                    if hasattr(shoe, "id") and hasattr(shoe, "name"):
+                        gear_id = str(shoe.id)
+                        gear_name = str(shoe.name)
+                        gear_dict[gear_id] = gear_name
+
+            return gear_dict
+
+        except Exception as e:
+            print(f"Error getting Strava gear: {e}")
+            return {}
 
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
-        raise NotImplementedError("Setting gear on Strava not implemented")
+        """Set gear for a Strava activity by gear name."""
+        try:
+            all_gear = self.get_all_gear()
+            gear_id = None
+            for gid, gname in all_gear.items():
+                if gname == gear_name:
+                    gear_id = gid
+                    break
+
+            if gear_id is None:
+                print(f"Gear '{gear_name}' not found in Strava gear list")
+                print("Available gear:")
+                for gid, gname in all_gear.items():
+                    print(f"  {gid}: {gname}")
+                return False
+
+            # Use stravalib to update the activity with gear_id
+            self.client.update_activity(activity_id=int(activity_id), gear_id=gear_id)
+
+            return True
+
+        except Exception as e:
+            print(f"Error setting gear for Strava activity {activity_id}: {e}")
+            return False

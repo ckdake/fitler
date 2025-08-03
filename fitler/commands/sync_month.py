@@ -402,6 +402,13 @@ def run(year_month):
                 if change.provider == "ridewithgps"
             ]
 
+            # Prompt for strava equipment updates
+            strava_equipment_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
+                if change.provider == "strava"
+            ]
+
             # Prompt for ridewithgps name updates
             ridewithgps_name_changes = [
                 change
@@ -425,6 +432,7 @@ def run(year_month):
 
             if (
                 ridewithgps_equipment_changes
+                or strava_equipment_changes
                 or ridewithgps_name_changes
                 or strava_name_changes
                 or garmin_name_changes
@@ -438,7 +446,9 @@ def run(year_month):
                     ridewithgps_equipment_changes or ridewithgps_name_changes
                 ):
                     print("RideWithGPS provider not available")
-                elif not strava_provider and strava_name_changes:
+                elif not strava_provider and (
+                    strava_equipment_changes or strava_name_changes
+                ):
                     print("Strava provider not available")
                 elif not garmin_provider and garmin_name_changes:
                     print("Garmin provider not available")
@@ -453,6 +463,27 @@ def run(year_month):
                             if response == "y":
                                 try:
                                     success = ridewithgps_provider.set_gear(
+                                        change.new_value, change.activity_id
+                                    )
+                                    if success:
+                                        print(f"✓ Gear for {change.activity_id}")
+                                    else:
+                                        print(f"✗ Gear for {change.activity_id}")
+                                except Exception as e:
+                                    print(f"✗ Gear for {change.activity_id}: {e}")
+                            else:
+                                print("Skipped")
+
+                    # Process strava equipment updates
+                    if strava_equipment_changes and strava_provider:
+                        print("\nProcessing Strava equipment updates...")
+                        for change in strava_equipment_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = strava_provider.set_gear(
                                         change.new_value, change.activity_id
                                     )
                                     if success:

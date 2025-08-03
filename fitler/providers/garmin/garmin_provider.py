@@ -220,43 +220,44 @@ class GarminProvider(FitnessProvider):
     def update_activity(self, activity_data: Dict[str, Any]) -> Any:
         """Update an existing GarminActivity with new data."""
         provider_id = activity_data["garmin_id"]
-        
+
         # Get the client for API updates
         client = self._get_client()
-        
+
         # Update name in Garmin Connect if provided
         if "name" in activity_data:
             try:
-                result = client.set_activity_name(provider_id, activity_data["name"])
-                print(f"Updated activity name in Garmin Connect: {activity_data['name']}")
+                client.set_activity_name(provider_id, activity_data["name"])
+                print(
+                    f"Updated activity name in Garmin Connect: {activity_data['name']}"
+                )
                 return True
-                                
+
             except Exception as e:
                 print(f"Failed to update activity name in Garmin Connect: {e}")
                 raise
-
 
     def get_all_gear(self) -> Dict[str, str]:
         """Get all gear from Garmin Connect."""
         try:
             client = self._get_client()
-            
+
             # Get the user's device info to get profile number
             device_last_used = client.get_device_last_used()
             user_profile_number = device_last_used["userProfileNumber"]
-            
+
             # Get gear list
             gear_list = client.get_gear(user_profile_number)
-            
+
             # Convert to name -> name mapping (like other providers)
             gear_dict = {}
             for gear_item in gear_list:
                 display_name = gear_item.get("displayName", "")
                 if display_name:
                     gear_dict[display_name] = display_name
-            
+
             return gear_dict
-            
+
         except Exception as e:
             print(f"Error getting gear from Garmin Connect: {e}")
             return {}
@@ -269,8 +270,12 @@ class GarminProvider(FitnessProvider):
 
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear for an activity - not yet supported by Garmin Connect API."""
-        print("Setting gear for individual activities is not supported by Garmin Connect API")
-        print("Gear can only be set as defaults for activity types through the Garmin Connect website")
+        print(
+            "Setting gear for individual activities is not supported by Garmin Connect API"
+        )
+        print(
+            "Gear can only be set as defaults for activity types through the Garmin Connect website"
+        )
         return False
 
     def _get_garmin_activities_for_month(
