@@ -149,9 +149,14 @@ class RideWithGPSProvider(FitnessProvider):
         return activity
 
     def get_all_gear(self) -> Dict[str, str]:
-        """Get gear from RideWithGPS - return empty dict for now."""
-        # TODO: Implement gear fetching from RideWithGPS API
-        return {}
+        """Get gear from RideWithGPS user info."""
+        gear_dict = {}
+        if hasattr(self, 'user_info') and hasattr(self.user_info, 'gear'):
+            for gear_item in self.user_info.gear:
+                gear_id = str(gear_item.id)
+                gear_name = gear_item.name
+                gear_dict[gear_id] = gear_name
+        return gear_dict
 
     def set_gear(self, gear_id: str, activity_id: str) -> bool:
         raise NotImplementedError("Setting gear on RideWithGPS not implemented")
