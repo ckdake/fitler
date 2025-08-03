@@ -24,10 +24,7 @@ def main():
         "auth-garmin", help="Authenticate with Garmin Connect and store tokens"
     )
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
-    subparsers.add_parser(
-        "migrate",
-        help="Initialize or upgrade the database. Run this after installation or updates.",
-    )
+
     sync_month_parser = subparsers.add_parser(
         "sync-month",
         help=(
@@ -65,10 +62,6 @@ def main():
         from fitler.commands.sync_month import run
 
         run(args.year_month)
-    elif args.command == "migrate":
-        from fitler.commands.migrate import run
-
-        run()
     elif args.command == "pull":
         from fitler.commands.pull import run
 
@@ -95,10 +88,9 @@ Commands:
     help          Show this help and usage documentation
 
 Setup:
-    1. Run 'python -m fitler migrate' to initialize the database.
-    2. Run 'python -m fitler configure' to set up paths and API credentials.
-    3. Authenticate with Strava using 'python -m fitler auth-strava'.
-    4. Use 'python -m fitler sync-month YYYY-MM' to view activity correlations.
+    1. Run 'python -m fitler configure' to set up some basics
+    2. Authenticate with each provider you need, e.g. 'python -m fitler auth-strava'.
+    3. Use 'python -m fitler sync-month YYYY-MM' to view activity correlations.
 
 See README.md for more details.
 """

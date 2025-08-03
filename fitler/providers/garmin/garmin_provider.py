@@ -226,7 +226,7 @@ class GarminProvider(FitnessProvider):
         activity.save()
         return activity
 
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         """Stub method - not yet implemented."""
         raise NotImplementedError("GarminProvider not yet implemented")
 

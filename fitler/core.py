@@ -13,7 +13,7 @@ from .providers.garmin import GarminProvider
 from .providers.file import FileProvider
 from .providers.stravajson import StravaJsonProvider
 from .providers.base_provider_activity import BaseProviderActivity
-from .database import db
+from .database import db, migrate_tables, get_all_models
 
 CONFIG_PATH = Path("fitler_config.json")
 
@@ -28,6 +28,9 @@ class Fitler:
 
         # Initialize database
         db.connect(reuse_if_open=True)
+        
+        # Always migrate tables on startup
+        migrate_tables(get_all_models())
 
         # Initialize providers
         self._spreadsheet = None

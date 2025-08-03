@@ -1,6 +1,7 @@
 import pytest
 from fitler.providers.strava.strava_provider import StravaProvider
 
+
 @pytest.mark.parametrize(
     "input_name,expected",
     [
@@ -10,7 +11,7 @@ from fitler.providers.strava.strava_provider import StravaProvider
         ("NoYearBikeName", "NoYearBikeName"),
         ("Trek 2022", "2022 Trek"),
         ("2021 Giant Propel Advanced", "2021 Giant Propel Advanced"),
-    ]
+    ],
 )
 def test_normalize_strava_gear_name(input_name, expected):
     assert StravaProvider._normalize_strava_gear_name(input_name) == expected

@@ -291,7 +291,7 @@ class SpreadsheetProvider(FitnessProvider):
         wb_obj.save(xlsx_file)
         return str(next_row)
 
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         """Fetch gear/equipment from the spreadsheet."""
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)

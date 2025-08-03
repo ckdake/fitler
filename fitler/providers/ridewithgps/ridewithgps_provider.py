@@ -30,6 +30,7 @@ class RideWithGPSProvider(FitnessProvider):
 
         user_info = self.client.authenticate(self.username, self.password)
         self.userid = getattr(user_info, "id", None)
+        self.user_info = user_info
 
     @property
     def provider_name(self) -> str:
@@ -147,7 +148,7 @@ class RideWithGPSProvider(FitnessProvider):
         activity.save()
         return activity
 
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         """Get gear from RideWithGPS - return empty dict for now."""
         # TODO: Implement gear fetching from RideWithGPS API
         return {}

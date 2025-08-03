@@ -263,7 +263,7 @@ class FileProvider(FitnessProvider):
         """File provider does not support creating activities."""
         raise NotImplementedError("File provider does not support creating activities")
 
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         """Get all unique equipment from file activities."""
         gear_set = set()
         for activity in FileActivity.select():

@@ -47,7 +47,7 @@ class FitnessProvider(ABC):
         """Update an existing activity on the provider."""
 
     @abstractmethod
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         """Fetch gear/equipment from the provider, if supported."""
 
     @abstractmethod

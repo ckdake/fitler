@@ -54,10 +54,10 @@ class StravaProvider(FitnessProvider):
         and returns a string in the format 'YYYY EquipmentName'.
         If the gear name already starts with the year, return it unchanged.
         """
-        match = re.search(r'(\b\d{4}\b)', gear_name)
+        match = re.search(r"(\b\d{4}\b)", gear_name)
         if match:
             year = match.group(1)
-            before_year = gear_name[:match.start()].strip()
+            before_year = gear_name[: match.start()].strip()
             # If the gear name already starts with the year, return as is
             if gear_name.strip().startswith(year):
                 return gear_name
@@ -204,7 +204,11 @@ class StravaProvider(FitnessProvider):
         if gear and hasattr(gear, "name"):
             gear_name = getattr(gear, "name", None)
             if gear_name:
-                setattr(strava_activity, "equipment", self._normalize_strava_gear_name(str(gear_name)))
+                setattr(
+                    strava_activity,
+                    "equipment",
+                    self._normalize_strava_gear_name(str(gear_name)),
+                )
 
         # Store raw data as full activity JSON
         if hasattr(full_activity, "model_dump"):
@@ -235,7 +239,7 @@ class StravaProvider(FitnessProvider):
         activity.save()
         return activity
 
-    def get_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> Dict[str, str]:
         raise NotImplementedError("Getting gear from Strava not implemented")
 
     def set_gear(self, gear_id: str, activity_id: str) -> bool:

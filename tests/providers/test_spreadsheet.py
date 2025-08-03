@@ -199,7 +199,7 @@ def test_update_activity(mock_get):
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
-def test_get_gear(mock_path, mock_load_workbook, mock_sheet):
+def test_get_all_gear(mock_path, mock_load_workbook, mock_sheet):
     mock_wb = MagicMock()
     # Simulate two rows with different equipment
     header = [
@@ -279,7 +279,7 @@ def test_get_gear(mock_path, mock_load_workbook, mock_sheet):
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
-    gear = provider.get_gear()
+    gear = provider.get_all_gear()
     assert gear == {"Bike": "Bike", "Shoes": "Shoes"}
 
 

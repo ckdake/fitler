@@ -45,10 +45,10 @@ def test_update_activity(mock_client):
 
 
 @pytest.mark.skip(reason="RideWithGPS provider tests need updating for new API")
-def test_get_gear(mock_client):
+def test_get_all_gear(mock_client):
     pass
 
 
 @pytest.mark.skip(reason="RideWithGPS provider tests need updating for new API")
-def test_set_gear(mock_client):
+def test_set_all_gear(mock_client):
     pass

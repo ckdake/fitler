@@ -261,7 +261,7 @@ def test_file_provider_get_activity_by_id(mock_get):
 
 
 @patch("fitler.providers.file.file_activity.FileActivity.select")
-def test_file_provider_get_gear(mock_select):
+def test_file_provider_get_all_gear(mock_select):
     """Test getting gear from file activities."""
     # Mock activities with equipment
     mock_activity1 = MagicMock()
@@ -276,7 +276,7 @@ def test_file_provider_get_gear(mock_select):
     provider = FileProvider(
         "/tmp/*.gpx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
-    gear = provider.get_gear()
+    gear = provider.get_all_gear()
 
     # Should return unique gear as key-value pairs
     expected = {"Bike": "Bike", "Shoes": "Shoes"}
