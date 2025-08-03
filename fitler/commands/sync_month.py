@@ -120,262 +120,297 @@ def run(year_month):
         config = fitler.config
         home_tz = fitler.home_tz
 
-    # Process all activities from all providers
-    all_acts = []
+        # Process all activities from all providers
+        all_acts = []
 
-    # Dynamically process activities from all enabled providers
-    for provider_name, provider_activities in activities.items():
-        for act in provider_activities:
-            all_acts.append(process_activity_for_display(act, provider_name))
+        # Dynamically process activities from all enabled providers
+        for provider_name, provider_activities in activities.items():
+            for act in provider_activities:
+                all_acts.append(process_activity_for_display(act, provider_name))
 
-    if not all_acts:
-        print(f"\nNo activities found for {year_month}")
-        return
+        if not all_acts:
+            print(f"\nNo activities found for {year_month}")
+            return
 
-    # Group activities by correlation key (date + distance)
-    grouped = defaultdict(list)
-    for act in all_acts:
-        correlation_key = generate_correlation_key(act["timestamp"], act["distance"])
-        if correlation_key:  # Only group activities with valid correlation keys
-            grouped[correlation_key].append(act)
+        # Group activities by correlation key (date + distance)
+        grouped = defaultdict(list)
+        for act in all_acts:
+            correlation_key = generate_correlation_key(act["timestamp"], act["distance"])
+            if correlation_key:  # Only group activities with valid correlation keys
+                grouped[correlation_key].append(act)
 
-    # Build rows for the table
-    rows = []
-    for group in grouped.values():
-        # Skip single-activity groups if they're just one provider
-        # (no correlation to show)
-        if len(group) == 1:
-            continue
+        # Build rows for the table
+        rows = []
+        for group in grouped.values():
+            # Skip single-activity groups if they're just one provider
+            # (no correlation to show)
+            if len(group) == 1:
+                continue
 
-        # Find the earliest start time in the group for ordering
-        start = min(
-            (
-                datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(home_tz)
-                if a["timestamp"]
-                else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+            # Find the earliest start time in the group for ordering
+            start = min(
+                (
+                    datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(home_tz)
+                    if a["timestamp"]
+                    else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+                )
+                for a in group
             )
-            for a in group
-        )
 
-        # Organize by provider
-        by_provider = {}
-        for a in group:
-            by_provider[a["provider"]] = a
+            # Organize by provider
+            by_provider = {}
+            for a in group:
+                by_provider[a["provider"]] = a
 
-        rows.append(
-            {
-                "start": start,
-                "providers": by_provider,
-                "correlation_key": generate_correlation_key(
-                    group[0]["timestamp"], group[0]["distance"]
-                ),
-            }
-        )
-
-    # Sort by start time
-    rows.sort(key=lambda r: r["start"])
-
-    # Determine which providers we actually have data for
-    all_providers = set()
-    for row in rows:
-        all_providers.update(row["providers"].keys())
-
-    # Get all enabled providers from config to ensure we show them all
-    enabled_providers = []
-    provider_config = config.get("providers", {})
-    for provider_name, provider_settings in provider_config.items():
-        if provider_settings.get("enabled", False):
-            enabled_providers.append(provider_name)
-
-    # Combine providers that have data with all enabled providers
-    all_providers.update(enabled_providers)
-    provider_list = sorted(all_providers)
-
-    if not rows:
-        print(f"\nNo correlated activities found for {year_month}")
-        print("(Activities that exist in only one provider are not shown)")
-        return
-
-    # Build table
-    table = []
-    all_changes = []
-
-    # Determine authoritative provider based on config priority
-    # New config structure has priorities as numbers (lower = higher priority)
-    provider_priorities = {}
-    provider_config = config.get("providers", {})
-
-    for provider_name, provider_settings in provider_config.items():
-        if provider_settings.get("enabled", False):
-            # Default priority is 999 for providers without explicit priority
-            priority = provider_settings.get("priority", 999)
-            provider_priorities[provider_name] = priority
-
-    # Sort providers by priority (lower number = higher priority)
-    priority_order = sorted(provider_priorities.items(), key=lambda x: x[1])
-    provider_priority = [provider for provider, _ in priority_order]
-
-    for row in rows:
-        providers = row["providers"]
-
-        # Find authoritative provider for this group
-        auth_provider = None
-        for p in provider_priority:
-            if p in providers:
-                auth_provider = p
-                break
-
-        if not auth_provider:
-            continue
-
-        auth_activity = providers[auth_provider]
-        auth_name = auth_activity["name"]
-        auth_equipment = auth_activity["equipment"]
-
-        # Build table row
-        table_row = [row["start"].strftime("%Y-%m-%d %H:%M")]
-
-        for provider in provider_list:
-            sync_name = provider_config.get(provider, {}).get("sync_name", True)
-            sync_equipment = provider_config.get(provider, {}).get(
-                "sync_equipment", True
+            rows.append(
+                {
+                    "start": start,
+                    "providers": by_provider,
+                    "correlation_key": generate_correlation_key(
+                        group[0]["timestamp"], group[0]["distance"]
+                    ),
+                }
             )
-            if provider in providers:
-                activity = providers[provider]
-                # Color code based on authority
-                id_colored = color_id(activity["id"], True)
-                table_row.append(id_colored)
-                # Name column
-                if sync_name:
-                    if provider == auth_provider:
-                        name_colored = color_text(activity["name"], True, False, False)
-                    else:
-                        name_wrong = (
-                            activity["name"] != auth_name if auth_name else False
-                        )
-                        name_colored = color_text(
-                            activity["name"], False, False, name_wrong
-                        )
-                        if name_wrong and auth_name:
-                            all_changes.append(
-                                ActivityChange(
-                                    change_type=ChangeType.UPDATE_NAME,
-                                    provider=provider,
-                                    activity_id=str(activity["id"]),
-                                    old_value=activity["name"],
-                                    new_value=auth_name,
-                                )
+
+        # Sort by start time
+        rows.sort(key=lambda r: r["start"])
+
+        # Determine which providers we actually have data for
+        all_providers = set()
+        for row in rows:
+            all_providers.update(row["providers"].keys())
+
+        # Get all enabled providers from config to ensure we show them all
+        enabled_providers = []
+        provider_config = config.get("providers", {})
+        for provider_name, provider_settings in provider_config.items():
+            if provider_settings.get("enabled", False):
+                enabled_providers.append(provider_name)
+
+        # Combine providers that have data with all enabled providers
+        all_providers.update(enabled_providers)
+        provider_list = sorted(all_providers)
+
+        if not rows:
+            print(f"\nNo correlated activities found for {year_month}")
+            print("(Activities that exist in only one provider are not shown)")
+            return
+
+        # Build table
+        table = []
+        all_changes = []
+
+        # Determine authoritative provider based on config priority
+        # New config structure has priorities as numbers (lower = higher priority)
+        provider_priorities = {}
+        provider_config = config.get("providers", {})
+
+        for provider_name, provider_settings in provider_config.items():
+            if provider_settings.get("enabled", False):
+                # Default priority is 999 for providers without explicit priority
+                priority = provider_settings.get("priority", 999)
+                provider_priorities[provider_name] = priority
+
+        # Sort providers by priority (lower number = higher priority)
+        priority_order = sorted(provider_priorities.items(), key=lambda x: x[1])
+        provider_priority = [provider for provider, _ in priority_order]
+
+        for row in rows:
+            providers = row["providers"]
+
+            # Find authoritative provider for this group
+            auth_provider = None
+            for p in provider_priority:
+                if p in providers:
+                    auth_provider = p
+                    break
+
+            if not auth_provider:
+                continue
+
+            auth_activity = providers[auth_provider]
+            auth_name = auth_activity["name"]
+            auth_equipment = auth_activity["equipment"]
+
+            # Build table row
+            table_row = [row["start"].strftime("%Y-%m-%d %H:%M")]
+
+            for provider in provider_list:
+                sync_name = provider_config.get(provider, {}).get("sync_name", True)
+                sync_equipment = provider_config.get(provider, {}).get(
+                    "sync_equipment", True
+                )
+                if provider in providers:
+                    activity = providers[provider]
+                    # Color code based on authority
+                    id_colored = color_id(activity["id"], True)
+                    table_row.append(id_colored)
+                    # Name column
+                    if sync_name:
+                        if provider == auth_provider:
+                            name_colored = color_text(activity["name"], True, False, False)
+                        else:
+                            name_wrong = (
+                                activity["name"] != auth_name if auth_name else False
                             )
-                    table_row.append(name_colored)
-                # Equipment column
-                if sync_equipment:
-                    if provider == auth_provider:
-                        equip_colored = color_text(
-                            activity["equipment"], True, False, False
-                        )
-                    else:
-                        equip_val = (activity["equipment"] or "").strip().lower()
-                        equip_wrong = False
-                        show_auth_equip = False
-                        if auth_equipment:
-                            if (
-                                activity["equipment"] != auth_equipment
-                                or equip_val == ""
-                                or equip_val == "no equipment"
-                            ):
-                                equip_wrong = True
-                                if equip_val == "" or equip_val == "no equipment":
-                                    show_auth_equip = True
-                        if show_auth_equip:
+                            name_colored = color_text(
+                                activity["name"], False, False, name_wrong
+                            )
+                            if name_wrong and auth_name:
+                                all_changes.append(
+                                    ActivityChange(
+                                        change_type=ChangeType.UPDATE_NAME,
+                                        provider=provider,
+                                        activity_id=str(activity["id"]),
+                                        old_value=activity["name"],
+                                        new_value=auth_name,
+                                    )
+                                )
+                        table_row.append(name_colored)
+                    # Equipment column
+                    if sync_equipment:
+                        if provider == auth_provider:
                             equip_colored = color_text(
-                                auth_equipment, False, True, False
+                                activity["equipment"], True, False, False
                             )
                         else:
-                            equip_colored = color_text(
-                                activity["equipment"], False, False, equip_wrong
-                            )
-                        if equip_wrong and auth_equipment:
-                            all_changes.append(
-                                ActivityChange(
-                                    change_type=ChangeType.UPDATE_EQUIPMENT,
-                                    provider=provider,
-                                    activity_id=str(activity["id"]),
-                                    old_value=activity["equipment"],
-                                    new_value=auth_equipment,
+                            equip_val = (activity["equipment"] or "").strip().lower()
+                            equip_wrong = False
+                            show_auth_equip = False
+                            if auth_equipment:
+                                if (
+                                    activity["equipment"] != auth_equipment
+                                    or equip_val == ""
+                                    or equip_val == "no equipment"
+                                ):
+                                    equip_wrong = True
+                                    if equip_val == "" or equip_val == "no equipment":
+                                        show_auth_equip = True
+                            if show_auth_equip:
+                                equip_colored = color_text(
+                                    auth_equipment, False, True, False
+                                )
+                            else:
+                                equip_colored = color_text(
+                                    activity["equipment"], False, False, equip_wrong
+                                )
+                            if equip_wrong and auth_equipment:
+                                all_changes.append(
+                                    ActivityChange(
+                                        change_type=ChangeType.UPDATE_EQUIPMENT,
+                                        provider=provider,
+                                        activity_id=str(activity["id"]),
+                                        old_value=activity["equipment"],
+                                        new_value=auth_equipment,
                                 )
                             )
-                    table_row.append(equip_colored)
-            else:
-                # Missing from this provider
-                missing_id = color_text("TBD", False, True, False)
-                table_row.append(missing_id)
-                if sync_name:
-                    missing_name = (
-                        color_text(auth_name, False, True, False) if auth_name else ""
-                    )
-                    table_row.append(missing_name)
-                if sync_equipment:
-                    missing_equip = (
-                        color_text(auth_equipment, False, True, False)
-                        if auth_equipment
-                        else ""
-                    )
-                    table_row.append(missing_equip)
-                # Record that this activity should be added to this provider
-                if sync_name and auth_name:
-                    all_changes.append(
-                        ActivityChange(
-                            change_type=ChangeType.ADD_ACTIVITY,
-                            provider=provider,
-                            activity_id=str(auth_activity["id"]),
-                            new_value=auth_name,
-                            source_provider=auth_provider,
+                        table_row.append(equip_colored)
+                else:
+                    # Missing from this provider
+                    missing_id = color_text("TBD", False, True, False)
+                    table_row.append(missing_id)
+                    if sync_name:
+                        missing_name = (
+                            color_text(auth_name, False, True, False) if auth_name else ""
                         )
-                    )
+                        table_row.append(missing_name)
+                    if sync_equipment:
+                        missing_equip = (
+                            color_text(auth_equipment, False, True, False)
+                            if auth_equipment
+                            else ""
+                        )
+                        table_row.append(missing_equip)
+                    # Record that this activity should be added to this provider
+                    if sync_name and auth_name:
+                        all_changes.append(
+                            ActivityChange(
+                                change_type=ChangeType.ADD_ACTIVITY,
+                                provider=provider,
+                                activity_id=str(auth_activity["id"]),
+                                new_value=auth_name,
+                                source_provider=auth_provider,
+                            )
+                        )
 
-        # Add distance
-        table_row.append(f"{auth_activity['distance']:.2f}")
-        table.append(table_row)
+            # Add distance
+            table_row.append(f"{auth_activity['distance']:.2f}")
+            table.append(table_row)
 
-    # Build headers
-    headers = ["Start"]
-    for provider in provider_list:
-        sync_name = provider_config.get(provider, {}).get("sync_name", True)
-        sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
-        headers.append(f"{provider.title()} ID")
-        if sync_name:
-            headers.append(f"{provider.title()} Name")
-        if sync_equipment:
-            headers.append(f"{provider.title()} Equip")
-    headers.append("Distance (mi)")
+        # Build headers
+        headers = ["Start"]
+        for provider in provider_list:
+            sync_name = provider_config.get(provider, {}).get("sync_name", True)
+            sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
+            headers.append(f"{provider.title()} ID")
+            if sync_name:
+                headers.append(f"{provider.title()} Name")
+            if sync_equipment:
+                headers.append(f"{provider.title()} Equip")
+        headers.append("Distance (mi)")
 
-    print(
-        tabulate(
-            table,
-            headers=headers,
-            tablefmt="plain",
-            stralign="left",
-            numalign="left",
-            colalign=("left",) * len(headers),
+        print(
+            tabulate(
+                table,
+                headers=headers,
+                tablefmt="plain",
+                stralign="left",
+                numalign="left",
+                colalign=("left",) * len(headers),
+            )
         )
-    )
 
-    print("\nLegend:")
-    print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
-    print(f"{yellow_bg}Yellow{reset} = New entry to be created")
-    print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
+        print("\nLegend:")
+        print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
+        print(f"{yellow_bg}Yellow{reset} = New entry to be created")
+        print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
 
-    if all_changes:
-        # Group changes by type for better readability
-        changes_by_type = defaultdict(list)
-        for change in all_changes:
-            changes_by_type[change.change_type].append(change)
+        if all_changes:
+            # Group changes by type for better readability
+            changes_by_type = defaultdict(list)
+            for change in all_changes:
+                changes_by_type[change.change_type].append(change)
 
-        print("\nChanges needed:")
-        for change_type in ChangeType:
-            if changes_by_type[change_type]:
-                print(f"\n{change_type.value}s:")
-                for change in changes_by_type[change_type]:
-                    print(f"* {change}")
-    else:
-        print("\nNo changes needed - all activities are synchronized!")
+            print("\nChanges needed:")
+            for change_type in ChangeType:
+                if changes_by_type[change_type]:
+                    print(f"\n{change_type.value}s:")
+                    for change in changes_by_type[change_type]:
+                        print(f"* {change}")
+
+            # Interactive prompting for supported changes
+            print("\n" + "="*50)
+            print("Interactive Updates")
+            print("="*50)
+            
+            # Only prompt for ridewithgps equipment updates for now
+            ridewithgps_equipment_changes = [
+                change for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
+                if change.provider == "ridewithgps"
+            ]
+            
+            if ridewithgps_equipment_changes:
+                print("\nProcessing RideWithGPS equipment updates...")
+                
+                # Get the ridewithgps provider from the existing fitler instance
+                ridewithgps_provider = fitler.ridewithgps
+                if not ridewithgps_provider:
+                    print("RideWithGPS provider not available")
+                else:
+                    for change in ridewithgps_equipment_changes:
+                        prompt = f"\n{change}? (y/n): "
+                        response = input(prompt).strip().lower()
+                        
+                        if response == 'y':
+                            try:
+                                success = ridewithgps_provider.set_gear(change.new_value, change.activity_id)
+                                if success:
+                                    print(f"✓ Successfully updated gear for activity {change.activity_id}")
+                                else:
+                                    print(f"✗ Failed to update gear for activity {change.activity_id}")
+                            except Exception as e:
+                                print(f"✗ Error updating gear for activity {change.activity_id}: {e}")
+                        else:
+                            print("Skipped")
+        else:
+            print("\nNo changes needed - all activities are synchronized!")
