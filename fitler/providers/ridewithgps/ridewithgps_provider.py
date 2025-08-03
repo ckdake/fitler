@@ -36,6 +36,16 @@ class RideWithGPSProvider(FitnessProvider):
     def provider_name(self) -> str:
         """Return the name of this provider."""
         return "ridewithgps"
+    
+    @staticmethod
+    def _parse_iso8601(dt_val):
+        if not dt_val:
+            return None
+
+        try:
+            return dt_parser.parse(str(dt_val))
+        except Exception:
+            return None
 
     def pull_activities(
         self, date_filter: Optional[str] = None
@@ -158,6 +168,7 @@ class RideWithGPSProvider(FitnessProvider):
                 gear_dict[gear_id] = gear_name
         return gear_dict
 
+    # TODO: "pull" the activity again after setting gear to update our local copy.
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear for a RideWithGPS trip by gear name."""
         try:
@@ -190,13 +201,3 @@ class RideWithGPSProvider(FitnessProvider):
         except Exception as e:
             print(f"Error setting gear for RideWithGPS trip {activity_id}: {e}")
             return False
-
-    # Minimal ISO8601 parser helper (required for date filtering)
-    def _parse_iso8601(self, dt_val):
-        if not dt_val:
-            return None
-
-        try:
-            return dt_parser.parse(str(dt_val))
-        except Exception:
-            return None

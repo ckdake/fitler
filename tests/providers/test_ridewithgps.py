@@ -73,14 +73,14 @@ def test_set_gear():
     provider = RideWithGPSProvider()
     
     # Mock the client.post method
-    provider.client.post = MagicMock(return_value=True)
+    provider.client.patch = MagicMock(return_value=True)
     
     # Test setting gear by name
     result = provider.set_gear("2021 Commencal Meta AM HT 29", "315572559")
     
     # Verify the API call was made correctly with the looked-up gear_id
-    provider.client.post.assert_called_once_with(
-        path="/trips/315572559",
+    provider.client.patch.assert_called_once_with(
+        path="/trips/315572559.json",
         params={"trip": {"gear_id": 275581}}
     )
     
