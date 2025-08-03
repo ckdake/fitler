@@ -118,7 +118,7 @@ class FileProvider(FitnessProvider):
                 print(f"Unsupported file format: {file_format}")
                 return None
 
-            result["file_path"] = file_path
+            result["file_path"] = os.path.basename(file_path)
             result["file_checksum"] = FileProvider._calculate_checksum(file_path)
             result["file_size"] = os.path.getsize(file_path)
             result["file_format"] = file_format
@@ -152,7 +152,7 @@ class FileProvider(FitnessProvider):
                 checksum = FileProvider._calculate_checksum(file_path)
 
                 FileActivity.get(
-                    FileActivity.file_path == file_path,
+                    FileActivity.file_path == os.path.basename(file_path),
                     FileActivity.file_checksum == checksum,
                 )
                 continue

@@ -66,7 +66,7 @@ def test_file_provider_parses_gpx(
     call_args = mock_create.call_args[1]  # Get keyword arguments
 
     # Verify the data passed to create
-    assert call_args["file_path"] == gpx_file
+    assert call_args["file_path"] == os.path.basename(gpx_file)
     assert call_args["file_format"] == "gpx"
     assert call_args["start_time"]  # Should have a start time
 
