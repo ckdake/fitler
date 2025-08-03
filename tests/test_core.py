@@ -27,14 +27,17 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
 
-                fitler = Fitler()
+                    fitler = Fitler()
 
-                assert fitler.config["home_timezone"] == "US/Pacific"
-                assert fitler.config["debug"] == False
+                    assert fitler.config["home_timezone"] == "US/Pacific"
+                    assert fitler.config["debug"] == False
 
     def test_fitler_config_defaults(self, tmp_path):
         """Test that Fitler sets default config values."""
@@ -45,20 +48,23 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
 
-                fitler = Fitler()
+                    fitler = Fitler()
 
-                # Should set defaults but NOT create providers section
-                assert fitler.config["debug"] == False
-                assert (
-                    fitler.config["provider_priority"]
-                    == "spreadsheet,ridewithgps,strava,garmin"
-                )
-                # No longer creates providers section automatically
-                assert "providers" not in fitler.config
+                    # Should set defaults but NOT create providers section
+                    assert fitler.config["debug"] == False
+                    assert (
+                        fitler.config["provider_priority"]
+                        == "spreadsheet,ridewithgps,strava,garmin"
+                    )
+                    # No longer creates providers section automatically
+                    assert "providers" not in fitler.config
 
     def test_enabled_providers_empty(self, tmp_path):
         """Test enabled_providers when no providers are enabled."""
@@ -77,14 +83,17 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
 
-                fitler = Fitler()
+                    fitler = Fitler()
 
-                # No providers should be enabled
-                assert fitler.enabled_providers == []
+                    # No providers should be enabled
+                    assert fitler.enabled_providers == []
 
     def test_enabled_providers_with_spreadsheet(self, tmp_path):
         """Test enabled_providers when spreadsheet is configured and enabled."""
@@ -103,14 +112,17 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
 
-                fitler = Fitler()
+                    fitler = Fitler()
 
-                # Should detect spreadsheet provider
-                assert "spreadsheet" in fitler.enabled_providers
+                    # Should detect spreadsheet provider
+                    assert "spreadsheet" in fitler.enabled_providers
 
     @patch.dict(
         os.environ,
@@ -137,7 +149,12 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
                 mock_db.connect.return_value = None
                 mock_db.is_connection_usable.return_value = True
 
@@ -171,7 +188,12 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
                 mock_db.connect.return_value = None
                 mock_db.is_connection_usable.return_value = True
 
@@ -188,15 +210,21 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
-                mock_db.close.return_value = None
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_db.close.return_value = None
+                    mock_get_db.return_value = mock_db
 
-                fitler = Fitler()
-                fitler.cleanup()
-
-                mock_db.close.assert_called_once()
+                    fitler = Fitler()
+                    
+                    # Test cleanup directly
+                    with patch("fitler.core.get_db", return_value=mock_db):
+                        fitler.cleanup()
+                    
+                    mock_db.close.assert_called_once()
 
     def test_context_manager(self, tmp_path):
         """Test that Fitler works as a context manager."""
@@ -206,16 +234,20 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
-                mock_db.connect.return_value = None
-                mock_db.is_connection_usable.return_value = True
-                mock_db.close.return_value = None
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_db.close.return_value = None
+                    mock_get_db.return_value = mock_db
 
-                with Fitler() as fitler:
-                    assert fitler is not None
+                    with patch("fitler.core.get_db", return_value=mock_db):
+                        with Fitler() as fitler:
+                            assert fitler is not None
 
-                # Should have called cleanup
-                mock_db.close.assert_called_once()
+                        # Should have called cleanup
+                        mock_db.close.assert_called_once()
 
     def test_pull_activities_error_handling(self, tmp_path):
         """Test that pull_activities handles provider errors gracefully."""
@@ -227,7 +259,12 @@ class TestFitlerCore:
         config_file.write_text(json.dumps(config_data))
 
         with patch("fitler.core.CONFIG_PATH", config_file):
-            with patch("fitler.core.db") as mock_db:
+            with patch("fitler.db.configure_db") as mock_configure_db:
+                with patch("fitler.db.get_db") as mock_get_db:
+                    mock_db = MagicMock()
+                    mock_db.connect.return_value = None
+                    mock_db.is_connection_usable.return_value = True
+                    mock_get_db.return_value = mock_db
                 mock_db.connect.return_value = None
                 mock_db.is_connection_usable.return_value = True
 

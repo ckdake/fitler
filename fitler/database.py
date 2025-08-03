@@ -1,17 +1,17 @@
 from typing import List, Type, cast
 from peewee import Model
 
-from .db import db
+from .db import get_db
 from .activity import Activity
 from .provider_sync import ProviderSync
 from .providers.base_provider_activity import BaseProviderActivity
 
 
 def migrate_tables(models: List[Type[Model]]) -> None:
+    db = get_db()
     db.connect(reuse_if_open=True)
     db.create_tables(models)
     db.close()
-
 
 def get_all_models() -> List[Type[Model]]:
     return [Activity, ProviderSync] + list(

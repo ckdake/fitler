@@ -13,6 +13,7 @@ def test_run_creates_config_file(monkeypatch):
         [
             "US/Pacific",  # Home timezone
             "y",  # Debug mode
+            "",  # Database path (use default)
             "Y",  # Enable spreadsheet provider
             "/tmp/fake_spreadsheet.xlsx",  # Spreadsheet path
             "1",  # Spreadsheet priority

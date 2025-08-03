@@ -13,7 +13,8 @@ from .providers.garmin import GarminProvider
 from .providers.file import FileProvider
 from .providers.stravajson import StravaJsonProvider
 from .providers.base_provider_activity import BaseProviderActivity
-from .database import db, migrate_tables, get_all_models
+from .database import migrate_tables, get_all_models
+from .db import configure_db, get_db
 
 CONFIG_PATH = Path("fitler_config.json")
 
@@ -26,7 +27,12 @@ class Fitler:
         self.config = self._load_config()
         self.home_tz = ZoneInfo(self.config.get("home_timezone", "US/Eastern"))
 
+        # Configure database with path from config
+        metadata_db_path = self.config.get("metadata_db", "metadata.sqlite3")
+        configure_db(metadata_db_path)
+
         # Initialize database
+        db = get_db()
         db.connect(reuse_if_open=True)
 
         # Always migrate tables on startup
@@ -215,8 +221,13 @@ class Fitler:
 
     def cleanup(self):
         """Clean up resources, close connections etc."""
-        if db.is_connection_usable():
-            db.close()
+        try:
+            db = get_db()
+            if db.is_connection_usable():
+                db.close()
+        except RuntimeError:
+            # Database not configured, nothing to clean up
+            pass
 
     def __enter__(self):
         return self
