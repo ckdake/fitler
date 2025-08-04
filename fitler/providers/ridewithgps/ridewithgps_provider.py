@@ -215,3 +215,26 @@ class RideWithGPSProvider(FitnessProvider):
         except Exception as e:
             print(f"Error setting gear for RideWithGPS trip {activity_id}: {e}")
             return False
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Reset (delete) RideWithGPS activities from local database."""
+        from fitler.providers.ridewithgps.ridewithgps_activity import (
+            RideWithGPSActivity,
+        )
+
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            deleted_count = (
+                RideWithGPSActivity.delete()
+                .where(
+                    (RideWithGPSActivity.start_time >= start_timestamp)
+                    & (RideWithGPSActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+            return deleted_count
+        else:
+            return RideWithGPSActivity.delete().execute()

@@ -44,6 +44,14 @@ def main():
         help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
     )
 
+    reset_parser = subparsers.add_parser(
+        "reset", help="Reset (delete) activities and sync records"
+    )
+    reset_parser.add_argument(
+        "--date",
+        help="Date filter in YYYY-MM format (if not specified, resets all data)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "auth-strava":
@@ -70,6 +78,14 @@ def main():
             ["--date", args.date] if hasattr(args, "date") and args.date else None
         )
         run(pull_args)
+    elif args.command == "reset":
+        from fitler.commands.reset import run
+
+        # Only pass --date if set, otherwise pass None
+        reset_args = (
+            ["--date", args.date] if hasattr(args, "date") and args.date else None
+        )
+        run(reset_args)
     elif args.command == "help" or args.command is None:
         print(
             """
@@ -85,6 +101,8 @@ Commands:
     show-month    Show all activities for a given month (YYYY-MM) from all sources
     sync-month    Correlate and show all activities for a given month (YYYY-MM)
                   across all sources, dry run
+    pull          Pull activities from all providers
+    reset         Reset (delete) activities and sync records
     help          Show this help and usage documentation
 
 Setup:

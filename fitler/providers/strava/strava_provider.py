@@ -300,3 +300,22 @@ class StravaProvider(FitnessProvider):
         except Exception as e:
             print(f"Error setting gear for Strava activity {activity_id}: {e}")
             return False
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Delete activities for a specific month or all activities."""
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            deleted_count = (
+                StravaActivity.delete()
+                .where(
+                    (StravaActivity.start_time >= start_timestamp)
+                    & (StravaActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+            return deleted_count
+        else:
+            return StravaActivity.delete().execute()

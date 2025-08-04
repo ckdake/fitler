@@ -296,3 +296,22 @@ class GarminProvider(FitnessProvider):
                     continue
 
         return garmin_activities
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Delete activities for a specific month or all activities."""
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            deleted_count = (
+                GarminActivity.delete()
+                .where(
+                    (GarminActivity.start_time >= start_timestamp)
+                    & (GarminActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+            return deleted_count
+        else:
+            return GarminActivity.delete().execute()

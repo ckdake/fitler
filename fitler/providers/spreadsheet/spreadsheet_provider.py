@@ -328,3 +328,25 @@ class SpreadsheetProvider(FitnessProvider):
         sheet.cell(row=row_idx, column=7, value=gear_name)
         wb_obj.save(xlsx_file)
         return True
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Reset (delete) Spreadsheet activities from local database."""
+        from fitler.providers.spreadsheet.spreadsheet_activity import (
+            SpreadsheetActivity,
+        )
+
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            return (
+                SpreadsheetActivity.delete()
+                .where(
+                    (SpreadsheetActivity.start_time >= start_timestamp)
+                    & (SpreadsheetActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+        else:
+            return SpreadsheetActivity.delete().execute()

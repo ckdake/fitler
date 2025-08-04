@@ -55,3 +55,23 @@ class StravaJsonProvider(FitnessProvider):
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear - not supported for JSON files."""
         raise NotImplementedError("StravaJsonProvider does not support setting gear.")
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Reset (delete) StravaJSON activities from local database."""
+        from fitler.providers.stravajson.stravajson_activity import StravaJsonActivity
+
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            return (
+                StravaJsonActivity.delete()
+                .where(
+                    (StravaJsonActivity.start_time >= start_timestamp)
+                    & (StravaJsonActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+        else:
+            return StravaJsonActivity.delete().execute()

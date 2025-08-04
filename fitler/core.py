@@ -187,6 +187,10 @@ class Fitler:
 
         return providers
 
+    def get_provider(self, provider_name: str):
+        """Get a provider by name, returning None if not available or enabled."""
+        return getattr(self, provider_name, None)
+
     def pull_activities(self, year_month: str) -> Dict[str, List[BaseProviderActivity]]:
         """Pull activities from all enabled providers for the given month.
 

@@ -274,3 +274,23 @@ class FileProvider(FitnessProvider):
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """File provider does not support setting gear."""
         raise NotImplementedError("File provider does not support setting gear")
+
+    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+        """Reset (delete) File activities from local database."""
+        from fitler.providers.file.file_activity import FileActivity
+
+        if date_filter:
+            start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
+                date_filter, self.config.get("home_timezone", "US/Eastern")
+            )
+
+            return (
+                FileActivity.delete()
+                .where(
+                    (FileActivity.start_time >= start_timestamp)
+                    & (FileActivity.start_time <= end_timestamp)
+                )
+                .execute()
+            )
+        else:
+            return FileActivity.delete().execute()
