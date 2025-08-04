@@ -5,7 +5,7 @@ from fitler.core import Fitler
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
-from decimal import Decimal, ROUND_HALF_DOWN
+from decimal import Decimal, ROUND_HALF_UP
 
 
 class ChangeType(Enum):
@@ -105,9 +105,12 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
     try:
         dt = datetime.fromtimestamp(timestamp, ZoneInfo("US/Eastern"))
         date_str = dt.strftime("%Y-%m-%d")
-        d = Decimal(str(distance)).quantize(Decimal("1"), rounding=ROUND_HALF_DOWN)
 
-        return f"{date_str}_{d:.1f}"
+        # Create distance buckets to handle GPS precision differences
+        # Round to nearest 0.5 for better correlation across providers
+        distance_bucket = round(distance * 2) / 2
+
+        return f"{date_str}_{distance_bucket:.1f}"
     except (ValueError, TypeError):
         return ""
 
