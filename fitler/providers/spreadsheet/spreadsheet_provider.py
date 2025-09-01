@@ -40,7 +40,7 @@ class SpreadsheetProvider(FitnessProvider):
             return ""
 
     @staticmethod
-    def _hms_to_seconds(hms: Optional[str]) -> Optional[float]:
+    def _hms_to_seconds(hms: Optional[Union[str, int, float]]) -> Optional[float]:
         if not hms:
             return None
         # Accept numeric types directly
@@ -176,6 +176,9 @@ class SpreadsheetProvider(FitnessProvider):
         # duration_hms is stored as HH:MM:SS, but we want .duration in seconds
         if parsed_data["row"][7]:
             try:
+                # Store the original HH:MM:SS format
+                activity_kwargs["duration_hms"] = str(parsed_data["row"][7])
+                # Also convert to seconds for the duration field
                 activity_kwargs["duration"] = self._hms_to_seconds(
                     str(parsed_data["row"][7])
                 )
@@ -301,7 +304,7 @@ class SpreadsheetProvider(FitnessProvider):
         # Get the next row number
         next_row = sheet.max_row + 1
 
-        # Prepare the row data
+        # Prepare the row data for Excel
         row = [
             activity_data.get("start_time", ""),
             activity_data.get("activity_type", ""),
@@ -310,7 +313,7 @@ class SpreadsheetProvider(FitnessProvider):
             activity_data.get("state", ""),
             activity_data.get("temperature", ""),
             activity_data.get("equipment", ""),
-            self._seconds_to_hms(activity_data.get("duration", None)),
+            activity_data.get("duration_hms", "") or self._seconds_to_hms(activity_data.get("duration", None)),
             activity_data.get("distance", ""),
             activity_data.get("max_speed", ""),
             activity_data.get("avg_heart_rate", ""),
@@ -328,8 +331,29 @@ class SpreadsheetProvider(FitnessProvider):
 
         sheet.append(row)
         wb_obj.save(xlsx_file)
+
+        # Also create a database record
+        spreadsheet_id = str(next_row)
+        
+        # Prepare database record data
+        db_data = activity_data.copy()
+        db_data["spreadsheet_id"] = spreadsheet_id
+        
+        # Ensure duration_hms is set from either the provided value or converted from duration
+        if not db_data.get("duration_hms") and db_data.get("duration"):
+            db_data["duration_hms"] = self._seconds_to_hms(db_data["duration"])
+        
+        # Convert start_time if it's a string
+        if isinstance(db_data.get("start_time"), str):
+            db_data["start_time"] = self._convert_to_gmt_timestamp(
+                db_data["start_time"], self.config.get("home_timezone", "UTC")
+            )
+        
+        # Create the database record
+        SpreadsheetActivity.create(**db_data)
+        
         # Return the Excel row number as the spreadsheet_id
-        return str(next_row)
+        return spreadsheet_id
 
     def get_all_gear(self) -> Dict[str, str]:
         """Fetch gear/equipment from the spreadsheet."""

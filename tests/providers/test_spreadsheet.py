@@ -163,7 +163,7 @@ def test_create_activity(mock_path, mock_load_workbook):
         "notes": "Great run in the park",
     }
 
-    mock_sheet.max_row = 2
+    mock_sheet.max_row = 50  # Use a different row to avoid conflicts
     result = provider.create_activity(activity_data)
 
     # Verify that append was called with the correct row data
@@ -197,7 +197,7 @@ def test_create_activity(mock_path, mock_load_workbook):
 
     assert call_args == expected_row
     mock_wb.save.assert_called_once()
-    assert result == "3"
+    assert result == "51"  # max_row + 1 = 50 + 1 = 51
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -473,3 +473,329 @@ def test_convert_to_gmt_timestamp_date_only_eastern():
     tz = "US/Eastern"  # Where the activity was recorded
     ts = SpreadsheetProvider._convert_to_gmt_timestamp(dt_str, tz)
     assert ts == 1738558800  # 2025-02-03 05:00:00 UTC = 1738568400
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+def test_create_activity_with_duration_hms(mock_path, mock_load_workbook):
+    """Test that create_activity correctly converts duration to HH:MM:SS format."""
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 10  # Use different row to avoid conflicts
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    # Test with duration in seconds
+    activity_data = {
+        "start_time": "2024-06-01T10:00:00Z",
+        "activity_type": "Ride",
+        "location_name": "Test Location",
+        "duration": 3661,  # 1 hour, 1 minute, 1 second
+        "distance": 25.0,
+        "notes": "Test ride",
+    }
+
+    result = provider.create_activity(activity_data)
+
+    # Verify the activity was created with correct row number
+    assert result == "11"  # Next row after max_row=10
+    
+    # Verify sheet.append was called with correct data including duration_hms
+    mock_sheet.append.assert_called_once()
+    append_args = mock_sheet.append.call_args[0][0]
+    
+    # Duration should be converted to HH:MM:SS format
+    assert append_args[7] == "1:01:01"  # duration_hms column (index 7)
+    assert append_args[0] == "2024-06-01T10:00:00Z"  # start_time
+    assert append_args[20] == "Test ride"  # notes
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+def test_create_activity_with_zero_duration(mock_path, mock_load_workbook):
+    """Test that create_activity handles zero duration correctly."""
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 11  # Use different row to avoid conflicts
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    activity_data = {
+        "start_time": "2024-06-01T10:00:00Z",
+        "activity_type": "Ride",
+        "duration": 0,
+        "distance": 25.0,
+    }
+
+    provider.create_activity(activity_data)
+    
+    append_args = mock_sheet.append.call_args[0][0]
+    assert append_args[7] == "0:00:00"  # Zero duration
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+def test_create_activity_with_no_duration(mock_path, mock_load_workbook):
+    """Test that create_activity handles missing duration correctly."""
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 12  # Use different row to avoid conflicts
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    activity_data = {
+        "start_time": "2024-06-01T10:00:00Z",
+        "activity_type": "Ride",
+        "distance": 25.0,
+        # No duration field
+    }
+
+    provider.create_activity(activity_data)
+    
+    append_args = mock_sheet.append.call_args[0][0]
+    assert append_args[7] == ""  # Empty string for missing duration
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.get")
+def test_update_activity_with_duration_hms(mock_get, mock_path, mock_load_workbook):
+    """Test that update_activity correctly updates duration_hms in Excel file."""
+    mock_activity = MagicMock()
+    mock_get.return_value = mock_activity
+    
+    # Mock the Excel operations
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 10
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    # Test updating duration_hms
+    activity_data = {
+        "spreadsheet_id": 3,
+        "duration_hms": "2:30:45",  # 2 hours, 30 minutes, 45 seconds
+    }
+
+    result = provider.update_activity(activity_data)
+
+    # Verify the activity was retrieved and saved
+    mock_get.assert_called_once()
+    mock_activity.save.assert_called_once()
+    assert result == mock_activity
+
+    # Verify Excel file was updated with duration_hms in column 8
+    mock_sheet.cell.assert_called_with(row=3, column=8, value="2:30:45")
+    mock_wb.save.assert_called_once()
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+@patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.get")
+def test_update_activity_with_notes_and_duration_hms(mock_get, mock_path, mock_load_workbook):
+    """Test that update_activity correctly updates both notes and duration_hms."""
+    mock_activity = MagicMock()
+    mock_get.return_value = mock_activity
+    
+    # Mock the Excel operations
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 10
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    # Test updating both notes and duration_hms
+    activity_data = {
+        "spreadsheet_id": 5,
+        "notes": "Updated activity name",
+        "duration_hms": "1:15:30",
+    }
+
+    result = provider.update_activity(activity_data)
+
+    # Verify the activity was retrieved and saved
+    mock_get.assert_called_once()
+    mock_activity.save.assert_called_once()
+    assert result == mock_activity
+
+    # Verify Excel file was updated with both fields
+    expected_calls = [
+        (5, 21, "Updated activity name"),  # notes in column 21
+        (5, 8, "1:15:30"),  # duration_hms in column 8
+    ]
+    
+    # Check that both cell updates were made
+    assert mock_sheet.cell.call_count == 2
+    
+    # The cell method is called with keyword arguments
+    call_details = []
+    for call in mock_sheet.cell.call_args_list:
+        args, kwargs = call
+        if 'row' in kwargs and 'column' in kwargs and 'value' in kwargs:
+            call_details.append((kwargs['row'], kwargs['column'], kwargs['value']))
+    
+    expected_calls = [
+        (5, 21, "Updated activity name"),  # notes in column 21
+        (5, 8, "1:15:30"),  # duration_hms in column 8
+    ]
+    
+    # Sort both lists to handle order independence
+    expected_calls.sort()
+    call_details.sort()
+    assert call_details == expected_calls
+    
+    mock_wb.save.assert_called_once()
+
+
+def test_seconds_to_hms_conversion():
+    """Test the _seconds_to_hms static method."""
+    from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
+    
+    # Test various durations
+    assert SpreadsheetProvider._seconds_to_hms(3661) == "1:01:01"
+    assert SpreadsheetProvider._seconds_to_hms(3600) == "1:00:00"
+    assert SpreadsheetProvider._seconds_to_hms(61) == "0:01:01"
+    assert SpreadsheetProvider._seconds_to_hms(0) == "0:00:00"
+    assert SpreadsheetProvider._seconds_to_hms(None) == ""
+    
+    # Test with float values
+    assert SpreadsheetProvider._seconds_to_hms(3661.7) == "1:01:02"  # Rounds to nearest second
+
+
+def test_hms_to_seconds_conversion():
+    """Test the _hms_to_seconds static method."""
+    from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
+    
+    # Test various HMS formats
+    assert SpreadsheetProvider._hms_to_seconds("1:01:01") == 3661
+    assert SpreadsheetProvider._hms_to_seconds("1:00:00") == 3600
+    assert SpreadsheetProvider._hms_to_seconds("0:01:01") == 61
+    assert SpreadsheetProvider._hms_to_seconds("0:00:00") == 0
+    assert SpreadsheetProvider._hms_to_seconds("") is None
+    assert SpreadsheetProvider._hms_to_seconds(None) is None
+    
+    # Test MM:SS format
+    assert SpreadsheetProvider._hms_to_seconds("01:30") == 90
+    
+    # Test numeric inputs
+    assert SpreadsheetProvider._hms_to_seconds(3661) == 3661.0
+    assert SpreadsheetProvider._hms_to_seconds(3661.5) == 3661.5
+
+
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
+def test_create_activity_stores_duration_hms_in_database(mock_path, mock_load_workbook):
+    """Test that create_activity stores duration_hms in the database record."""
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 2
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
+
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    # Test with duration_hms field provided directly
+    activity_data = {
+        "start_time": "2024-06-01T10:00:00Z",
+        "activity_type": "Ride",
+        "duration": 3661,  # 1 hour, 1 minute, 1 second
+        "duration_hms": "1:01:01",  # Explicit HMS format
+        "distance": 25.0,
+        "notes": "Test ride with duration",
+    }
+
+    # Mock the database operations
+    with patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.create") as mock_create:
+        mock_activity = MagicMock()
+        mock_create.return_value = mock_activity
+
+        result = provider.create_activity(activity_data)
+
+        # Verify create was called with duration_hms field
+        mock_create.assert_called_once()
+        create_args = mock_create.call_args[1]  # keyword arguments
+        assert "duration_hms" in create_args
+        assert create_args["duration_hms"] == "1:01:01"
+        assert create_args["duration"] == 3661
+
+
+def test_spreadsheet_activity_parsing_with_duration_hms():
+    """Test that _process_parsed_data correctly sets duration_hms from spreadsheet."""
+    provider = SpreadsheetProvider(
+        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
+    )
+
+    # Mock spreadsheet row data with duration_hms in column 7
+    parsed_data = {
+        "file_name": "test.xlsx",
+        "spreadsheet_id": 15,  # Use a unique ID to avoid conflicts
+        "row": [
+            "2024-06-01T10:00:00",  # start_time (0)
+            "Ride",                 # activity_type (1)
+            "Park",                 # location_name (2)
+            "Atlanta",              # city (3)
+            "GA",                   # state (4)
+            "72",                   # temperature (5)
+            "Bike",                 # equipment (6)
+            "1:01:01",              # duration_hms (7) - This is what we're testing
+            "25.0",                 # distance (8)
+            "",                     # max_speed (9)
+            "",                     # avg_heart_rate (10)
+            "",                     # max_heart_rate (11)
+            "",                     # calories (12)
+            "",                     # max_elevation (13)
+            "",                     # total_elevation_gain (14)
+            "",                     # with_names (15)
+            "",                     # avg_cadence (16)
+            "",                     # strava_id (17)
+            "",                     # garmin_id (18)
+            "",                     # ridewithgps_id (19)
+            "Test activity",        # notes (20)
+        ]
+    }
+
+    with patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.get_or_none") as mock_get_or_none:
+        with patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.create") as mock_create:
+            # Mock that no existing activity is found (so a new one will be created)
+            mock_get_or_none.return_value = None
+            mock_activity = MagicMock()
+            mock_create.return_value = mock_activity
+
+            result = provider._process_parsed_data(parsed_data)
+
+            # Verify create was called with both duration and duration_hms
+            mock_create.assert_called_once()
+            create_args = mock_create.call_args[1]  # keyword arguments
+            
+            assert "duration_hms" in create_args
+            assert create_args["duration_hms"] == "1:01:01"
+            assert "duration" in create_args
+            assert create_args["duration"] == 3661  # 1:01:01 in seconds
