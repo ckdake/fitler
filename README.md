@@ -126,7 +126,9 @@ python -m fitler --help
 python -m fitler configure
 python -m fitler auth-strava
 python -m fitler auth-garmin
-python -m fitler sync
+python -m fitler pull --date 2025-08
+python -m fitler sync-month 2025-08
+python -m fitler reset --date 2025-08
 ```
 
 - `configure` – Set up paths and API credentials.
