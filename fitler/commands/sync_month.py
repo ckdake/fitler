@@ -114,6 +114,71 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
         return ""
 
 
+def convert_activity_to_spreadsheet_format(
+    source_activity: dict, grouped_activities
+) -> dict:
+    """Convert an activity from any provider to spreadsheet format."""
+    # Extract the source activity object
+    activity_obj = source_activity["obj"]
+
+    # Get start time and convert to spreadsheet format (date only)
+    start_time = ""
+    if source_activity["timestamp"]:
+        try:
+            dt = datetime.fromtimestamp(
+                source_activity["timestamp"], ZoneInfo("US/Eastern")
+            )
+            start_time = dt.strftime("%Y-%m-%d")
+        except (ValueError, TypeError):
+            pass
+
+    # Collect all provider IDs from the correlated group
+    garmin_id = ""
+    strava_id = ""
+    ridewithgps_id = ""
+
+    # Find the group this activity belongs to
+    correlation_key = generate_correlation_key(
+        source_activity["timestamp"], source_activity["distance"]
+    )
+    if correlation_key in grouped_activities:
+        group = grouped_activities[correlation_key]
+        for act in group:
+            if act["provider"] == "garmin":
+                garmin_id = str(act["id"]) if act["id"] else ""
+            elif act["provider"] == "strava":
+                strava_id = str(act["id"]) if act["id"] else ""
+            elif act["provider"] == "ridewithgps":
+                ridewithgps_id = str(act["id"]) if act["id"] else ""
+
+    # Build spreadsheet activity data
+    activity_data = {
+        "start_time": start_time,
+        "activity_type": getattr(activity_obj, "activity_type", "") or "",
+        "location_name": getattr(activity_obj, "location_name", "") or "",
+        "city": getattr(activity_obj, "city", "") or "",
+        "state": getattr(activity_obj, "state", "") or "",
+        "temperature": getattr(activity_obj, "temperature", "") or "",
+        "equipment": source_activity["equipment"] or "",
+        "duration": getattr(activity_obj, "duration", None),
+        "distance": source_activity["distance"] or 0,
+        "max_speed": getattr(activity_obj, "max_speed", "") or "",
+        "avg_heart_rate": getattr(activity_obj, "avg_heart_rate", "") or "",
+        "max_heart_rate": getattr(activity_obj, "max_heart_rate", "") or "",
+        "calories": getattr(activity_obj, "calories", "") or "",
+        "max_elevation": getattr(activity_obj, "max_elevation", "") or "",
+        "total_elevation_gain": getattr(activity_obj, "total_elevation_gain", "") or "",
+        "with_names": getattr(activity_obj, "with_names", "") or "",
+        "avg_cadence": getattr(activity_obj, "avg_cadence", "") or "",
+        "strava_id": strava_id,
+        "garmin_id": garmin_id,
+        "ridewithgps_id": ridewithgps_id,
+        "notes": getattr(activity_obj, "notes", "") or "",
+    }
+
+    return activity_data
+
+
 def run(year_month):
     with Fitler() as fitler:
         # Use the new pull_activities method to get provider-specific activities
@@ -432,17 +497,26 @@ def run(year_month):
                 if change.provider == "garmin"
             ]
 
+            # Prompt for spreadsheet additions
+            spreadsheet_additions = [
+                change
+                for change in changes_by_type[ChangeType.ADD_ACTIVITY]
+                if change.provider == "spreadsheet"
+            ]
+
             if (
                 ridewithgps_equipment_changes
                 or strava_equipment_changes
                 or ridewithgps_name_changes
                 or strava_name_changes
                 or garmin_name_changes
+                or spreadsheet_additions
             ):
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
                 strava_provider = fitler.strava
                 garmin_provider = fitler.garmin
+                spreadsheet_provider = fitler.spreadsheet
 
                 if not ridewithgps_provider and (
                     ridewithgps_equipment_changes or ridewithgps_name_changes
@@ -454,6 +528,8 @@ def run(year_month):
                     print("Strava provider not available")
                 elif not garmin_provider and garmin_name_changes:
                     print("Garmin provider not available")
+                elif not spreadsheet_provider and spreadsheet_additions:
+                    print("Spreadsheet provider not available")
                 else:
                     # Process equipment updates
                     if ridewithgps_equipment_changes and ridewithgps_provider:
@@ -566,6 +642,56 @@ def run(year_month):
                                         print(f"✗ Name for {change.activity_id}")
                                 except Exception as e:
                                     print(f"✗ Name for {change.activity_id}: {e}")
+                            else:
+                                print("Skipped")
+
+                    # Process spreadsheet additions
+                    if spreadsheet_additions and spreadsheet_provider:
+                        print("\nProcessing Spreadsheet additions...")
+                        for change in spreadsheet_additions:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    # Find the source activity in the grouped activities
+                                    source_activity = None
+                                    for group in grouped.values():
+                                        for act in group:
+                                            if (
+                                                act["provider"]
+                                                == change.source_provider
+                                                and str(act["id"]) == change.activity_id
+                                            ):
+                                                source_activity = act
+                                                break
+                                        if source_activity:
+                                            break
+
+                                    if source_activity:
+                                        # Convert source activity to spreadsheet format
+                                        activity_data = (
+                                            convert_activity_to_spreadsheet_format(
+                                                source_activity, grouped
+                                            )
+                                        )
+
+                                        # Create the activity in spreadsheet
+                                        new_id = spreadsheet_provider.create_activity(
+                                            activity_data
+                                        )
+                                        if new_id:
+                                            print(
+                                                f"✓ Added activity to spreadsheet with ID {new_id}"
+                                            )
+                                        else:
+                                            print(
+                                                "✗ Failed to add activity to spreadsheet"
+                                            )
+                                    else:
+                                        print("✗ Could not find source activity")
+                                except Exception as e:
+                                    print(f"✗ Error adding to spreadsheet: {e}")
                             else:
                                 print("Skipped")
         else:

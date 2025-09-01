@@ -193,6 +193,7 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
     * File provider manually fixed, go through other providers and manually fix them to work the ~same way. make sure we're not making API calls if the month is synced.
     * Fix strava gear matching to work for running shoes.
+    * Fix "create" in providers to create_from_activity, and get all that out of sync_month
     * Write some tests...
     * Get everything out of gpx files: https://pypi.org/project/gpxpy/  (basics are in, need to fill out metadata, add more fields to db!)
     * Get everything out of tcx files: https://pypi.org/project/python-tcxparser/ (basics are in, need to fill out metadata, add more fields to db!) 

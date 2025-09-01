@@ -136,17 +136,65 @@ def test_create_activity(mock_path, mock_load_workbook):
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
-    # Test with dictionary data (no Activity objects in providers!)
+    
+    # Test with comprehensive activity data including all provider IDs
     activity_data = {
         "start_time": "2024-06-02",
         "activity_type": "Run",
-        "spreadsheet_id": 2,
-        "equipment": "Shoes",
-        "notes": "Test run",
+        "location_name": "Central Park",
+        "city": "New York",
+        "state": "NY",
+        "temperature": "68",
+        "equipment": "Running Shoes",
+        "duration": 3600,  # 1 hour in seconds
+        "distance": 5.2,
+        "max_speed": "8.5",
+        "avg_heart_rate": "145",
+        "max_heart_rate": "165",
+        "calories": "450",
+        "max_elevation": "150",
+        "total_elevation_gain": "50",
+        "with_names": "John Doe",
+        "avg_cadence": "180",
+        "strava_id": "12345",
+        "garmin_id": "67890",
+        "ridewithgps_id": "54321",
+        "notes": "Great run in the park",
     }
+    
     mock_sheet.max_row = 2
     result = provider.create_activity(activity_data)
+    
+    # Verify that append was called with the correct row data
     mock_sheet.append.assert_called_once()
+    call_args = mock_sheet.append.call_args[0][0]  # First argument to append()
+    
+    # Verify all fields are in the correct order and format
+    expected_row = [
+        "2024-06-02",  # start_time
+        "Run",  # activity_type
+        "Central Park",  # location_name
+        "New York",  # city
+        "NY",  # state
+        "68",  # temperature
+        "Running Shoes",  # equipment
+        "1:00:00",  # duration_hms (converted from seconds)
+        5.2,  # distance
+        "8.5",  # max_speed
+        "145",  # avg_heart_rate
+        "165",  # max_heart_rate
+        "450",  # calories
+        "150",  # max_elevation
+        "50",  # total_elevation_gain
+        "John Doe",  # with_names
+        "180",  # avg_cadence
+        "12345",  # strava_id
+        "67890",  # garmin_id
+        "54321",  # ridewithgps_id
+        "Great run in the park",  # notes
+    ]
+    
+    assert call_args == expected_row
     mock_wb.save.assert_called_once()
     assert result == "3"
 

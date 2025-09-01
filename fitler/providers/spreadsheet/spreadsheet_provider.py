@@ -7,7 +7,7 @@ for interacting with activity data stored in local spreadsheet files.
 from typing import List, Dict, Any, Union, Optional
 from pathlib import Path
 import decimal
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from zoneinfo import ZoneInfo
 
 import openpyxl
@@ -35,7 +35,7 @@ class SpreadsheetProvider(FitnessProvider):
             return ""
         try:
             seconds = int(round(seconds))
-            return str(datetime.timedelta(seconds=seconds))
+            return str(timedelta(seconds=seconds))
         except Exception:
             return ""
 
