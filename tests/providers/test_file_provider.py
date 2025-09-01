@@ -1,13 +1,9 @@
 import os
-import tempfile
 import shutil
 import gzip
 import pytest
 from unittest.mock import patch, MagicMock
 from fitler.providers.file.file_provider import FileProvider
-from fitler.providers.file.file_activity import FileActivity
-from fitler.providers.base_provider_activity import BaseProviderActivity
-from fitler.provider_sync import ProviderSync
 
 
 def create_sample_gpx_file(tmpdir):
@@ -192,7 +188,7 @@ def test_file_provider_handles_gzipped(
     assert is_gzipped == True
 
     # Test parsing - gzipped parsing fails, so create should not be called
-    activities = provider.pull_activities("2024-05")
+    provider.pull_activities("2024-05")
     assert mock_create.call_count == 0  # Parsing failed
 
 

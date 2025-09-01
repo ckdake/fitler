@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from types import SimpleNamespace
 from fitler.providers.ridewithgps import RideWithGPSProvider
-from fitler.activity import Activity
 
 
 @pytest.fixture

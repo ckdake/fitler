@@ -1,6 +1,4 @@
 from fitler.activity import Activity
-import datetime
-import pytest
 
 
 def test_activity_creation_with_data():

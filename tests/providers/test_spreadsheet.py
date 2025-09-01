@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from fitler.providers.spreadsheet import SpreadsheetProvider
-from fitler.activity import Activity
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
 from fitler.providers.base_provider_activity import BaseProviderActivity
 import datetime
@@ -95,7 +94,9 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
         assert len(activities) == 1  # One data row from mock_sheet
         assert isinstance(activities[0], SpreadsheetActivity)
         assert activities[0].equipment == "Bike"
-        assert activities[0].spreadsheet_id == "2"  # Row 2 (first data row after header, as string)
+        assert (
+            activities[0].spreadsheet_id == "2"
+        )  # Row 2 (first data row after header, as string)
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -225,7 +226,7 @@ def test_update_activity(mock_get, mock_path, mock_load_workbook):
     """Test updating activity via provider update_activity method."""
     mock_activity = MagicMock()
     mock_get.return_value = mock_activity
-    
+
     # Mock the Excel operations
     mock_wb = MagicMock()
     mock_sheet = MagicMock()

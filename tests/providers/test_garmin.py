@@ -1,10 +1,7 @@
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-import datetime
-import json
+from unittest.mock import Mock, patch
 from garminconnect import GarminConnectConnectionError
 from fitler.providers.garmin.garmin_provider import GarminProvider
-from fitler.providers.garmin.garmin_activity import GarminActivity
 
 
 class TestGarminProviderCore:
@@ -210,7 +207,7 @@ class TestGarminProviderPullActivities:
                 mock_activity = Mock()
                 mock_garmin_activity_class.return_value = mock_activity
 
-                result = provider.pull_activities(date_filter="2021-01")
+                provider.pull_activities(date_filter="2021-01")
 
                 # Verify duplicate was skipped (save not called)
                 mock_activity.save.assert_not_called()

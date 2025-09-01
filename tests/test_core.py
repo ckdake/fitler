@@ -1,9 +1,7 @@
-import pytest
-import tempfile
 import os
 import json
 from unittest.mock import patch, MagicMock
-from fitler.core import Fitler, CONFIG_PATH
+from fitler.core import Fitler
 
 
 class TestFitlerCore:

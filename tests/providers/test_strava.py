@@ -1,8 +1,7 @@
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 import datetime
 from fitler.providers.strava.strava_provider import StravaProvider
-from fitler.providers.strava.strava_activity import StravaActivity
 
 
 @pytest.mark.parametrize(
@@ -594,7 +593,7 @@ class TestStravaProviderPullActivities:
             mock_existing_activity = Mock()
             mock_get_or_none.return_value = mock_existing_activity
 
-            result = provider.pull_activities(date_filter="2021-01")
+            provider.pull_activities(date_filter="2021-01")
 
             # Verify duplicate was skipped (save not called)
             mock_converted_activity.save.assert_not_called()

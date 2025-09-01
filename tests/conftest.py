@@ -1,6 +1,5 @@
 import os
 import pytest
-from peewee import SqliteDatabase
 from fitler.db import configure_db, get_db
 from fitler.database import migrate_tables, get_all_models
 
