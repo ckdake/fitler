@@ -313,7 +313,8 @@ class SpreadsheetProvider(FitnessProvider):
             activity_data.get("state", ""),
             activity_data.get("temperature", ""),
             activity_data.get("equipment", ""),
-            activity_data.get("duration_hms", "") or self._seconds_to_hms(activity_data.get("duration", None)),
+            activity_data.get("duration_hms", "")
+            or self._seconds_to_hms(activity_data.get("duration", None)),
             activity_data.get("distance", ""),
             activity_data.get("max_speed", ""),
             activity_data.get("avg_heart_rate", ""),
@@ -334,24 +335,24 @@ class SpreadsheetProvider(FitnessProvider):
 
         # Also create a database record
         spreadsheet_id = str(next_row)
-        
+
         # Prepare database record data
         db_data = activity_data.copy()
         db_data["spreadsheet_id"] = spreadsheet_id
-        
+
         # Ensure duration_hms is set from either the provided value or converted from duration
         if not db_data.get("duration_hms") and db_data.get("duration"):
             db_data["duration_hms"] = self._seconds_to_hms(db_data["duration"])
-        
+
         # Convert start_time if it's a string
         if isinstance(db_data.get("start_time"), str):
             db_data["start_time"] = self._convert_to_gmt_timestamp(
                 db_data["start_time"], self.config.get("home_timezone", "UTC")
             )
-        
+
         # Create the database record
         SpreadsheetActivity.create(**db_data)
-        
+
         # Return the Excel row number as the spreadsheet_id
         return spreadsheet_id
 

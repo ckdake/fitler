@@ -410,10 +410,35 @@ def run(year_month):
                             getattr(activity.get("obj"), "duration_hms", "") or ""
                         )
 
-                        # Calculate the expected duration_hms from the authoritative activity
-                        auth_activity_obj = auth_activity["obj"]
+                        # Calculate the expected duration_hms from a non-spreadsheet provider
+                        # Find the first non-spreadsheet provider with duration data
                         expected_duration_hms = ""
-                        duration_seconds = getattr(auth_activity_obj, "duration", None)
+                        duration_seconds = None
+
+                        for p in provider_priority:
+                            if p != "spreadsheet" and p in providers:
+                                provider_activity_obj = providers[p]["obj"]
+                                # For non-spreadsheet providers, duration should be stored as int s
+                                potential_duration = None
+
+                                # Try different duration field names that providers might use
+                                for duration_field in [
+                                    "moving_time",
+                                    "elapsed_time",
+                                    "duration",
+                                ]:
+                                    potential_duration = getattr(
+                                        provider_activity_obj, duration_field, None
+                                    )
+                                    if potential_duration and isinstance(
+                                        potential_duration, (int, float)
+                                    ):
+                                        duration_seconds = int(potential_duration)
+                                        break
+
+                                if duration_seconds:
+                                    break
+
                         if duration_seconds:
                             try:
                                 hours = int(duration_seconds // 3600)
