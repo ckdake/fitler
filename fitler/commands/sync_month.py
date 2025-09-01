@@ -5,7 +5,6 @@ from fitler.core import Fitler
 from datetime import datetime, timezone
 from collections import defaultdict
 from tabulate import tabulate
-from decimal import Decimal, ROUND_HALF_UP
 
 
 class ChangeType(Enum):
