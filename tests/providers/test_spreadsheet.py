@@ -12,6 +12,8 @@ def clean_spreadsheet_activities():
     SpreadsheetActivity.delete().execute()
     yield
     # Cleanup after test if needed
+
+
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
 from fitler.providers.base_provider_activity import BaseProviderActivity
 import datetime
@@ -92,8 +94,8 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
-    
-    # Since the database is cleaned before each test, calling pull_activities 
+
+    # Since the database is cleaned before each test, calling pull_activities
     # should process the mocked sheet data and create new activities
     activities = provider.pull_activities()
 
