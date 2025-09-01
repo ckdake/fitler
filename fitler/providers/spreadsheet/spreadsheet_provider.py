@@ -102,12 +102,19 @@ class SpreadsheetProvider(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
 
+            excel_row_number = (
+                i + 1
+            )  # Convert enumerate index to Excel row number (1-based)
             existing_activity = SpreadsheetActivity.get_or_none(
-                SpreadsheetActivity.spreadsheet_id == i
+                SpreadsheetActivity.spreadsheet_id == excel_row_number
             )
             if existing_activity is None:
                 activity = self._process_parsed_data(
-                    {"file_name": str(xlsx_file), "spreadsheet_id": i, "row": row}
+                    {
+                        "file_name": str(xlsx_file),
+                        "spreadsheet_id": excel_row_number,
+                        "row": row,
+                    }
                 )
                 if activity:
                     processed_count += 1
@@ -230,9 +237,11 @@ class SpreadsheetProvider(FitnessProvider):
         return self._get_activities(date_filter)
 
     def get_activity_by_id(self, activity_id: str) -> Optional[SpreadsheetActivity]:
-        """Get a specific activity by its file activity ID."""
+        """Get a specific activity by its spreadsheet_id."""
         try:
-            return SpreadsheetActivity.get_by_id(int(activity_id))
+            return SpreadsheetActivity.get(
+                SpreadsheetActivity.spreadsheet_id == int(activity_id)
+            )
         except (ValueError, DoesNotExist):
             return None
 
@@ -245,10 +254,40 @@ class SpreadsheetProvider(FitnessProvider):
             activity = SpreadsheetActivity.get(
                 SpreadsheetActivity.spreadsheet_id == activity_id
             )
+
+            # Update the database record
             for key, value in activity_data.items():
                 if key != "spreadsheet_id":  # Don't update the ID itself
                     setattr(activity, key, value)
             activity.save()
+
+            # Also update the Excel file
+            xlsx_file = Path(self.path)
+            wb_obj = openpyxl.load_workbook(xlsx_file)
+            sheet = wb_obj.active
+
+            if sheet is None:
+                return activity
+
+            row_idx = int(activity_id)  # spreadsheet_id is now the Excel row number
+            if row_idx <= 1 or row_idx > sheet.max_row:
+                return activity
+
+            # Update specific columns in the Excel file
+            file_updated = False
+            for key, value in activity_data.items():
+                if key == "notes":
+                    # Notes is in column 21 (1-based)
+                    sheet.cell(row=row_idx, column=21, value=value)
+                    file_updated = True
+                elif key == "duration_hms":
+                    # Duration is in column 8 (1-based)
+                    sheet.cell(row=row_idx, column=8, value=value)
+                    file_updated = True
+
+            if file_updated:
+                wb_obj.save(xlsx_file)
+
             return activity
         except Exception:
             return None
@@ -289,6 +328,7 @@ class SpreadsheetProvider(FitnessProvider):
 
         sheet.append(row)
         wb_obj.save(xlsx_file)
+        # Return the Excel row number as the spreadsheet_id
         return str(next_row)
 
     def get_all_gear(self) -> Dict[str, str]:

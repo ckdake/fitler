@@ -1,5 +1,8 @@
 import pytest
-from fitler.commands.sync_month import generate_correlation_key, convert_activity_to_spreadsheet_format
+from fitler.commands.sync_month import (
+    generate_correlation_key,
+    convert_activity_to_spreadsheet_format,
+)
 from unittest.mock import Mock
 
 
@@ -39,7 +42,7 @@ def test_convert_activity_to_spreadsheet_format():
     mock_activity.with_names = "John Doe"
     mock_activity.avg_cadence = "80"
     mock_activity.notes = "Test notes"
-    
+
     # Source activity data
     source_activity = {
         "provider": "strava",
@@ -50,7 +53,7 @@ def test_convert_activity_to_spreadsheet_format():
         "name": "Test Activity",
         "equipment": "Test Bike",
     }
-    
+
     # Mock grouped activities with correlated activities
     correlation_key = generate_correlation_key(1720411200, 15.5)
     grouped_activities = {
@@ -72,12 +75,12 @@ def test_convert_activity_to_spreadsheet_format():
                 "id": "54321",
                 "timestamp": 1720411200,
                 "distance": 15.5,
-            }
+            },
         ]
     }
-    
+
     result = convert_activity_to_spreadsheet_format(source_activity, grouped_activities)
-    
+
     # Verify the conversion
     assert result["start_time"] == "2024-07-08"
     assert result["activity_type"] == "Ride"
@@ -89,4 +92,7 @@ def test_convert_activity_to_spreadsheet_format():
     assert result["strava_id"] == "12345"
     assert result["garmin_id"] == "67890"
     assert result["ridewithgps_id"] == "54321"
-    assert result["notes"] == "Test notes"
+    assert result["notes"] == "Test Activity"  # Activity name maps to notes field
+    assert (
+        result["duration_hms"] == "01:00:00"
+    )  # Duration formatted as HH:MM:SS (3600 seconds = 1 hour)

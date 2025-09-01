@@ -95,7 +95,7 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
         assert len(activities) == 1  # One data row from mock_sheet
         assert isinstance(activities[0], SpreadsheetActivity)
         assert activities[0].equipment == "Bike"
-        assert activities[0].spreadsheet_id == "1"  # Row 1 (first data row, as string)
+        assert activities[0].spreadsheet_id == "2"  # Row 2 (first data row after header, as string)
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -115,13 +115,13 @@ def test_get_activity_by_id(mock_path, mock_load_workbook, mock_sheet):
     SpreadsheetActivity.create(
         start_time="2024-06-01T10:00:00Z",
         activity_type="Ride",
-        spreadsheet_id=2,
+        spreadsheet_id=3,
         equipment="Bike",
     )
-    activity = provider.get_activity_by_id("2")
+    activity = provider.get_activity_by_id("3")
     assert isinstance(activity, BaseProviderActivity)
     assert activity.equipment == "Bike"
-    assert activity.spreadsheet_id == "2"
+    assert activity.spreadsheet_id == "3"
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -136,7 +136,7 @@ def test_create_activity(mock_path, mock_load_workbook):
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
     )
-    
+
     # Test with comprehensive activity data including all provider IDs
     activity_data = {
         "start_time": "2024-06-02",
@@ -161,14 +161,14 @@ def test_create_activity(mock_path, mock_load_workbook):
         "ridewithgps_id": "54321",
         "notes": "Great run in the park",
     }
-    
+
     mock_sheet.max_row = 2
     result = provider.create_activity(activity_data)
-    
+
     # Verify that append was called with the correct row data
     mock_sheet.append.assert_called_once()
     call_args = mock_sheet.append.call_args[0][0]  # First argument to append()
-    
+
     # Verify all fields are in the correct order and format
     expected_row = [
         "2024-06-02",  # start_time
@@ -193,7 +193,7 @@ def test_create_activity(mock_path, mock_load_workbook):
         "54321",  # ridewithgps_id
         "Great run in the park",  # notes
     ]
-    
+
     assert call_args == expected_row
     mock_wb.save.assert_called_once()
     assert result == "3"
@@ -218,11 +218,21 @@ def test_set_gear(mock_path, mock_load_workbook):
     assert result is True
 
 
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
+@patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 @patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.get")
-def test_update_activity(mock_get):
+def test_update_activity(mock_get, mock_path, mock_load_workbook):
     """Test updating activity via provider update_activity method."""
     mock_activity = MagicMock()
     mock_get.return_value = mock_activity
+    
+    # Mock the Excel operations
+    mock_wb = MagicMock()
+    mock_sheet = MagicMock()
+    mock_sheet.max_row = 10
+    mock_wb.active = mock_sheet
+    mock_load_workbook.return_value = mock_wb
+    mock_path.return_value = "fake.xlsx"
 
     provider = SpreadsheetProvider(
         "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}

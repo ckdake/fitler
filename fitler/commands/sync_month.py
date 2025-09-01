@@ -10,6 +10,7 @@ from tabulate import tabulate
 class ChangeType(Enum):
     UPDATE_NAME = "Update Name"
     UPDATE_EQUIPMENT = "Update Equipment"
+    UPDATE_METADATA = "Update Metadata"
     ADD_ACTIVITY = "Add Activity"
     LINK_ACTIVITY = "Link Activity"
 
@@ -32,6 +33,11 @@ class ActivityChange(NamedTuple):
             return (
                 f"Update {self.provider} equipment for activity {self.activity_id} "
                 f"from '{self.old_value}' to '{self.new_value}'"
+            )
+        elif self.change_type == ChangeType.UPDATE_METADATA:
+            return (
+                f"Update {self.provider} metadata for activity {self.activity_id} "
+                f"(duration_hms: '{self.old_value}' → duration_hms: '{self.new_value}')"
             )
         elif self.change_type == ChangeType.ADD_ACTIVITY:
             return (
@@ -85,13 +91,20 @@ def process_activity_for_display(activity, provider: str) -> dict:
     if distance is None:
         distance = 0
 
+    # For spreadsheet provider, the "name" should come from notes field
+    # For other providers, use the name field
+    if provider == "spreadsheet":
+        activity_name = getattr(activity, "notes", "") or ""
+    else:
+        activity_name = getattr(activity, "name", "") or ""
+
     return {
         "provider": provider,
         "id": provider_id,
         "timestamp": int(timestamp),
         "distance": float(distance),
         "obj": activity,
-        "name": getattr(activity, "name", "") or "",
+        "name": activity_name,
         "equipment": getattr(activity, "equipment", "") or "",
     }
 
@@ -151,6 +164,11 @@ def convert_activity_to_spreadsheet_format(
             elif act["provider"] == "ridewithgps":
                 ridewithgps_id = str(act["id"]) if act["id"] else ""
 
+    # Round distance to 2 decimal places
+    distance = source_activity["distance"] or 0
+    if distance:
+        distance = round(float(distance), 2)
+
     # Build spreadsheet activity data
     activity_data = {
         "start_time": start_time,
@@ -161,7 +179,8 @@ def convert_activity_to_spreadsheet_format(
         "temperature": getattr(activity_obj, "temperature", "") or "",
         "equipment": source_activity["equipment"] or "",
         "duration": getattr(activity_obj, "duration", None),
-        "distance": source_activity["distance"] or 0,
+        "duration_hms": "",  # Will be set below if duration is available
+        "distance": distance,
         "max_speed": getattr(activity_obj, "max_speed", "") or "",
         "avg_heart_rate": getattr(activity_obj, "avg_heart_rate", "") or "",
         "max_heart_rate": getattr(activity_obj, "max_heart_rate", "") or "",
@@ -173,8 +192,19 @@ def convert_activity_to_spreadsheet_format(
         "strava_id": strava_id,
         "garmin_id": garmin_id,
         "ridewithgps_id": ridewithgps_id,
-        "notes": getattr(activity_obj, "notes", "") or "",
+        "notes": source_activity["name"] or "",  # Map activity name to notes field
     }
+
+    # Convert duration from seconds to HH:MM:SS format
+    duration_seconds = getattr(activity_obj, "duration", None)
+    if duration_seconds:
+        try:
+            hours = int(duration_seconds // 3600)
+            minutes = int((duration_seconds % 3600) // 60)
+            seconds = int(duration_seconds % 60)
+            activity_data["duration_hms"] = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        except (ValueError, TypeError):
+            pass
 
     return activity_data
 
@@ -289,19 +319,36 @@ def run(year_month):
         for row in rows:
             providers = row["providers"]
 
-            # Find authoritative provider for this group
+            # Find authoritative provider for this group based on data availability
             auth_provider = None
+            auth_name = ""
+            auth_equipment = ""
+
+            # Find the best provider for name field
             for p in provider_priority:
-                if p in providers:
+                if p in providers and providers[p]["name"]:
                     auth_provider = p
+                    auth_name = providers[p]["name"]
+                    break
+
+            # If no provider found yet, fall back to first available provider
+            if not auth_provider:
+                for p in provider_priority:
+                    if p in providers:
+                        auth_provider = p
+                        auth_name = providers[p]["name"]
+                        break
+
+            # Find the best provider for equipment field
+            for p in provider_priority:
+                if p in providers and providers[p]["equipment"]:
+                    auth_equipment = providers[p]["equipment"]
                     break
 
             if not auth_provider:
                 continue
 
             auth_activity = providers[auth_provider]
-            auth_name = auth_activity["name"]
-            auth_equipment = auth_activity["equipment"]
 
             # Build table row
             table_row = [row["start"].strftime("%Y-%m-%d %H:%M")]
@@ -318,28 +365,79 @@ def run(year_month):
                     table_row.append(id_colored)
                     # Name column
                     if sync_name:
-                        if provider == auth_provider:
-                            name_colored = color_text(
-                                activity["name"], True, False, False
+                        current_name = activity["name"]
+                        if provider == auth_provider and current_name:
+                            # This is the authoritative provider and has a name
+                            name_colored = color_text(current_name, True, False, False)
+                        elif current_name and current_name == auth_name:
+                            # This provider has the correct name
+                            name_colored = color_text(current_name, False, False, False)
+                        elif not current_name and auth_name:
+                            # This provider is missing the name, show auth name in green
+                            name_colored = color_text(auth_name, False, True, False)
+                            # Create UPDATE_NAME change
+                            all_changes.append(
+                                ActivityChange(
+                                    change_type=ChangeType.UPDATE_NAME,
+                                    provider=provider,
+                                    activity_id=str(activity["id"]),
+                                    old_value=current_name,
+                                    new_value=auth_name,
+                                )
+                            )
+                        elif current_name != auth_name and auth_name:
+                            # This provider has wrong name
+                            name_colored = color_text(current_name, False, False, True)
+                            # Create UPDATE_NAME change
+                            all_changes.append(
+                                ActivityChange(
+                                    change_type=ChangeType.UPDATE_NAME,
+                                    provider=provider,
+                                    activity_id=str(activity["id"]),
+                                    old_value=current_name,
+                                    new_value=auth_name,
+                                )
                             )
                         else:
-                            name_wrong = (
-                                activity["name"] != auth_name if auth_name else False
-                            )
-                            name_colored = color_text(
-                                activity["name"], False, False, name_wrong
-                            )
-                            if name_wrong and auth_name:
-                                all_changes.append(
-                                    ActivityChange(
-                                        change_type=ChangeType.UPDATE_NAME,
-                                        provider=provider,
-                                        activity_id=str(activity["id"]),
-                                        old_value=activity["name"],
-                                        new_value=auth_name,
-                                    )
-                                )
+                            # Default case (no auth name available or same name)
+                            name_colored = color_text(current_name, False, False, False)
                         table_row.append(name_colored)
+
+                    # Special handling for spreadsheet metadata (duration_hms field)
+                    if provider == "spreadsheet":
+                        # Check if duration_hms needs to be updated with properly formatted duration
+                        current_duration_hms = (
+                            getattr(activity.get("obj"), "duration_hms", "") or ""
+                        )
+
+                        # Calculate the expected duration_hms from the authoritative activity
+                        auth_activity_obj = auth_activity["obj"]
+                        expected_duration_hms = ""
+                        duration_seconds = getattr(auth_activity_obj, "duration", None)
+                        if duration_seconds:
+                            try:
+                                hours = int(duration_seconds // 3600)
+                                minutes = int((duration_seconds % 3600) // 60)
+                                seconds = int(duration_seconds % 60)
+                                expected_duration_hms = (
+                                    f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                                )
+                            except (ValueError, TypeError):
+                                pass
+
+                        if (
+                            current_duration_hms != expected_duration_hms
+                            and expected_duration_hms
+                        ):
+                            all_changes.append(
+                                ActivityChange(
+                                    change_type=ChangeType.UPDATE_METADATA,
+                                    provider=provider,
+                                    activity_id=str(activity["id"]),
+                                    old_value=current_duration_hms,
+                                    new_value=expected_duration_hms,
+                                )
+                            )
                     # Equipment column
                     if sync_equipment:
                         if provider == auth_provider:
@@ -453,7 +551,15 @@ def run(year_month):
             print("\nChanges needed:")
             for change_type in ChangeType:
                 if changes_by_type[change_type]:
-                    print(f"\n{change_type.value}s:")
+                    # Handle pluralization correctly
+                    if change_type == ChangeType.UPDATE_METADATA:
+                        print(f"\n{change_type.value} Changes:")
+                    elif change_type == ChangeType.ADD_ACTIVITY:
+                        print("\nAdd Activities:")
+                    elif change_type == ChangeType.LINK_ACTIVITY:
+                        print("\nLink Activities:")
+                    else:
+                        print(f"\n{change_type.value}s:")
                     for change in changes_by_type[change_type]:
                         print(f"* {change}")
 
@@ -504,6 +610,20 @@ def run(year_month):
                 if change.provider == "spreadsheet"
             ]
 
+            # Prompt for spreadsheet notes updates (UPDATE_NAME for notes field)
+            spreadsheet_name_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_NAME]
+                if change.provider == "spreadsheet"
+            ]
+
+            # Prompt for spreadsheet metadata updates (UPDATE_METADATA for duration_hms, etc.)
+            spreadsheet_metadata_changes = [
+                change
+                for change in changes_by_type[ChangeType.UPDATE_METADATA]
+                if change.provider == "spreadsheet"
+            ]
+
             if (
                 ridewithgps_equipment_changes
                 or strava_equipment_changes
@@ -511,6 +631,8 @@ def run(year_month):
                 or strava_name_changes
                 or garmin_name_changes
                 or spreadsheet_additions
+                or spreadsheet_name_changes
+                or spreadsheet_metadata_changes
             ):
                 # Get the ridewithgps provider from the existing fitler instance
                 ridewithgps_provider = fitler.ridewithgps
@@ -528,7 +650,11 @@ def run(year_month):
                     print("Strava provider not available")
                 elif not garmin_provider and garmin_name_changes:
                     print("Garmin provider not available")
-                elif not spreadsheet_provider and spreadsheet_additions:
+                elif not spreadsheet_provider and (
+                    spreadsheet_additions
+                    or spreadsheet_name_changes
+                    or spreadsheet_metadata_changes
+                ):
                     print("Spreadsheet provider not available")
                 else:
                     # Process equipment updates
@@ -692,6 +818,54 @@ def run(year_month):
                                         print("✗ Could not find source activity")
                                 except Exception as e:
                                     print(f"✗ Error adding to spreadsheet: {e}")
+                            else:
+                                print("Skipped")
+
+                    # Process spreadsheet notes updates (UPDATE_NAME for notes field)
+                    if spreadsheet_name_changes and spreadsheet_provider:
+                        print("\nProcessing Spreadsheet notes updates...")
+                        for change in spreadsheet_name_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = spreadsheet_provider.update_activity(
+                                        {
+                                            "spreadsheet_id": change.activity_id,
+                                            "notes": change.new_value,
+                                        }
+                                    )
+                                    if success:
+                                        print(f"✓ Notes for {change.activity_id}")
+                                    else:
+                                        print(f"✗ Notes for {change.activity_id}")
+                                except Exception as e:
+                                    print(f"✗ Notes for {change.activity_id}: {e}")
+                            else:
+                                print("Skipped")
+
+                    # Process spreadsheet metadata updates (UPDATE_METADATA for duration_hms, etc.)
+                    if spreadsheet_metadata_changes and spreadsheet_provider:
+                        print("\nProcessing Spreadsheet metadata updates...")
+                        for change in spreadsheet_metadata_changes:
+                            prompt = f"\n{change}? (y/n): "
+                            response = input(prompt).strip().lower()
+
+                            if response == "y":
+                                try:
+                                    success = spreadsheet_provider.update_activity(
+                                        {
+                                            "spreadsheet_id": change.activity_id,
+                                            "duration_hms": change.new_value,
+                                        }
+                                    )
+                                    if success:
+                                        print(f"✓ Metadata for {change.activity_id}")
+                                    else:
+                                        print(f"✗ Metadata for {change.activity_id}")
+                                except Exception as e:
+                                    print(f"✗ Metadata for {change.activity_id}: {e}")
                             else:
                                 print("Skipped")
         else:
