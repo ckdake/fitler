@@ -19,6 +19,7 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
 - Integrate with Strava and RideWithGPS APIs
 - Store and manage activity metadata in a local SQLite database
 - Command-line interface for authentication and data management
+- **Web dashboard** for viewing configuration and database status (`./dev.sh`)
 - Modular provider and file format architecture for easy extension
 - Static website with documentation at [fitler.net](https://fitler.net)
 
@@ -206,6 +207,7 @@ This is a monorepo containing both the Python package and the static website.
 fitler/
 ├── .devcontainer/       # Development container configuration
 ├── .github/workflows/   # CI/CD pipelines
+├── app/                 # Web dashboard (Flask)
 ├── fitler/              # Python package source
 ├── tests/               # Python tests
 ├── site/                # Static website source
@@ -214,8 +216,26 @@ fitler/
 │   └── dist/            # Built website (generated)
 ├── pyproject.toml       # Python package config
 ├── ruff.toml           # Python linting configuration
+├── dev.sh              # Start web dashboard
 └── README.md           # This file (also used for website)
 ```
+
+### Web Dashboard
+
+For local development, Fitler includes a simple web dashboard to view configuration and database status:
+
+```bash
+# Start the web dashboard
+./dev.sh
+```
+
+Visit http://localhost:5000 to see:
+- 📊 **Configuration status** from `fitler_config.json`
+- 🔌 **Provider settings** (enabled/disabled, priorities)
+- 💾 **Database information** (size, tables, row counts)
+- 🔗 **API endpoints** for programmatic access
+
+The dashboard provides a quick way to verify your Fitler setup without running CLI commands.
 
 ### Development Tools
 
