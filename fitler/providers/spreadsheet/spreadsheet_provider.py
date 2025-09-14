@@ -207,6 +207,31 @@ class SpreadsheetProvider(FitnessProvider):
         spreadsheet_activity = SpreadsheetActivity.create(**activity_kwargs)
         return spreadsheet_activity
 
+    def _mark_all_months_as_synced(self) -> None:
+        """Mark all months containing activities as synced for this provider."""
+        # Get all unique months that have activities
+        activities = SpreadsheetActivity.select()
+        unique_months = set()
+
+        for activity in activities:
+            if activity.start_time:
+                try:
+                    # Convert Unix timestamp to datetime and extract year-month
+                    from datetime import datetime
+
+                    dt = datetime.fromtimestamp(activity.start_time)
+                    year_month = f"{dt.year:04d}-{dt.month:02d}"
+                    unique_months.add(year_month)
+                except (ValueError, TypeError):
+                    continue
+
+        # Create ProviderSync records for all months (if they don't already exist)
+        for year_month in unique_months:
+            existing_sync = ProviderSync.get_or_none(year_month, self.provider_name)
+            if not existing_sync:
+                ProviderSync.create(year_month=year_month, provider=self.provider_name)
+                print(f"Marked {year_month} as synced for {self.provider_name}")
+
     def pull_activities(self, date_filter: str | None = None) -> list[SpreadsheetActivity]:
         """
         Process spreadsheet and return SpreadsheetActivity objects.
@@ -219,7 +244,9 @@ class SpreadsheetProvider(FitnessProvider):
         existing_sync = ProviderSync.get_or_none(date_filter, self.provider_name)
         if not existing_sync:
             self._pull_all_activities()
-            ProviderSync.create(year_month=date_filter, provider=self.provider_name)
+            # For spreadsheet provider, mark ALL months containing activities as synced
+            # since we process the entire spreadsheet regardless of date_filter
+            self._mark_all_months_as_synced()
         else:
             print(f"Month {date_filter} already synced for {self.provider_name}")
 
