@@ -1,3 +1,4 @@
+import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -158,6 +159,10 @@ def test_sync_month_no_change_when_duration_hms_correct():
 
 def test_sync_month_integration_with_real_activities():
     """Integration test using real database activities to verify duration_hms detection."""
+
+    # Skip if no config file (CI environment)
+    if not os.path.exists("fitler_config.json"):
+        pytest.skip("Test requires fitler_config.json - skipping in CI")
 
     # This test requires real activities in the database
     with Fitler():
