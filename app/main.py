@@ -3,6 +3,8 @@
 import json
 import os
 import sqlite3
+from collections import defaultdict
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -64,17 +66,134 @@ def get_database_info(db_path: str) -> dict[str, Any]:
         return {"error": f"Database error: {e}", "path": db_path}
 
 
+def get_sync_calendar_data(db_path: str) -> dict[str, Any]:
+    """Get sync calendar data from the providersync table."""
+    if not os.path.exists(db_path):
+        return {"error": "Database file not found", "path": db_path}
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Get all sync records
+        cursor.execute("SELECT year_month, provider FROM providersync ORDER BY year_month, provider")
+        records = cursor.fetchall()
+
+        # Get date range
+        cursor.execute("SELECT MIN(year_month), MAX(year_month) FROM providersync")
+        date_range = cursor.fetchone()
+
+        # Get unique providers
+        cursor.execute("SELECT DISTINCT provider FROM providersync ORDER BY provider")
+        providers = [row[0] for row in cursor.fetchall()]
+
+        conn.close()
+
+        # Organize data by month
+        sync_data = defaultdict(set)
+        for year_month, provider in records:
+            sync_data[year_month].add(provider)
+
+        # Generate all months from start to current month
+        if date_range[0] and date_range[1]:
+            start_year, start_month = map(int, date_range[0].split("-"))
+            end_year, end_month = map(int, date_range[1].split("-"))
+            current_date = date.today()
+            current_year_month = f"{current_date.year:04d}-{current_date.month:02d}"
+
+            # If current month is later than last sync, extend to current month
+            if current_year_month > date_range[1]:
+                end_year, end_month = current_date.year, current_date.month
+
+            all_months = []
+            year, month = start_year, start_month
+            while year < end_year or (year == end_year and month <= end_month):
+                year_month = f"{year:04d}-{month:02d}"
+                all_months.append(
+                    {
+                        "year_month": year_month,
+                        "year": year,
+                        "month": month,
+                        "month_name": datetime(year, month, 1).strftime("%B"),
+                        "synced_providers": list(sync_data[year_month]),
+                        "provider_status": {provider: provider in sync_data[year_month] for provider in providers},
+                    }
+                )
+
+                month += 1
+                if month > 12:
+                    month = 1
+                    year += 1
+
+            return {
+                "months": all_months,
+                "providers": providers,
+                "date_range": date_range,
+                "total_months": len(all_months),
+            }
+        else:
+            return {"months": [], "providers": providers, "date_range": (None, None), "total_months": 0}
+
+    except sqlite3.Error as e:
+        return {"error": f"Database error: {e}", "path": db_path}
+
+
+@app.route("/calendar")
+def calendar():
+    """Sync calendar page."""
+    config = load_fitler_config()
+
+    calendar_data = {}
+    if "metadata_db" in config and not config.get("error"):
+        db_path = config["metadata_db"]
+        calendar_data = get_sync_calendar_data(db_path)
+
+    # Add current month for highlighting
+    current_date = date.today()
+    current_month = f"{current_date.year:04d}-{current_date.month:02d}"
+
+    return render_template("calendar.html", config=config, calendar_data=calendar_data, current_month=current_month)
+
+
+def sort_providers(providers: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """Sort providers by priority (lowest to highest) with disabled providers at the end."""
+    enabled_providers = []
+    disabled_providers = []
+
+    for name, config in providers.items():
+        if config.get("enabled", False):
+            # Get priority, default to 999 if not specified
+            priority = config.get("priority", 999)
+            enabled_providers.append((priority, name, config))
+        else:
+            disabled_providers.append((name, config))
+
+    # Sort enabled providers by priority (lowest first)
+    enabled_providers.sort(key=lambda x: x[0])
+
+    # Convert to list of (name, config) tuples
+    result = [(name, config) for _, name, config in enabled_providers]
+    result.extend(disabled_providers)
+
+    return result
+
+
 @app.route("/")
 def index():
     """Main dashboard page."""
     config = load_fitler_config()
+
+    # Sort providers if they exist
+    sorted_providers = []
+    if "providers" in config and not config.get("error"):
+        sorted_providers = sort_providers(config["providers"])
 
     db_info = {}
     if "metadata_db" in config and not config.get("error"):
         db_path = config["metadata_db"]
         db_info = get_database_info(db_path)
 
-    return render_template("index.html", config=config, db_info=db_info)
+    return render_template("index.html", config=config, sorted_providers=sorted_providers, db_info=db_info)
 
 
 @app.route("/api/config")

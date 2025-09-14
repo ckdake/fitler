@@ -135,6 +135,7 @@
         <div class="section">
             <h2>📍 Quick Links</h2>
             <div class="api-links">
+                <a href="/calendar" class="api-link">📅 Sync Calendar</a>
                 <a href="/api/config" class="api-link">⚙️ Config API</a>
                 <a href="/api/database" class="api-link">💾 Database API</a>
                 <a href="/health" class="api-link">❤️ Health Check</a>
@@ -166,7 +167,7 @@
 
         <div class="section">
             <h2>🔌 Providers</h2>
-            {% for provider_name, provider_config in config.providers.items() %}
+            {% for provider_name, provider_config in sorted_providers %}
             <div class="provider">
                 <div class="provider-name">{{ provider_name.title() }}</div>
                 <div class="config-item">
