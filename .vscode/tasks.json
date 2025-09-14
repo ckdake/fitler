@@ -151,6 +151,74 @@
             }
         },
         {
+            "label": "Web App: Install Dependencies",
+            "type": "shell",
+            "command": "pip",
+            "args": ["install", "-r", "requirements-test.txt"],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Web App: Run Tests",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "pytest", "tests/", "-v"],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "Web App: Run Tests with Coverage",
+            "type": "shell",
+            "command": "python",
+            "args": ["-m", "pytest", "tests/", "--cov=.", "--cov-report=term-missing", "-v"],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "Web App: Start Server",
+            "type": "shell",
+            "command": "python",
+            "args": ["main.py"],
+            "options": {
+                "cwd": "${workspaceFolder}/app"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
             "label": "Pre-commit: Run All",
             "type": "shell",
             "command": "pre-commit",
@@ -170,6 +238,7 @@
             "dependsOn": [
                 "Python: Lint All",
                 "Python: Run Tests",
+                "Web App: Run Tests",
                 "Site: Lint"
             ],
             "group": "test",

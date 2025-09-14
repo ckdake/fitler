@@ -1,13 +1,82 @@
-# Fitler Web App
+# Fitler Web Dashboard
 
-A simple Flask-based web application for viewing Fitler configuration and database status during local development.
+A Flask-based web application providing a local development dashboard for Fitler configuration and database status.
 
 ## Features
 
-- 📊 **Dashboard**: View current Fitler configuration
-- 🔌 **Provider Status**: See which providers are enabled/disabled
-- 💾 **Database Info**: Check SQLite database status and table counts
-- 🔗 **API Endpoints**: JSON endpoints for programmatic access
+- 📊 **Dashboard**: Overview of Fitler configuration and database status
+- � **Sync Calendar**: Visual calendar showing provider sync status by month
+- �🔌 **Provider Management**: View and understand provider priority and status
+- 💾 **Database Info**: Table counts and database statistics
+- 🔗 **API Endpoints**: JSON APIs for configuration and database data
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install flask
+
+# Start the development server
+python main.py
+```
+
+Visit http://localhost:5000 to access the dashboard.
+
+## Testing
+
+The web application has comprehensive test coverage in the `tests/` directory.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install -r requirements-test.txt
+
+# Run all tests
+python -m pytest tests/ -v
+
+# Run tests with coverage
+python -m pytest tests/ --cov=. --cov-report=term-missing -v
+```
+
+### Test Structure
+
+- **TestConfigLoading**: Configuration file parsing and error handling
+- **TestDatabaseInfo**: Database connection and information extraction
+- **TestSyncCalendar**: Provider sync calendar data processing
+- **TestProviderSorting**: Provider priority sorting logic
+- **TestWebRoutes**: Flask route responses and error handling
+- **TestIntegration**: End-to-end application flow testing
+
+### VS Code Tasks
+
+The following VS Code tasks are available:
+
+- `Web App: Run Tests` - Run the test suite
+- `Web App: Run Tests with Coverage` - Run tests with coverage report
+- `Web App: Start Server` - Start the development server
+
+### CI/CD
+
+Web app tests run independently from the main Python package tests in the `test-web-app` GitHub workflow. This ensures:
+
+- ✅ Fast, focused testing for web application features
+- ✅ Independent deployment and testing of web vs core functionality
+- ✅ Clear separation of concerns between package and web app
+
+## API Endpoints
+
+- `GET /` - Main dashboard
+- `GET /calendar` - Sync calendar view
+- `GET /api/config` - Configuration JSON
+- `GET /api/database` - Database information JSON
+- `GET /health` - Health check endpoint
+
+## Development
+
+The web app automatically detects the Fitler configuration file (`fitler_config.json`) in the current or parent directory and connects to the configured metadata database.
+
+For development, the Flask app runs in debug mode with auto-reload enabled.
 
 ## Quick Start
 
