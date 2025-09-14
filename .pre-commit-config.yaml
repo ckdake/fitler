@@ -6,6 +6,9 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        files: \.(yaml|yml)$
+      - id: check-json
+        exclude: ^(.devcontainer/devcontainer\.json|\.vscode/.*)$
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: debug-statements

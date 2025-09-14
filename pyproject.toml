@@ -35,7 +35,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ckdake/fitler"
+Homepage = "https://fitler.net"
+Repository = "https://github.com/ckdake/fitler"
 Issues = "https://github.com/ckdake/fitler/issues"
 
 [build-system]

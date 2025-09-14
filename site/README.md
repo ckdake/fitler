@@ -2,10 +2,6 @@
 
 Static website for [fitler.net](https://fitler.net), automatically built from the main README.md.
 
-# Fitler Website
-
-Static website for [fitler.net](https://fitler.net), automatically built from the main README.md.
-
 ## Development
 
 The website development is now integrated into the main development workflow. See the main [README.md](../README.md) for comprehensive development instructions.
