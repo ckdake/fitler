@@ -4,9 +4,21 @@ This guide covers the development setup and tooling for the Fitler monorepo.
 
 ## Quick Start
 
-1. **Open in VS Code**: The repository includes a devcontainer that automatically sets up the development environment
-2. **Extensions**: All necessary VS Code extensions will be installed automatically
-3. **Dependencies**: Python and Node.js dependencies will be installed via the postCreateCommand
+### Option 1: Development Container (Recommended)
+
+The easiest way to get started is using the provided development container:
+
+1. **Prerequisites**: Install [VS Code](https://code.visualstudio.com/) and [Docker](https://www.docker.com/)
+2. **Open Repository**: Clone and open in VS Code
+3. **Reopen in Container**: When prompted, click "Reopen in Container" or use `Ctrl+Shift+P` → "Dev Containers: Reopen in Container"
+4. **Wait for Setup**: The container will automatically install all dependencies (Python packages, Node.js dependencies, pre-commit hooks)
+5. **Start Developing**: Everything is ready to go!
+
+📋 See [`.devcontainer/README.md`](.devcontainer/README.md) for detailed container documentation.
+
+### Option 2: Local Development
+
+If you prefer local development:
 
 ## Development Tools
 
