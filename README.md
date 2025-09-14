@@ -4,9 +4,7 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
 
 🌐 **Website**: [fitler.net](https://fitler.net)
 📦 **PyPI**: [pypi.org/project/fitler](https://pypi.org/project/fitler/)
-📚 **Source**: [github.com/ckdake/fitler](https://github.com/ckdake/fitler)
-
-[CAUTION: This is under active development. Do not use it without reading every line of code!]
+📚 **Source**: [github.com/ckdake/fitler](https://github.com/ckdake/fitler)[CAUTION: This is under active development. Do not use it without reading every line of code!]
 
 [![ruff](https://github.com/ckdake/fitler/actions/workflows/ruff.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/ruff.yml)
 [![pytest](https://github.com/ckdake/fitler/actions/workflows/pytest.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/pytest.yml)
