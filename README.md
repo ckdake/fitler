@@ -47,8 +47,6 @@ python -m fitler --help  # Test CLI access
 
 ### Option 2: Local Installation
 
-### Option 2: Local Installation
-
 1. **Clone the repository:**
     ```sh
     git clone https://github.com/ckdake/fitler.git
