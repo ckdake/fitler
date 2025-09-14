@@ -76,7 +76,7 @@
 	"forwardPorts": [3000],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": ".devcontainer/install.sh",
+	"postCreateCommand": ".devcontainer/install.sh && .devcontainer/verify.sh",
 
 	// Use 'onCreateCommand' for one-time setup
 	"onCreateCommand": {
@@ -84,7 +84,7 @@
 	},
 
 	// Use 'postStartCommand' for commands that should run every time the container starts
-	"postStartCommand": "echo '🚀 Fitler development container ready!'",
+	"postStartCommand": ".devcontainer/verify.sh || echo '⚠️ Some verification checks failed - see output above'",
 
 	// Configure tool-specific properties.
 	"remoteEnv": {

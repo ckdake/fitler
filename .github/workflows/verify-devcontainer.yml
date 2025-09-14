@@ -1,0 +1,107 @@
+name: verify-devcontainer
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  verify-devcontainer:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    - name: Set up Node.js 18
+      uses: actions/setup-node@v4
+      with:
+        node-version: "18"
+
+    - name: Cache Python dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Cache Node dependencies
+      uses: actions/cache@v3
+      with:
+        path: site/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('site/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Run devcontainer installation script
+      run: |
+        # Make scripts executable
+        chmod +x .devcontainer/install.sh .devcontainer/verify.sh
+
+        # Run installation (but skip system package updates in CI)
+        export CI=true
+        .devcontainer/install.sh
+
+    - name: Run devcontainer verification
+      run: |
+        .devcontainer/verify.sh
+
+    - name: Check devcontainer documentation
+      run: |
+        echo "✅ Verifying devcontainer documentation exists..."
+        test -f .devcontainer/README.md || (echo "❌ .devcontainer/README.md missing" && exit 1)
+        test -f .devcontainer/install.sh || (echo "❌ .devcontainer/install.sh missing" && exit 1)
+        test -f .devcontainer/verify.sh || (echo "❌ .devcontainer/verify.sh missing" && exit 1)
+        test -f .devcontainer/devcontainer.json || (echo "❌ .devcontainer/devcontainer.json missing" && exit 1)
+        echo "✅ All devcontainer files present"
+
+    - name: Validate devcontainer.json syntax
+      run: |
+        echo "✅ Validating devcontainer.json syntax..."
+        python3 -c "
+        import json
+        with open('.devcontainer/devcontainer.json', 'r') as f:
+            # Remove comments for JSON validation
+            content = f.read()
+            lines = content.split('\n')
+            clean_lines = []
+            for line in lines:
+                # Remove // comments but preserve content within strings
+                if '//' in line and not line.strip().startswith('\"'):
+                    line = line.split('//')[0].rstrip()
+                clean_lines.append(line)
+            clean_content = '\n'.join(clean_lines)
+            json.loads(clean_content)
+        print('✅ devcontainer.json syntax is valid')
+        "
+
+    - name: Test that key commands work
+      run: |
+        echo "✅ Testing key development commands..."
+
+        # Test Python CLI
+        python -m fitler --help > /dev/null || (echo "❌ Fitler CLI not working" && exit 1)
+
+        # Test that tests can be discovered
+        python -m pytest --co -q > /dev/null || (echo "❌ Pytest test discovery failed" && exit 1)
+
+        # Test ruff
+        ruff --version > /dev/null || (echo "❌ Ruff not available" && exit 1)
+
+        # Test pre-commit
+        pre-commit --version > /dev/null || (echo "❌ Pre-commit not available" && exit 1)
+
+        # Test Node.js tools
+        cd site
+        npm list --silent > /dev/null || (echo "❌ npm dependencies not properly installed" && exit 1)
+
+        echo "✅ All key commands work correctly"

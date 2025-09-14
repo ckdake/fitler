@@ -27,16 +27,20 @@ print_error() {
 }
 
 # 1. Update system packages
-print_status "Updating system packages..."
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
-    curl \
-    wget \
-    git \
-    build-essential \
-    sqlite3 \
-    tree \
-    jq
+if [ "${CI:-false}" = "true" ]; then
+    print_status "Running in CI environment - skipping system package updates"
+else
+    print_status "Updating system packages..."
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq \
+        curl \
+        wget \
+        git \
+        build-essential \
+        sqlite3 \
+        tree \
+        jq
+fi
 
 # 2. Install Python development dependencies
 print_status "Installing Python package in development mode..."

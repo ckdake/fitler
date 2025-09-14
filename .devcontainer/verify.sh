@@ -3,7 +3,11 @@
 
 set -e
 
-echo "🧪 Running devcontainer verification tests..."
+if [ "${CI:-false}" = "true" ]; then
+    echo "🧪 Running devcontainer verification tests (CI mode)..."
+else
+    echo "🧪 Running devcontainer verification tests..."
+fi
 
 # Colors
 GREEN='\033[0;32m'
@@ -55,7 +59,11 @@ python3 -m fitler --help >/dev/null && success "CLI accessible" || failure "CLI 
 
 # Test pytest
 info "Testing pytest..."
-python3 -m pytest --co -q >/dev/null && success "Tests discoverable" || failure "Tests not discoverable"
+if [ "${CI:-false}" = "true" ]; then
+    python3 -m pytest --co -q >/dev/null && success "Tests discoverable" || failure "Tests not discoverable"
+else
+    python3 -m pytest --co -q >/dev/null && success "Tests discoverable" || failure "Tests not discoverable"
+fi
 
 echo ""
 success "🎉 All devcontainer verification tests passed!"

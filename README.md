@@ -8,11 +8,10 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
 
 [CAUTION: This is under active development. Do not use it without reading every line of code!]
 
-[![black](https://github.com/ckdake/fitler/actions/workflows/black.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/black.yml)
-[![flake8](https://github.com/ckdake/fitler/actions/workflows/flake8.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/flake8.yml)
-[![mypy](https://github.com/ckdake/fitler/actions/workflows/mypy.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/mypy.yml)
-[![pylint](https://github.com/ckdake/fitler/actions/workflows/pylint.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/pylint.yml)
+[![ruff](https://github.com/ckdake/fitler/actions/workflows/ruff.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/ruff.yml)
 [![pytest](https://github.com/ckdake/fitler/actions/workflows/pytest.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/pytest.yml)
+[![mypy](https://github.com/ckdake/fitler/actions/workflows/mypy.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/mypy.yml)
+[![deploy-site](https://github.com/ckdake/fitler/actions/workflows/deploy-site.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/deploy-site.yml)
 
 ---
 
@@ -21,12 +20,35 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
 - Parse and import activity files (`.fit`, `.tcx`, `.gpx`, and compressed variants)
 - Integrate with Strava and RideWithGPS APIs
 - Store and manage activity metadata in a local SQLite database
-- Command-line interface for authentication and future commands
+- Command-line interface for authentication and data management
 - Modular provider and file format architecture for easy extension
+- Static website with documentation at [fitler.net](https://fitler.net)
 
 ---
 
-## Setup & Installation
+## Quick Start
+
+### Option 1: Development Container (Recommended)
+
+The easiest way to get started is using the provided development container:
+
+1. **Prerequisites**: Install [VS Code](https://code.visualstudio.com/) and [Docker](https://www.docker.com/)
+2. **Open Repository**: Clone and open in VS Code
+3. **Reopen in Container**: When prompted, click "Reopen in Container" or use `Ctrl+Shift+P` → "Dev Containers: Reopen in Container"
+4. **Wait for Setup**: The container will automatically install all dependencies and run verification tests
+5. **Start Developing**: Everything is ready to go!
+
+📋 See [`.devcontainer/README.md`](.devcontainer/README.md) for detailed container documentation.
+
+**Verify Setup:**
+```bash
+.devcontainer/verify.sh  # Quick environment check
+python -m fitler --help  # Test CLI access
+```
+
+### Option 2: Local Installation
+
+### Option 2: Local Installation
 
 1. **Clone the repository:**
     ```sh
@@ -34,17 +56,16 @@ Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness 
     cd fitler
     ```
 
-2. **(Optional) Open in VS Code Dev Container:**
-   If using VS Code, open the folder and let the devcontainer boot.
-
-3. **Install dependencies:**
+2. **Install dependencies:**
     ```sh
-    pip install .
+    pip install -e .[dev]  # Development installation
+    # OR
+    pip install .          # Regular installation
     ```
 
-    Or for development:
+3. **Set up development tools:**
     ```sh
-    pip install -e .
+    pre-commit install     # Install git hooks
     ```
 
 4. **Set up environment variables:**
@@ -185,43 +206,104 @@ This is a monorepo containing both the Python package and the static website.
 ### Repository Structure
 ```
 fitler/
-├── fitler/          # Python package source
-├── tests/           # Python tests
-├── site/            # Static website source
-│   ├── src/         # Website source files
-│   ├── scripts/     # Build scripts
-│   └── dist/        # Built website (generated)
-├── pyproject.toml   # Python package config
-└── README.md        # This file (also used for website)
+├── .devcontainer/       # Development container configuration
+├── .github/workflows/   # CI/CD pipelines
+├── fitler/              # Python package source
+├── tests/               # Python tests
+├── site/                # Static website source
+│   ├── src/             # Website source files
+│   ├── scripts/         # Build scripts
+│   └── dist/            # Built website (generated)
+├── pyproject.toml       # Python package config
+├── ruff.toml           # Python linting configuration
+└── README.md           # This file (also used for website)
 ```
 
-### Development Setup
+### Development Tools
 
-The devcontainer includes both Python and Node.js environments:
+**Python Development:**
+- **Ruff**: Fast linting, formatting, and import sorting (replaces Black, Flake8, isort, Pylint)
+- **MyPy**: Static type checking
+- **Pytest**: Test runner with coverage
+- **Pre-commit**: Git hooks for automated code quality
 
-```sh
-# After starting the devcontainer, dependencies are automatically installed
+**Web Development:**
+- **Node.js 18**: Runtime environment
+- **Vite**: Build system and dev server
+- **ESLint**: JavaScript linting
+- **Stylelint**: CSS linting
+- **Prettier**: Code formatting
 
-# For Python development:
-python -m pytest                    # Run tests
-python -m fitler --help            # Run the CLI
+### Development Commands
 
-# For website development:
-cd site
-npm run dev                         # Start development server (localhost:3000)
-npm run build                      # Build for production
+**Python:**
+```bash
+# Run tests
+python -m pytest -v
+
+# Lint and format code
+ruff check fitler/ tests/           # Check for issues
+ruff check --fix fitler/ tests/     # Auto-fix issues
+ruff format fitler/ tests/          # Format code
+
+# Type checking
+mypy fitler/
+
+# Run CLI
+python -m fitler --help
 ```
+
+**Website:**
+```bash
+cd site/
+
+# Install dependencies
+npm install
+
+# Development server (localhost:3000)
+npm run dev
+
+# Build for production
+npm run build
+
+# Lint and format
+npm run lint
+npm run format
+```
+
+**Quality Assurance:**
+```bash
+# Run all pre-commit hooks
+pre-commit run --all-files
+
+# Verify development environment
+.devcontainer/verify.sh
+```
+
+### VS Code Integration
+
+The development container automatically configures VS Code with:
+- Format on save for all file types
+- Automatic import organization
+- Error highlighting for Python, JavaScript, CSS
+- Integrated terminal with proper environment
+- All necessary extensions pre-installed
+
+**Available VS Code Tasks** (`Ctrl+Shift+P` → "Tasks: Run Task"):
+- **Python: Run Tests** - Run all Python tests
+- **Python: Lint All** - Run Python linting
+- **DevContainer: Verify Setup** - Verify environment health
 
 ### Website Development
 
-The website automatically includes content from the main README.md file. To develop:
+The website at [fitler.net](https://fitler.net) automatically includes content from this README.md file:
 
-1. Start the development server: `cd site && npm run dev`
-2. Edit files in `site/src/`
-3. The site rebuilds automatically with your changes
-4. When satisfied, run `npm run build` to generate the production site
+1. Start development server: `cd site && npm run dev`
+2. Edit files in `site/src/` or update README.md
+3. Site rebuilds automatically with changes
+4. Build for production: `npm run build`
 
-The website is automatically deployed to [fitler.net](https://fitler.net) when changes are pushed to the main branch.
+The website is automatically deployed when changes are pushed to the main branch.
 
 ---
 
