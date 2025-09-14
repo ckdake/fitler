@@ -1,7 +1,7 @@
 repos:
   # General hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -15,7 +15,7 @@ repos:
 
   # Python: Ruff linter and formatter (replaces Black, Flake8, isort)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.13.0
     hooks:
       # Run the linter
       - id: ruff
@@ -25,7 +25,7 @@ repos:
 
   # Python: Type checking (temporarily disabled during Ruff migration)
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.1
+    rev: v1.18.1
     hooks:
       - id: mypy
         # Skip mypy temporarily during Ruff migration
@@ -35,7 +35,7 @@ repos:
 
   # JavaScript/CSS formatting and linting
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.44.0
+    rev: v9.35.0
     hooks:
       - id: eslint
         files: site/.*\.(js|ts)$
@@ -44,7 +44,7 @@ repos:
           - eslint-config-standard@17.1.0
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0
+    rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
         files: site/.*\.(js|ts|css|html|json|md)$
