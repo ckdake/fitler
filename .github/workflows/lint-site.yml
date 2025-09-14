@@ -1,0 +1,82 @@
+name: Lint Website
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**']
+  pull_request:
+    branches: [main]
+    paths: ['site/**']
+
+jobs:
+  lint-javascript:
+    name: Lint JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd site
+          npm ci
+          
+      - name: Lint JavaScript
+        run: |
+          cd site
+          npm run lint:js
+
+  lint-css:
+    name: Lint CSS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd site
+          npm ci
+          
+      - name: Lint CSS
+        run: |
+          cd site
+          npm run lint:css
+
+  check-formatting:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd site
+          npm ci
+          
+      - name: Check formatting
+        run: |
+          cd site
+          npm run format:check

@@ -11,3 +11,8 @@ fitler.egg-info
 .mypy_cache
 fitler_config.json
 .env
+
+# Site build artifacts
+site/dist/
+site/node_modules/
+site/src/index.html

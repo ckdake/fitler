@@ -1,0 +1,135 @@
+{
+    // General editor settings
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit",
+        "source.fixAll.eslint": "explicit",
+        "source.fixAll.stylelint": "explicit"
+    },
+    
+    // Python-specific settings
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        }
+    },
+    "python.formatting.blackArgs": ["--line-length=120"],
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.lintOnSave": true,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    
+    // JavaScript/TypeScript settings
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        }
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.eslint": "explicit"
+        }
+    },
+    
+    // CSS settings
+    "[css]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.stylelint": "explicit"
+        }
+    },
+    "[scss]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.stylelint": "explicit"
+        }
+    },
+    
+    // HTML settings
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    
+    // JSON settings
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    
+    // Markdown settings
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+    
+    // ESLint settings
+    "eslint.workingDirectories": ["site"],
+    "eslint.validate": [
+        "javascript",
+        "typescript"
+    ],
+    
+    // Stylelint settings
+    "stylelint.configFile": "site/.stylelintrc.json",
+    "stylelint.workingDirectories": ["site"],
+    "stylelint.validate": [
+        "css",
+        "scss"
+    ],
+    
+    // File associations
+    "files.associations": {
+        "*.css": "css",
+        "*.js": "javascript",
+        "*.json": "jsonc"
+    },
+    
+    // File exclusions for better performance
+    "files.exclude": {
+        "**/tests/cassettes/**": true,
+        "site/node_modules/**": true,
+        "site/dist/**": true,
+        "**/__pycache__/**": true,
+        "**/.pytest_cache/**": true,
+        "**/.mypy_cache/**": true,
+        "**/fitler.egg-info/**": true
+    },
+    
+    // Search exclusions
+    "search.exclude": {
+        "site/node_modules": true,
+        "site/dist": true,
+        "**/tests/cassettes": true,
+        "**/__pycache__": true,
+        "**/.pytest_cache": true,
+        "**/.mypy_cache": true,
+        "**/fitler.egg-info": true
+    },
+    
+    // Auto-save settings
+    "files.autoSave": "onFocusChange",
+    
+    // Terminal settings
+    "terminal.integrated.defaultProfile.linux": "bash",
+    
+    // Git settings
+    "git.autofetch": true,
+    "git.confirmSync": false
+}

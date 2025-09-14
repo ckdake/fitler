@@ -2,6 +2,10 @@
 
 Fitler is a Python toolkit for aggregating, syncing, and analyzing your fitness activity data from multiple sources (Strava, RideWithGPS, spreadsheets, and local files). It is designed to be self-contained, non-destructive, and extensible.
 
+🌐 **Website**: [fitler.net](https://fitler.net)  
+📦 **PyPI**: [pypi.org/project/fitler](https://pypi.org/project/fitler/)  
+📚 **Source**: [github.com/ckdake/fitler](https://github.com/ckdake/fitler)
+
 [CAUTION: This is under active development. Do not use it without reading every line of code!]
 
 [![black](https://github.com/ckdake/fitler/actions/workflows/black.yml/badge.svg)](https://github.com/ckdake/fitler/actions/workflows/black.yml)
@@ -174,6 +178,53 @@ PRs and issues are welcome! See the TODO section in this README for ideas and ne
 
 ---
 
+## Development
+
+This is a monorepo containing both the Python package and the static website.
+
+### Repository Structure
+```
+fitler/
+├── fitler/          # Python package source
+├── tests/           # Python tests  
+├── site/            # Static website source
+│   ├── src/         # Website source files
+│   ├── scripts/     # Build scripts
+│   └── dist/        # Built website (generated)
+├── pyproject.toml   # Python package config
+└── README.md        # This file (also used for website)
+```
+
+### Development Setup
+
+The devcontainer includes both Python and Node.js environments:
+
+```sh
+# After starting the devcontainer, dependencies are automatically installed
+
+# For Python development:
+python -m pytest                    # Run tests
+python -m fitler --help            # Run the CLI
+
+# For website development:  
+cd site
+npm run dev                         # Start development server (localhost:3000)
+npm run build                      # Build for production
+```
+
+### Website Development
+
+The website automatically includes content from the main README.md file. To develop:
+
+1. Start the development server: `cd site && npm run dev`
+2. Edit files in `site/src/` 
+3. The site rebuilds automatically with your changes
+4. When satisfied, run `npm run build` to generate the production site
+
+The website is automatically deployed to [fitler.net](https://fitler.net) when changes are pushed to the main branch.
+
+---
+
 ## License
 
 This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0). See the LICENSE file for details.
@@ -191,6 +242,7 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
 ## TODO
 
+    * Next month to fix:  `python -m fitler sync-month 2024-03`
     * File provider manually fixed, go through other providers and manually fix them to work the ~same way. make sure we're not making API calls if the month is synced.
     * Fix strava gear matching to work for running shoes.
     * Fix "create" in providers to create_from_activity, and get all that out of sync_month

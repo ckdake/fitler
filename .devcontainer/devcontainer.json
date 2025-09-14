@@ -3,29 +3,77 @@
 {
 	"name": "python-fitler",
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.13-bullseye",
+	
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "18"
+		}
+	},
+
 	"customizations": {
 		"vscode": {
 			"settings": {
 				"files.exclude": {
-					"**/tests/cassettes/**": true
-				}
+					"**/tests/cassettes/**": true,
+					"site/node_modules/**": true,
+					"site/dist/**": true
+				},
+				// Python settings
+				"python.defaultInterpreterPath": "/usr/local/bin/python",
+				"python.linting.enabled": true,
+				"python.linting.flake8Enabled": true,
+				"python.linting.pylintEnabled": true,
+				"python.linting.mypyEnabled": true,
+				"python.linting.lintOnSave": true,
+				"python.formatting.provider": "black",
+				"python.formatting.blackArgs": ["--line-length=120"],
+				"editor.formatOnSave": true,
+				"editor.codeActionsOnSave": {
+					"source.organizeImports": "explicit"
+				},
+				"python.analysis.typeCheckingMode": "basic",
+				"python.analysis.autoImportCompletions": true,
+				// JavaScript/CSS settings
+				"[javascript]": {
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.fixAll.eslint": "explicit"
+					}
+				},
+				"[css]": {
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.fixAll.stylelint": "explicit"
+					}
+				},
+				"[html]": {
+					"editor.formatOnSave": true
+				},
+				"eslint.workingDirectories": ["site"],
+				"stylelint.configFile": "site/.stylelintrc.json",
+				"stylelint.workingDirectories": ["site"]
 			},
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"qwtel.sqlite-viewer"
+				"ms-python.flake8",
+				"ms-python.mypy-type-checker",
+				"ms-python.black-formatter",
+				"qwtel.sqlite-viewer",
+				"bradlc.vscode-tailwindcss",
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"stylelint.vscode-stylelint"
 			]
 		}
 	},
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [3000],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip3 install --user -e .[dev]",
+	"postCreateCommand": "pip3 install --user -e .[dev] && cd site && npm install && cd .. && pre-commit install",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
