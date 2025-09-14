@@ -96,6 +96,15 @@
             font-size: 12px;
             font-weight: 500;
             color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .activity-count {
+            font-size: 10px;
+            opacity: 0.9;
+            font-weight: normal;
         }
         .provider-status.synced {
             background: #28a745;
@@ -169,14 +178,21 @@
             <div class="month-card {% if month.year_month == current_month %}current{% endif %}">
                 <div class="month-header">
                     {{ month.month_name }} {{ month.year }}
+                    {% if month.total_activities > 0 %}
+                    <div style="font-size: 12px; font-weight: normal; opacity: 0.8;">{{ month.total_activities }} total activities</div>
+                    {% endif %}
                 </div>
                 <div class="provider-grid">
                     {% for provider in calendar_data.providers %}
                     {% set is_synced = month.provider_status[provider] %}
                     {% set provider_config = config.providers.get(provider, {}) if config.providers else {} %}
                     {% set is_enabled = provider_config.get('enabled', false) %}
+                    {% set activity_count = month.activity_counts.get(provider, 0) %}
                     <div class="provider-status {% if not is_enabled %}disabled{% elif is_synced %}synced{% else %}not-synced{% endif %}">
-                        {{ provider[:8] }}
+                        <div>{{ provider[:8] }}</div>
+                        {% if activity_count > 0 %}
+                        <div class="activity-count">{{ activity_count }} activities</div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

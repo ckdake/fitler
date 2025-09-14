@@ -17,7 +17,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from main import (
     app,
     get_database_info,
-    get_sync_calendar_data,
     load_fitler_config,
     sort_providers,
 )
@@ -192,75 +191,6 @@ class TestDatabaseInfo:
             os.remove(temp_file)
 
 
-class TestSyncCalendar:
-    """Test sync calendar functionality."""
-
-    def test_get_sync_calendar_data_valid_db(self, temp_database):
-        """Test getting sync calendar data from a valid database."""
-        calendar_data = get_sync_calendar_data(temp_database)
-
-        assert "error" not in calendar_data
-        assert "months" in calendar_data
-        assert "providers" in calendar_data
-        assert "date_range" in calendar_data
-
-        # Check providers
-        assert set(calendar_data["providers"]) == {"strava", "garmin", "spreadsheet"}
-
-        # Check date range
-        assert calendar_data["date_range"] == ("2024-01", "2024-03")
-
-        # Check months data
-        months = calendar_data["months"]
-        assert len(months) >= 3  # Should include 2024-01, 2024-02, 2024-03 and possibly more to current month
-
-        # Check specific month data
-        jan_2024 = next((m for m in months if m["year_month"] == "2024-01"), None)
-        assert jan_2024 is not None
-        assert jan_2024["year"] == 2024
-        assert jan_2024["month"] == 1
-        assert jan_2024["month_name"] == "January"
-        assert jan_2024["provider_status"]["strava"] is True
-        assert jan_2024["provider_status"]["garmin"] is True
-        assert jan_2024["provider_status"]["spreadsheet"] is False
-
-    def test_get_sync_calendar_data_missing_file(self):
-        """Test getting sync calendar data from a missing database file."""
-        calendar_data = get_sync_calendar_data("nonexistent_database.sqlite3")
-
-        assert "error" in calendar_data
-        assert "not found" in calendar_data["error"]
-
-    def test_get_sync_calendar_data_empty_db(self):
-        """Test getting sync calendar data from an empty database."""
-        with tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False) as f:
-            db_path = f.name
-
-        try:
-            # Create empty database
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE providersync (
-                    id INTEGER PRIMARY KEY,
-                    year_month TEXT,
-                    provider TEXT
-                )
-            """)
-            conn.commit()
-            conn.close()
-
-            calendar_data = get_sync_calendar_data(db_path)
-
-            assert "error" not in calendar_data
-            assert calendar_data["months"] == []
-            assert calendar_data["providers"] == []
-            assert calendar_data["date_range"] == (None, None)
-            assert calendar_data["total_months"] == 0
-        finally:
-            os.remove(db_path)
-
-
 class TestProviderSorting:
     """Test provider sorting functionality."""
 
@@ -419,11 +349,6 @@ class TestIntegration:
             response = client.get("/")
             assert response.status_code == 200
             assert b"Fitler Dashboard" in response.data
-
-            # Test calendar page
-            response = client.get("/calendar")
-            assert response.status_code == 200
-            assert b"Sync Calendar" in response.data
 
             # Test config API
             response = client.get("/api/config")

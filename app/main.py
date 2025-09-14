@@ -8,6 +8,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+import pytz
 from flask import Flask, jsonify, render_template
 
 # Get the directory where this script is located
@@ -29,6 +30,18 @@ def load_fitler_config() -> dict[str, Any]:
         return {"error": "fitler_config.json not found"}
     except json.JSONDecodeError as e:
         return {"error": f"Invalid JSON: {e}"}
+
+
+def get_current_date_in_timezone(config: dict[str, Any]) -> date:
+    """Get the current date in the configured timezone."""
+    try:
+        timezone_str = config.get("home_timezone", "UTC")
+        tz = pytz.timezone(timezone_str)
+        now = datetime.now(tz)
+        return now.date()
+    except Exception:
+        # Fallback to UTC if timezone is invalid
+        return datetime.now(pytz.UTC).date()
 
 
 def get_database_info(db_path: str) -> dict[str, Any]:
@@ -66,8 +79,8 @@ def get_database_info(db_path: str) -> dict[str, Any]:
         return {"error": f"Database error: {e}", "path": db_path}
 
 
-def get_sync_calendar_data(db_path: str) -> dict[str, Any]:
-    """Get sync calendar data from the providersync table."""
+def get_sync_calendar_data(db_path: str, config: dict[str, Any]) -> dict[str, Any]:
+    """Get sync calendar data from the providersync table with activity counts."""
     if not os.path.exists(db_path):
         return {"error": "Database file not found", "path": db_path}
 
@@ -87,6 +100,37 @@ def get_sync_calendar_data(db_path: str) -> dict[str, Any]:
         cursor.execute("SELECT DISTINCT provider FROM providersync ORDER BY provider")
         providers = [row[0] for row in cursor.fetchall()]
 
+        # Get activity counts per provider per month
+        provider_tables = {
+            "strava": "strava_activities",
+            "garmin": "garmin_activities",
+            "ridewithgps": "ridewithgps_activities",
+            "spreadsheet": "spreadsheet_activities",
+            "file": "file_activities",
+        }
+
+        activity_counts = {}
+        for provider, table in provider_tables.items():
+            try:
+                # Get activity counts grouped by month (start_time is Unix timestamp)
+                cursor.execute(f"""
+                    SELECT
+                        strftime('%Y-%m', datetime(start_time, 'unixepoch')) as year_month,
+                        COUNT(*) as count
+                    FROM {table}
+                    WHERE start_time IS NOT NULL
+                    GROUP BY strftime('%Y-%m', datetime(start_time, 'unixepoch'))
+                """)
+
+                provider_counts = cursor.fetchall()
+                for year_month, count in provider_counts:
+                    if year_month not in activity_counts:
+                        activity_counts[year_month] = {}
+                    activity_counts[year_month][provider] = count
+
+            except Exception as e:
+                print(f"Error getting activity counts for {provider}: {e}")
+
         conn.close()
 
         # Organize data by month
@@ -98,17 +142,33 @@ def get_sync_calendar_data(db_path: str) -> dict[str, Any]:
         if date_range[0] and date_range[1]:
             start_year, start_month = map(int, date_range[0].split("-"))
             end_year, end_month = map(int, date_range[1].split("-"))
-            current_date = date.today()
+            current_date = get_current_date_in_timezone(config)
             current_year_month = f"{current_date.year:04d}-{current_date.month:02d}"
 
             # If current month is later than last sync, extend to current month
             if current_year_month > date_range[1]:
                 end_year, end_month = current_date.year, current_date.month
 
+            # Also consider months that have activities but no sync data
+            activity_months = set(activity_counts.keys())
+            if activity_months:
+                for activity_month in activity_months:
+                    activity_year, activity_month_num = map(int, activity_month.split("-"))
+                    if activity_year < start_year or (activity_year == start_year and activity_month_num < start_month):
+                        start_year, start_month = activity_year, activity_month_num
+                    if activity_year > end_year or (activity_year == end_year and activity_month_num > end_month):
+                        end_year, end_month = activity_year, activity_month_num
+
             all_months = []
             year, month = start_year, start_month
             while year < end_year or (year == end_year and month <= end_month):
                 year_month = f"{year:04d}-{month:02d}"
+
+                # Build provider activity counts for this month
+                provider_activity_counts = {}
+                if year_month in activity_counts:
+                    provider_activity_counts = activity_counts[year_month]
+
                 all_months.append(
                     {
                         "year_month": year_month,
@@ -117,6 +177,8 @@ def get_sync_calendar_data(db_path: str) -> dict[str, Any]:
                         "month_name": datetime(year, month, 1).strftime("%B"),
                         "synced_providers": list(sync_data[year_month]),
                         "provider_status": {provider: provider in sync_data[year_month] for provider in providers},
+                        "activity_counts": provider_activity_counts,
+                        "total_activities": sum(provider_activity_counts.values()) if provider_activity_counts else 0,
                     }
                 )
 
@@ -146,10 +208,10 @@ def calendar():
     calendar_data = {}
     if "metadata_db" in config and not config.get("error"):
         db_path = config["metadata_db"]
-        calendar_data = get_sync_calendar_data(db_path)
+        calendar_data = get_sync_calendar_data(db_path, config)
 
-    # Add current month for highlighting
-    current_date = date.today()
+    # Add current month for highlighting (using configured timezone)
+    current_date = get_current_date_in_timezone(config)
     current_month = f"{current_date.year:04d}-{current_date.month:02d}"
 
     return render_template("calendar.html", config=config, calendar_data=calendar_data, current_month=current_month)
