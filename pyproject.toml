@@ -27,13 +27,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pylint==3.3.8",
-    "black==25.1.0",
+    "ruff==0.8.4",
     "mypy==1.17.1",
-    "flake8==7.3.0",
     "pytest==8.4.1",
     "pytest-cov==6.2.1",
     "pre-commit==4.0.1",
-    "isort==5.13.2",
 ]
 
 [project.urls]

@@ -1,5 +1,7 @@
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch
+
 from fitler.commands.sync_month import (
     ActivityChange,
     ChangeType,
@@ -47,9 +49,7 @@ def test_sync_month_detects_duration_hms_changes():
 
             # Try different duration field names
             for duration_field in ["moving_time", "elapsed_time", "duration"]:
-                potential_duration = getattr(
-                    provider_activity_obj, duration_field, None
-                )
+                potential_duration = getattr(provider_activity_obj, duration_field, None)
                 if potential_duration and isinstance(potential_duration, (int, float)):
                     duration_seconds = int(potential_duration)
                     break
@@ -102,12 +102,8 @@ def test_sync_month_detects_wrong_duration_hms():
         "strava": {"obj": strava_activity_obj, "id": "12345"},
     }
 
-    provider_priority = ["strava", "spreadsheet"]
-
     # Test the logic
-    current_duration_hms = (
-        getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
-    )
+    current_duration_hms = getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
 
     # Find duration from strava
     duration_seconds = getattr(providers["strava"]["obj"], "duration", None)
@@ -144,9 +140,7 @@ def test_sync_month_no_change_when_duration_hms_correct():
     }
 
     # Test the logic
-    current_duration_hms = (
-        getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
-    )
+    current_duration_hms = getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
     duration_seconds = getattr(providers["strava"]["obj"], "duration", None)
 
     expected_duration_hms = ""
@@ -166,7 +160,7 @@ def test_sync_month_integration_with_real_activities():
     """Integration test using real database activities to verify duration_hms detection."""
 
     # This test requires real activities in the database
-    with Fitler() as fitler:
+    with Fitler():
         # Get some activities from the database
         spreadsheet_activity = SpreadsheetActivity.select().first()
         strava_activity = StravaActivity.select().first()
@@ -184,9 +178,7 @@ def test_sync_month_integration_with_real_activities():
 
             # Use the process_activity_for_display function like sync_month does
             providers = {
-                "spreadsheet": process_activity_for_display(
-                    spreadsheet_activity, "spreadsheet"
-                ),
+                "spreadsheet": process_activity_for_display(spreadsheet_activity, "spreadsheet"),
                 "strava": process_activity_for_display(strava_activity, "strava"),
             }
 
@@ -194,9 +186,7 @@ def test_sync_month_integration_with_real_activities():
             provider = "spreadsheet"
             activity = providers[provider]
 
-            current_duration_hms = (
-                getattr(activity.get("obj"), "duration_hms", "") or ""
-            )
+            current_duration_hms = getattr(activity.get("obj"), "duration_hms", "") or ""
 
             # Find duration from strava (following sync_month logic)
             expected_duration_hms = ""
@@ -209,12 +199,8 @@ def test_sync_month_integration_with_real_activities():
 
                     # Try different duration field names
                     for duration_field in ["moving_time", "elapsed_time", "duration"]:
-                        potential_duration = getattr(
-                            provider_activity_obj, duration_field, None
-                        )
-                        if potential_duration and isinstance(
-                            potential_duration, (int, float)
-                        ):
+                        potential_duration = getattr(provider_activity_obj, duration_field, None)
+                        if potential_duration and isinstance(potential_duration, (int, float)):
                             duration_seconds = int(potential_duration)
                             break
 
@@ -271,9 +257,7 @@ def test_sync_month_duration_hms_with_moving_time():
     provider_priority = ["strava", "spreadsheet"]
 
     # Test the logic that should find moving_time
-    current_duration_hms = (
-        getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
-    )
+    current_duration_hms = getattr(providers["spreadsheet"]["obj"], "duration_hms", "") or ""
 
     expected_duration_hms = ""
     duration_seconds = None
@@ -283,9 +267,7 @@ def test_sync_month_duration_hms_with_moving_time():
             provider_activity_obj = providers[p]["obj"]
 
             for duration_field in ["moving_time", "elapsed_time", "duration"]:
-                potential_duration = getattr(
-                    provider_activity_obj, duration_field, None
-                )
+                potential_duration = getattr(provider_activity_obj, duration_field, None)
                 if potential_duration and isinstance(potential_duration, (int, float)):
                     duration_seconds = int(potential_duration)
                     break

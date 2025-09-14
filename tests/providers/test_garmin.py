@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from garminconnect import GarminConnectConnectionError
+
 from fitler.providers.garmin.garmin_provider import GarminProvider
 
 
@@ -120,9 +122,7 @@ class TestGarminProviderPullActivities:
         mock_provider_sync.get_or_none.assert_called_once_with("2021-01", "garmin")
         provider._get_garmin_activities_for_month.assert_called_once_with("2021-01")
 
-    @pytest.mark.skip(
-        reason="Complex mocking of GarminActivity instantiation in real execution flow"
-    )
+    @pytest.mark.skip(reason="Complex mocking of GarminActivity instantiation in real execution flow")
     @patch("fitler.providers.garmin.garmin_provider.ProviderSync")
     def test_pull_activities_new_month(self, mock_provider_sync):
         """Test pull_activities for a new month."""
@@ -143,20 +143,14 @@ class TestGarminProviderPullActivities:
 
         # Mock final database query
         mock_final_activities = [Mock()]
-        provider._get_garmin_activities_for_month = Mock(
-            return_value=mock_final_activities
-        )
+        provider._get_garmin_activities_for_month = Mock(return_value=mock_final_activities)
 
         # Mock GarminActivity.get_or_none to return None (no duplicates)
-        with patch(
-            "fitler.providers.garmin.garmin_activity.GarminActivity.get_or_none"
-        ) as mock_get_or_none:
+        with patch("fitler.providers.garmin.garmin_activity.GarminActivity.get_or_none") as mock_get_or_none:
             mock_get_or_none.return_value = None
 
             # Mock GarminActivity constructor and save
-            with patch(
-                "fitler.providers.garmin.garmin_activity.GarminActivity"
-            ) as mock_garmin_activity_class:
+            with patch("fitler.providers.garmin.garmin_activity.GarminActivity") as mock_garmin_activity_class:
                 mock_activity = Mock()
                 mock_garmin_activity_class.return_value = mock_activity
 
@@ -164,13 +158,9 @@ class TestGarminProviderPullActivities:
 
                 # Verify the flow - just check that the main flow worked
                 assert result == mock_final_activities
-                mock_provider_sync.get_or_none.assert_called_once_with(
-                    "2021-01", "garmin"
-                )
+                mock_provider_sync.get_or_none.assert_called_once_with("2021-01", "garmin")
                 provider.fetch_activities_for_month.assert_called_once_with("2021-01")
-                mock_provider_sync.create.assert_called_once_with(
-                    year_month="2021-01", provider="garmin"
-                )
+                mock_provider_sync.create.assert_called_once_with(year_month="2021-01", provider="garmin")
 
                 # Check that GarminActivity was instantiated
                 mock_garmin_activity_class.assert_called_once()
@@ -189,21 +179,15 @@ class TestGarminProviderPullActivities:
 
         # Mock final database query
         mock_final_activities = []
-        provider._get_garmin_activities_for_month = Mock(
-            return_value=mock_final_activities
-        )
+        provider._get_garmin_activities_for_month = Mock(return_value=mock_final_activities)
 
         # Mock GarminActivity.get_or_none to return existing activity (duplicate)
-        with patch(
-            "fitler.providers.garmin.garmin_activity.GarminActivity.get_or_none"
-        ) as mock_get_or_none:
+        with patch("fitler.providers.garmin.garmin_activity.GarminActivity.get_or_none") as mock_get_or_none:
             mock_existing_activity = Mock()
             mock_get_or_none.return_value = mock_existing_activity
 
             # Mock GarminActivity constructor
-            with patch(
-                "fitler.providers.garmin.garmin_activity.GarminActivity"
-            ) as mock_garmin_activity_class:
+            with patch("fitler.providers.garmin.garmin_activity.GarminActivity") as mock_garmin_activity_class:
                 mock_activity = Mock()
                 mock_garmin_activity_class.return_value = mock_activity
 
@@ -211,9 +195,7 @@ class TestGarminProviderPullActivities:
 
                 # Verify duplicate was skipped (save not called)
                 mock_activity.save.assert_not_called()
-                mock_provider_sync.create.assert_called_once_with(
-                    year_month="2021-01", provider="garmin"
-                )
+                mock_provider_sync.create.assert_called_once_with(year_month="2021-01", provider="garmin")
 
 
 class TestGarminProviderFetchActivities:
@@ -233,9 +215,7 @@ class TestGarminProviderFetchActivities:
 
         # Verify correct date range was used
         assert result == mock_activities
-        mock_client.get_activities_by_date.assert_called_once_with(
-            "2021-01-01", "2021-01-31"
-        )
+        mock_client.get_activities_by_date.assert_called_once_with("2021-01-01", "2021-01-31")
 
     def test_fetch_activities_for_month_december(self):
         """Test fetching activities for December (year boundary)."""
@@ -251,9 +231,7 @@ class TestGarminProviderFetchActivities:
 
         # Verify correct date range was used for December
         assert result == mock_activities
-        mock_client.get_activities_by_date.assert_called_once_with(
-            "2021-12-01", "2021-12-31"
-        )
+        mock_client.get_activities_by_date.assert_called_once_with("2021-12-01", "2021-12-31")
 
     def test_fetch_activities_api_error(self):
         """Test handling of API errors during fetch."""
@@ -261,9 +239,7 @@ class TestGarminProviderFetchActivities:
 
         # Mock client to raise a Garmin-specific exception
         mock_client = Mock()
-        mock_client.get_activities_by_date.side_effect = GarminConnectConnectionError(
-            "API Error"
-        )
+        mock_client.get_activities_by_date.side_effect = GarminConnectConnectionError("API Error")
         provider._get_client = Mock(return_value=mock_client)
 
         result = provider.fetch_activities_for_month("2021-01")
@@ -363,9 +339,7 @@ class TestGarminProviderGetActivitiesForMonth:
         assert mock_activity2 not in result
 
     @patch("fitler.providers.garmin.garmin_provider.GarminActivity")
-    def test_get_garmin_activities_for_month_invalid_timestamps(
-        self, mock_garmin_activity_class
-    ):
+    def test_get_garmin_activities_for_month_invalid_timestamps(self, mock_garmin_activity_class):
         """Test getting activities with invalid timestamps."""
         provider = GarminProvider()
 
@@ -398,9 +372,7 @@ class TestGarminProviderUpdateActivity:
 
         # Verify update was successful
         assert result is True
-        mock_client.set_activity_name.assert_called_once_with(
-            "12345", "New Activity Name"
-        )
+        mock_client.set_activity_name.assert_called_once_with("12345", "New Activity Name")
 
     def test_update_activity_no_garmin_id(self):
         """Test update activity without garmin_id."""

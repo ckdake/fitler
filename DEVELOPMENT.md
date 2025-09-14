@@ -13,11 +13,8 @@ This guide covers the development setup and tooling for the Fitler monorepo.
 ### Python Development
 
 **Linting & Formatting:**
-- **Black**: Auto-formatting (line length: 120)
-- **Flake8**: Code style checking
-- **Pylint**: Advanced linting
+- **Ruff**: All-in-one tool for linting, formatting, and import sorting (replaces Black, Flake8, isort, and more)
 - **MyPy**: Type checking
-- **isort**: Import sorting
 
 **Testing:**
 - **Pytest**: Test runner with coverage
@@ -25,11 +22,15 @@ This guide covers the development setup and tooling for the Fitler monorepo.
 **Usage:**
 ```bash
 # Format code
-black --line-length=120 fitler/ tests/
+ruff format fitler/ tests/
 
 # Run linting
-flake8 fitler/ tests/
-pylint fitler/
+ruff check fitler/ tests/
+
+# Fix auto-fixable issues
+ruff check --fix fitler/ tests/
+
+# Run type checking
 mypy fitler/
 
 # Run tests
@@ -40,7 +41,7 @@ python -m pytest -v
 
 **Linting & Formatting:**
 - **ESLint**: JavaScript linting
-- **Stylelint**: CSS linting  
+- **Stylelint**: CSS linting
 - **Prettier**: Code formatting
 
 **Build Tools:**
@@ -70,12 +71,12 @@ npm run format
 ## VS Code Integration
 
 ### Format on Save
-- Python files auto-format with Black
+- Python files auto-format with Ruff
 - JavaScript/CSS files auto-format with Prettier
-- Import statements are automatically organized
+- Import statements are automatically organized by Ruff
 
 ### Error Highlighting
-- Python: Flake8, Pylint, and MyPy errors shown inline
+- Python: Ruff errors and warnings shown inline
 - JavaScript: ESLint errors shown inline
 - CSS: Stylelint errors shown inline
 
@@ -116,8 +117,7 @@ pre-commit run --all-files
 - YAML validation
 - Large file detection
 - Merge conflict detection
-- Python formatting (Black)
-- Python linting (Flake8, isort)
+- Python formatting and linting (Ruff)
 - Python type checking (MyPy)
 - JavaScript/CSS formatting (Prettier)
 - JavaScript linting (ESLint)
@@ -127,7 +127,7 @@ pre-commit run --all-files
 Automated workflows run on every push:
 
 - **Python Testing**: pytest with coverage
-- **Python Linting**: Black, Flake8, Pylint, MyPy
+- **Python Linting**: Ruff for formatting and linting, MyPy for type checking
 - **Website Deployment**: Automatic deployment to GitHub Pages
 - **Website Linting**: ESLint and Stylelint for code quality
 

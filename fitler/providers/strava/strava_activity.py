@@ -6,8 +6,9 @@ strava_id = CharField(max_length=50, unique=True, index=True)
 # Raw data is stored in the base class raw_data fieldtivity model."""
 
 from peewee import CharField
-from fitler.providers.base_provider_activity import BaseProviderActivity
+
 from fitler.db import db
+from fitler.providers.base_provider_activity import BaseProviderActivity
 
 
 class StravaActivity(BaseProviderActivity):

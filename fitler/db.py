@@ -1,4 +1,4 @@
-from peewee import SqliteDatabase, Proxy
+from peewee import Proxy, SqliteDatabase
 
 # Use a Proxy object that can be configured later
 db = Proxy()

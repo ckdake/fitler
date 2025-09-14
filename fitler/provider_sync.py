@@ -1,4 +1,5 @@
-from peewee import Model, CharField
+from peewee import CharField, Model
+
 from fitler.db import db
 
 
@@ -15,8 +16,4 @@ class ProviderSync(Model):
     @classmethod
     def get_or_none(cls, year_month: str, provider: str) -> "ProviderSync":
         """Get the sync record for a specific year-month and provider."""
-        return (
-            cls.select()
-            .where((cls.year_month == year_month) & (cls.provider == provider))
-            .first()
-        )
+        return cls.select().where((cls.year_month == year_month) & (cls.provider == provider)).first()

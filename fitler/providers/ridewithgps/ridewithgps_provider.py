@@ -5,22 +5,21 @@ for interacting with RideWithGPS activity data, including fetching, creating,
 updating activities, and managing gear.
 """
 
-import os
-from typing import List, Optional, Dict, Any
-from decimal import Decimal
 import datetime
+import os
+from decimal import Decimal
+from typing import Any
 
 from dateutil import parser as dt_parser
-
 from pyrwgps import RideWithGPS
 
-from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
+from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.ridewithgps.ridewithgps_activity import RideWithGPSActivity
 
 
 class RideWithGPSProvider(FitnessProvider):
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.username = os.environ["RIDEWITHGPS_EMAIL"]
         self.password = os.environ["RIDEWITHGPS_PASSWORD"]
@@ -47,9 +46,7 @@ class RideWithGPSProvider(FitnessProvider):
         except Exception:
             return None
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List[RideWithGPSActivity]:
+    def pull_activities(self, date_filter: str | None = None) -> list[RideWithGPSActivity]:
         """
         Pull activities from RideWithGPS for a given month (YYYY-MM).
         Only activities for the specified month are fetched and persisted.
@@ -74,7 +71,7 @@ class RideWithGPSProvider(FitnessProvider):
                     dt = self._parse_iso8601(departed_at)
                     if not dt:
                         continue
-                    dt_utc = dt.astimezone(datetime.timezone.utc)
+                    dt_utc = dt.astimezone(datetime.UTC)
                     if dt_utc.year != year or dt_utc.month != month:
                         continue
                     timestamp = int(dt_utc.timestamp())
@@ -92,20 +89,11 @@ class RideWithGPSProvider(FitnessProvider):
                     rwgps_activity.start_time = timestamp
                     if hasattr(trip, "locality") and trip.locality:
                         rwgps_activity.city = str(trip.locality)
-                    if (
-                        hasattr(trip, "administrative_area")
-                        and trip.administrative_area
-                    ):
+                    if hasattr(trip, "administrative_area") and trip.administrative_area:
                         rwgps_activity.state = str(trip.administrative_area)
-                    if (
-                        hasattr(trip, "gear")
-                        and trip.gear
-                        and hasattr(trip.gear, "name")
-                    ):
+                    if hasattr(trip, "gear") and trip.gear and hasattr(trip.gear, "name"):
                         rwgps_activity.equipment = str(trip.gear.name)
-                    existing = RideWithGPSActivity.get_or_none(
-                        RideWithGPSActivity.ridewithgps_id == str(trip.id)
-                    )
+                    existing = RideWithGPSActivity.get_or_none(RideWithGPSActivity.ridewithgps_id == str(trip.id))
                     if existing:
                         continue
                     try:
@@ -120,46 +108,39 @@ class RideWithGPSProvider(FitnessProvider):
             print(f"RideWithGPS Sync complete for {date_filter}")
 
         # Always return all activities for this month from the database
-        start = datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc)
+        start = datetime.datetime(year, month, 1, tzinfo=datetime.UTC)
         if month == 12:
-            end = datetime.datetime(year + 1, 1, 1, tzinfo=datetime.timezone.utc)
+            end = datetime.datetime(year + 1, 1, 1, tzinfo=datetime.UTC)
         else:
-            end = datetime.datetime(year, month + 1, 1, tzinfo=datetime.timezone.utc)
+            end = datetime.datetime(year, month + 1, 1, tzinfo=datetime.UTC)
         start_ts = int(start.timestamp())
         end_ts = int(end.timestamp())
         activities = list(
             RideWithGPSActivity.select().where(
-                (RideWithGPSActivity.start_time >= start_ts)
-                & (RideWithGPSActivity.start_time < end_ts)
+                (RideWithGPSActivity.start_time >= start_ts) & (RideWithGPSActivity.start_time < end_ts)
             )
         )
         return activities
 
     # Abstract method implementations
-    def create_activity(self, activity_data: Dict) -> RideWithGPSActivity:
+    def create_activity(self, activity_data: dict) -> RideWithGPSActivity:
         """Create a new RideWithGPSActivity from activity data."""
         # Create new activity
         return RideWithGPSActivity.create(**activity_data)
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[RideWithGPSActivity]:
+    def get_activity_by_id(self, activity_id: str) -> RideWithGPSActivity | None:
         """Get a RideWithGPSActivity by its provider ID."""
-        return RideWithGPSActivity.get_or_none(
-            RideWithGPSActivity.ridewithgps_id == activity_id
-        )
+        return RideWithGPSActivity.get_or_none(RideWithGPSActivity.ridewithgps_id == activity_id)
 
     # TODO: "pull" the activity again after setting gear to update our local copy.
-    def update_activity(self, activity_data: Dict) -> bool:
+    def update_activity(self, activity_data: dict) -> bool:
         """Update an existing RideWithGPS trip via API."""
         provider_id = activity_data["ridewithgps_id"]
 
         try:
-            trip_data = {
-                k: v for k, v in activity_data.items() if k != "ridewithgps_id"
-            }
+            trip_data = {k: v for k, v in activity_data.items() if k != "ridewithgps_id"}
 
-            response = self.client.patch(
-                path=f"/trips/{provider_id}.json", params={"trip": trip_data}
-            )
+            response = self.client.patch(path=f"/trips/{provider_id}.json", params={"trip": trip_data})
 
             # Check if there's an error in the response
             if hasattr(response, "error"):
@@ -172,7 +153,7 @@ class RideWithGPSProvider(FitnessProvider):
             print(f"Error updating RideWithGPS trip {provider_id}: {e}")
             return False
 
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Get gear from RideWithGPS user info."""
         gear_dict = {}
         if hasattr(self, "user_info") and hasattr(self.user_info, "gear"):
@@ -216,7 +197,7 @@ class RideWithGPSProvider(FitnessProvider):
             print(f"Error setting gear for RideWithGPS trip {activity_id}: {e}")
             return False
 
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Reset (delete) RideWithGPS activities from local database."""
         from fitler.providers.ridewithgps.ridewithgps_activity import (
             RideWithGPSActivity,

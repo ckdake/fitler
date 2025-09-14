@@ -4,22 +4,22 @@ This module defines the SpreadsheetProvider class, which provides an interface
 for interacting with activity data stored in local spreadsheet files.
 """
 
-from typing import List, Dict, Any, Union, Optional
-from pathlib import Path
 import decimal
-from datetime import datetime, timezone, date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import openpyxl
 from peewee import DoesNotExist
 
-from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
+from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
 
 
 class SpreadsheetProvider(FitnessProvider):
-    def __init__(self, path: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, path: str, config: dict[str, Any] | None = None):
         self.config = config or {}
         super().__init__(config)
         self.path = path
@@ -30,17 +30,17 @@ class SpreadsheetProvider(FitnessProvider):
         return "spreadsheet"
 
     @staticmethod
-    def _seconds_to_hms(seconds: Optional[float]) -> str:
+    def _seconds_to_hms(seconds: float | None) -> str:
         if seconds is None:
             return ""
         try:
-            seconds = int(round(seconds))
+            seconds = round(seconds)
             return str(timedelta(seconds=seconds))
         except Exception:
             return ""
 
     @staticmethod
-    def _hms_to_seconds(hms: Optional[Union[str, int, float]]) -> Optional[float]:
+    def _hms_to_seconds(hms: str | int | float | None) -> float | None:
         if not hms:
             return None
         # Accept numeric types directly
@@ -67,9 +67,7 @@ class SpreadsheetProvider(FitnessProvider):
                 return None
 
     @staticmethod
-    def _convert_to_gmt_timestamp(
-        dt_val: Union[str, datetime, date], source_tz: str
-    ) -> int:
+    def _convert_to_gmt_timestamp(dt_val: str | datetime | date, source_tz: str) -> int:
         """Convert a date/datetime/str to a GMT Unix timestamp, assuming local time in source_tz."""
         tz = ZoneInfo(source_tz)
 
@@ -83,9 +81,9 @@ class SpreadsheetProvider(FitnessProvider):
             raise TypeError(f"Unsupported type for dt_val: {type(dt_val)}")
 
         dt = dt.replace(tzinfo=tz)
-        return int(dt.astimezone(timezone.utc).timestamp())
+        return int(dt.astimezone(UTC).timestamp())
 
-    def _pull_all_activities(self) -> List[SpreadsheetActivity]:
+    def _pull_all_activities(self) -> list[SpreadsheetActivity]:
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
         sheet = wb_obj.active
@@ -102,12 +100,8 @@ class SpreadsheetProvider(FitnessProvider):
             if i == 0:
                 continue  # Skip header row
 
-            excel_row_number = (
-                i + 1
-            )  # Convert enumerate index to Excel row number (1-based)
-            existing_activity = SpreadsheetActivity.get_or_none(
-                SpreadsheetActivity.spreadsheet_id == excel_row_number
-            )
+            excel_row_number = i + 1  # Convert enumerate index to Excel row number (1-based)
+            existing_activity = SpreadsheetActivity.get_or_none(SpreadsheetActivity.spreadsheet_id == excel_row_number)
             if existing_activity is None:
                 activity = self._process_parsed_data(
                     {
@@ -123,9 +117,7 @@ class SpreadsheetProvider(FitnessProvider):
 
         return self._get_activities()
 
-    def _get_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List["SpreadsheetActivity"]:
+    def _get_activities(self, date_filter: str | None = None) -> list["SpreadsheetActivity"]:
         """Get SpreadsheetActivity objects for a specific month."""
         file_activities = []
 
@@ -145,7 +137,7 @@ class SpreadsheetProvider(FitnessProvider):
 
         return file_activities
 
-    def _process_parsed_data(self, parsed_data: dict) -> Optional[SpreadsheetActivity]:
+    def _process_parsed_data(self, parsed_data: dict) -> SpreadsheetActivity | None:
         try:
             existing_activity = SpreadsheetActivity.get(
                 SpreadsheetActivity.spreadsheet_id == parsed_data.get("spreadsheet_id")
@@ -154,11 +146,9 @@ class SpreadsheetProvider(FitnessProvider):
         except DoesNotExist:
             pass
 
-        activity_kwargs: Dict[str, Any] = {}
+        activity_kwargs: dict[str, Any] = {}
 
-        start_time = self._convert_to_gmt_timestamp(
-            parsed_data["row"][0], self.config.get("home_timezone", "UTC")
-        )
+        start_time = self._convert_to_gmt_timestamp(parsed_data["row"][0], self.config.get("home_timezone", "UTC"))
         activity_kwargs["start_time"] = start_time
 
         if parsed_data["row"][1]:
@@ -179,9 +169,7 @@ class SpreadsheetProvider(FitnessProvider):
                 # Store the original HH:MM:SS format
                 activity_kwargs["duration_hms"] = str(parsed_data["row"][7])
                 # Also convert to seconds for the duration field
-                activity_kwargs["duration"] = self._hms_to_seconds(
-                    str(parsed_data["row"][7])
-                )
+                activity_kwargs["duration"] = self._hms_to_seconds(str(parsed_data["row"][7]))
             except (ValueError, TypeError):
                 pass
         if parsed_data["row"][8]:
@@ -219,9 +207,7 @@ class SpreadsheetProvider(FitnessProvider):
         spreadsheet_activity = SpreadsheetActivity.create(**activity_kwargs)
         return spreadsheet_activity
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List[SpreadsheetActivity]:
+    def pull_activities(self, date_filter: str | None = None) -> list[SpreadsheetActivity]:
         """
         Process spreadsheet and return SpreadsheetActivity objects.
         If date_filter is None, returns all activities.
@@ -239,24 +225,20 @@ class SpreadsheetProvider(FitnessProvider):
 
         return self._get_activities(date_filter)
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[SpreadsheetActivity]:
+    def get_activity_by_id(self, activity_id: str) -> SpreadsheetActivity | None:
         """Get a specific activity by its spreadsheet_id."""
         try:
-            return SpreadsheetActivity.get(
-                SpreadsheetActivity.spreadsheet_id == int(activity_id)
-            )
+            return SpreadsheetActivity.get(SpreadsheetActivity.spreadsheet_id == int(activity_id))
         except (ValueError, DoesNotExist):
             return None
 
-    def update_activity(self, activity_data: Dict[str, Any]) -> Any:
+    def update_activity(self, activity_data: dict[str, Any]) -> Any:
         """Update an existing SpreadsheetActivity with new data."""
         try:
             activity_id = activity_data.get("spreadsheet_id")
             if not activity_id:
                 return None
-            activity = SpreadsheetActivity.get(
-                SpreadsheetActivity.spreadsheet_id == activity_id
-            )
+            activity = SpreadsheetActivity.get(SpreadsheetActivity.spreadsheet_id == activity_id)
 
             # Update the database record
             for key, value in activity_data.items():
@@ -295,7 +277,7 @@ class SpreadsheetProvider(FitnessProvider):
         except Exception:
             return None
 
-    def create_activity(self, activity_data: Dict[str, Any]) -> str:
+    def create_activity(self, activity_data: dict[str, Any]) -> str:
         """Create a new activity in the spreadsheet from activity data."""
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
@@ -313,8 +295,7 @@ class SpreadsheetProvider(FitnessProvider):
             activity_data.get("state", ""),
             activity_data.get("temperature", ""),
             activity_data.get("equipment", ""),
-            activity_data.get("duration_hms", "")
-            or self._seconds_to_hms(activity_data.get("duration", None)),
+            activity_data.get("duration_hms", "") or self._seconds_to_hms(activity_data.get("duration")),
             activity_data.get("distance", ""),
             activity_data.get("max_speed", ""),
             activity_data.get("avg_heart_rate", ""),
@@ -356,7 +337,7 @@ class SpreadsheetProvider(FitnessProvider):
         # Return the Excel row number as the spreadsheet_id
         return spreadsheet_id
 
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Fetch gear/equipment from the spreadsheet."""
         xlsx_file = Path(self.path)
         wb_obj = openpyxl.load_workbook(xlsx_file)
@@ -394,7 +375,7 @@ class SpreadsheetProvider(FitnessProvider):
         wb_obj.save(xlsx_file)
         return True
 
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Reset (delete) Spreadsheet activities from local database."""
         from fitler.providers.spreadsheet.spreadsheet_activity import (
             SpreadsheetActivity,

@@ -1,9 +1,11 @@
-import pytest
-from fitler.commands.sync_month import (
-    generate_correlation_key,
-    convert_activity_to_spreadsheet_format,
-)
 from unittest.mock import Mock
+
+import pytest
+
+from fitler.commands.sync_month import (
+    convert_activity_to_spreadsheet_format,
+    generate_correlation_key,
+)
 
 
 @pytest.mark.parametrize(
@@ -18,9 +20,7 @@ from unittest.mock import Mock
     ],
 )
 def test_generate_correlation_key(timestamp1, distance1, timestamp2, distance2):
-    assert generate_correlation_key(timestamp1, distance1) == generate_correlation_key(
-        timestamp2, distance2
-    )
+    assert generate_correlation_key(timestamp1, distance1) == generate_correlation_key(timestamp2, distance2)
 
 
 def test_convert_activity_to_spreadsheet_format():
@@ -93,6 +93,4 @@ def test_convert_activity_to_spreadsheet_format():
     assert result["garmin_id"] == "67890"
     assert result["ridewithgps_id"] == "54321"
     assert result["notes"] == "Test Activity"  # Activity name maps to notes field
-    assert (
-        result["duration_hms"] == "01:00:00"
-    )  # Duration formatted as HH:MM:SS (3600 seconds = 1 hour)
+    assert result["duration_hms"] == "01:00:00"  # Duration formatted as HH:MM:SS (3600 seconds = 1 hour)

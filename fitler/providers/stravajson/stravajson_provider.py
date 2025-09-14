@@ -6,7 +6,7 @@ It supports fetching activities from a folder of JSON files, but does not suppor
 uploading, creating, updating, or managing gear.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import Any
 
 from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.stravajson.stravajson_activity import StravaJsonActivity
@@ -15,7 +15,7 @@ from fitler.providers.stravajson.stravajson_activity import StravaJsonActivity
 class StravaJsonProvider(FitnessProvider):
     """Provider for reading Strava activity data from JSON files."""
 
-    def __init__(self, folder: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, folder: str, config: dict[str, Any] | None = None):
         """Initialize with folder containing JSON files."""
         super().__init__(config)
         self.folder = folder
@@ -25,38 +25,32 @@ class StravaJsonProvider(FitnessProvider):
         """Return the name of this provider."""
         return "stravajson"
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List[StravaJsonActivity]:
+    def pull_activities(self, date_filter: str | None = None) -> list[StravaJsonActivity]:
         """Pull activities from JSON files - not yet implemented."""
         print("StravaJSON provider: pulling activities not implemented yet")
         return []
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[StravaJsonActivity]:
+    def get_activity_by_id(self, activity_id: str) -> StravaJsonActivity | None:
         """Get activity by ID - not supported for JSON files."""
         raise NotImplementedError("StravaJsonProvider does not support fetching by ID.")
 
     def update_activity(self, activity_id: str, activity: StravaJsonActivity) -> bool:
         """Update activity - not supported for JSON files."""
-        raise NotImplementedError(
-            "StravaJsonProvider does not support updating activities."
-        )
+        raise NotImplementedError("StravaJsonProvider does not support updating activities.")
 
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Get gear - not supported for JSON files."""
         raise NotImplementedError("StravaJsonProvider does not support gear.")
 
     def create_activity(self, activity: StravaJsonActivity) -> str:
         """Create activity - not supported for JSON files."""
-        raise NotImplementedError(
-            "StravaJsonProvider does not support creating activities."
-        )
+        raise NotImplementedError("StravaJsonProvider does not support creating activities.")
 
     def set_gear(self, gear_name: str, activity_id: str) -> bool:
         """Set gear - not supported for JSON files."""
         raise NotImplementedError("StravaJsonProvider does not support setting gear.")
 
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Reset (delete) StravaJSON activities from local database."""
         from fitler.providers.stravajson.stravajson_activity import StravaJsonActivity
 

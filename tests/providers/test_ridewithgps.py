@@ -1,6 +1,8 @@
-import pytest
-from unittest.mock import MagicMock
 from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import pytest
+
 from fitler.providers.ridewithgps import RideWithGPSProvider
 
 
@@ -192,9 +194,7 @@ def test_set_gear():
     result = provider.set_gear("2021 Commencal Meta AM HT 29", "315572559")
 
     # Verify the API call was made correctly with the looked-up gear_id
-    provider.client.patch.assert_called_once_with(
-        path="/trips/315572559.json", params={"trip": {"gear_id": 275581}}
-    )
+    provider.client.patch.assert_called_once_with(path="/trips/315572559.json", params={"trip": {"gear_id": 275581}})
 
     assert result is True
 

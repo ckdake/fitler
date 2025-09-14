@@ -1,27 +1,27 @@
 {
-  "name": "fitler-site",
-  "version": "1.0.0",
-  "description": "Static site for Fitler fitness data integration tool",
-  "scripts": {
-    "dev": "vite",
-    "build": "node scripts/build.js && vite build",
-    "preview": "vite preview",
-    "serve": "vite preview",
-    "lint": "npm run lint:js && npm run lint:css",
-    "lint:js": "eslint src/assets/js scripts --ext .js",
-    "lint:css": "stylelint src/assets/css/**/*.css",
-    "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
-    "format": "prettier --write \"src/**/*.{js,css,html}\" \"scripts/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.{js,css,html}\" \"scripts/**/*.js\""
-  },
-  "devDependencies": {
-    "vite": "^5.0.0",
-    "@vitejs/plugin-legacy": "^5.0.0",
-    "marked": "^9.0.0",
-    "eslint": "^8.0.0",
-    "stylelint": "^15.0.0",
-    "stylelint-config-standard": "^34.0.0",
-    "prettier": "^3.0.0"
-  },
-  "type": "module"
+    "name": "fitler-site",
+    "version": "1.0.0",
+    "description": "Static site for Fitler fitness data integration tool",
+    "scripts": {
+        "dev": "vite",
+        "build": "node scripts/build.js && vite build",
+        "preview": "vite preview",
+        "serve": "vite preview",
+        "lint": "npm run lint:js && npm run lint:css",
+        "lint:js": "eslint src/assets/js scripts --ext .js",
+        "lint:css": "stylelint src/assets/css/**/*.css",
+        "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix",
+        "format": "prettier --write \"src/**/*.{js,css,html}\" \"scripts/**/*.js\"",
+        "format:check": "prettier --check \"src/**/*.{js,css,html}\" \"scripts/**/*.js\""
+    },
+    "devDependencies": {
+        "vite": "^5.0.0",
+        "@vitejs/plugin-legacy": "^5.0.0",
+        "marked": "^9.0.0",
+        "eslint": "^8.0.0",
+        "stylelint": "^15.0.0",
+        "stylelint-config-standard": "^34.0.0",
+        "prettier": "^3.0.0"
+    },
+    "type": "module"
 }

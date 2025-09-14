@@ -1,20 +1,20 @@
 """Core Fitler functionality and provider management."""
 
-import os
 import json
+import os
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Any
 from zoneinfo import ZoneInfo
 
+from .database import get_all_models, migrate_tables
+from .db import configure_db, get_db
+from .providers.base_provider_activity import BaseProviderActivity
+from .providers.file import FileProvider
+from .providers.garmin import GarminProvider
+from .providers.ridewithgps import RideWithGPSProvider
 from .providers.spreadsheet import SpreadsheetProvider
 from .providers.strava import StravaProvider
-from .providers.ridewithgps import RideWithGPSProvider
-from .providers.garmin import GarminProvider
-from .providers.file import FileProvider
 from .providers.stravajson import StravaJsonProvider
-from .providers.base_provider_activity import BaseProviderActivity
-from .database import migrate_tables, get_all_models
-from .db import configure_db, get_db
 
 CONFIG_PATH = Path("fitler_config.json")
 
@@ -46,7 +46,7 @@ class Fitler:
         self._file = None
         self._stravajson = None
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> dict[str, Any]:
         """Load configuration from fitler_config.json."""
         with open(CONFIG_PATH) as f:
             config = json.load(f)
@@ -60,7 +60,7 @@ class Fitler:
         return config
 
     @property
-    def spreadsheet(self) -> Optional[SpreadsheetProvider]:
+    def spreadsheet(self) -> SpreadsheetProvider | None:
         """Get the spreadsheet provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("spreadsheet", {})
 
@@ -69,14 +69,12 @@ class Fitler:
             if path:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
                 self._spreadsheet = SpreadsheetProvider(path, config=enhanced_config)
         return self._spreadsheet
 
     @property
-    def strava(self) -> Optional[StravaProvider]:
+    def strava(self) -> StravaProvider | None:
         """Get the Strava provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("strava", {})
 
@@ -85,9 +83,7 @@ class Fitler:
             if token:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
                 self._strava = StravaProvider(
                     token,
                     refresh_token=os.environ.get("STRAVA_REFRESH_TOKEN"),
@@ -97,44 +93,42 @@ class Fitler:
         return self._strava
 
     @property
-    def ridewithgps(self) -> Optional[RideWithGPSProvider]:
+    def ridewithgps(self) -> RideWithGPSProvider | None:
         """Get the RideWithGPS provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("ridewithgps", {})
 
-        if not self._ridewithgps and provider_config.get("enabled", False):
-            if all(
+        if (
+            not self._ridewithgps
+            and provider_config.get("enabled", False)
+            and all(
                 os.environ.get(env)
                 for env in [
                     "RIDEWITHGPS_EMAIL",
                     "RIDEWITHGPS_PASSWORD",
                     "RIDEWITHGPS_KEY",
                 ]
-            ):
-                # Add home_timezone to provider config
-                enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
-                self._ridewithgps = RideWithGPSProvider(config=enhanced_config)
+            )
+        ):
+            # Add home_timezone to provider config
+            enhanced_config = provider_config.copy()
+            enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+            self._ridewithgps = RideWithGPSProvider(config=enhanced_config)
         return self._ridewithgps
 
     @property
-    def garmin(self) -> Optional[GarminProvider]:
+    def garmin(self) -> GarminProvider | None:
         """Get the Garmin provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("garmin", {})
 
-        if not self._garmin and provider_config.get("enabled", False):
-            if os.environ.get("GARMINTOKENS"):
-                # Add home_timezone to provider config
-                enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
-                self._garmin = GarminProvider(config=enhanced_config)
+        if not self._garmin and provider_config.get("enabled", False) and os.environ.get("GARMINTOKENS"):
+            # Add home_timezone to provider config
+            enhanced_config = provider_config.copy()
+            enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
+            self._garmin = GarminProvider(config=enhanced_config)
         return self._garmin
 
     @property
-    def file(self) -> Optional[FileProvider]:
+    def file(self) -> FileProvider | None:
         """Get the File provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("file", {})
 
@@ -143,14 +137,12 @@ class Fitler:
             if glob_pattern:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
                 self._file = FileProvider(glob_pattern, config=enhanced_config)
         return self._file
 
     @property
-    def stravajson(self) -> Optional[StravaJsonProvider]:
+    def stravajson(self) -> StravaJsonProvider | None:
         """Get the StravaJSON provider, initializing it if needed."""
         provider_config = self.config.get("providers", {}).get("stravajson", {})
 
@@ -159,14 +151,12 @@ class Fitler:
             if folder:
                 # Add home_timezone to provider config
                 enhanced_config = provider_config.copy()
-                enhanced_config["home_timezone"] = self.config.get(
-                    "home_timezone", "US/Eastern"
-                )
+                enhanced_config["home_timezone"] = self.config.get("home_timezone", "US/Eastern")
                 self._stravajson = StravaJsonProvider(folder, config=enhanced_config)
         return self._stravajson
 
     @property
-    def enabled_providers(self) -> List[str]:
+    def enabled_providers(self) -> list[str]:
         """Get list of enabled providers based on config."""
         providers = []
         providers_config = self.config.get("providers", {})
@@ -191,7 +181,7 @@ class Fitler:
         """Get a provider by name, returning None if not available or enabled."""
         return getattr(self, provider_name, None)
 
-    def pull_activities(self, year_month: str) -> Dict[str, List[BaseProviderActivity]]:
+    def pull_activities(self, year_month: str) -> dict[str, list[BaseProviderActivity]]:
         """Pull activities from all enabled providers for the given month.
 
         This is the main entry point for fetching data from providers.
@@ -212,9 +202,7 @@ class Fitler:
                 try:
                     provider_activities = provider.pull_activities(year_month)
                     activities[provider_name] = provider_activities
-                    print(
-                        f"Pulled {len(provider_activities)} activities from {provider_name}"
-                    )
+                    print(f"Pulled {len(provider_activities)} activities from {provider_name}")
                 except Exception as e:
                     print(f"Error pulling from {provider_name}: {e}")
                     activities[provider_name] = []

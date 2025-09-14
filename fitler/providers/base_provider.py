@@ -5,10 +5,11 @@ should inherit from, ensuring a consistent interface across different fitness
 data sources.
 """
 
-from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any, Tuple
-import datetime
 import calendar
+import datetime
+from abc import ABC, abstractmethod
+from typing import Any
+
 import pytz
 
 
@@ -19,12 +20,12 @@ class FitnessProvider(ABC):
     behavior across different fitness data sources.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize the provider with configuration."""
         self.config = config or {}
 
     @staticmethod
-    def _YYYY_MM_to_unixtime_range(year_month: str, timezone: str) -> Tuple[int, int]:
+    def _YYYY_MM_to_unixtime_range(year_month: str, timezone: str) -> tuple[int, int]:
         """Convert YYYY-MM date string to unix timestamp range for the month.
 
         Args:
@@ -55,7 +56,7 @@ class FitnessProvider(ABC):
         """Return the name of this provider."""
 
     @abstractmethod
-    def pull_activities(self, date_filter: Optional[str] = None) -> List:
+    def pull_activities(self, date_filter: str | None = None) -> list:
         """
         Pull activities from the provider for a given date filter.
         If date_filter is None, pulls all activities.
@@ -64,19 +65,19 @@ class FitnessProvider(ABC):
         """
 
     @abstractmethod
-    def create_activity(self, activity_data: Dict[str, Any]) -> Any:
+    def create_activity(self, activity_data: dict[str, Any]) -> Any:
         """Create a new activity from activity data. Returns provider-specific activity object."""
 
     @abstractmethod
-    def get_activity_by_id(self, activity_id: str) -> Optional[Any]:
+    def get_activity_by_id(self, activity_id: str) -> Any | None:
         """Fetch a single activity by its provider-specific ID."""
 
     @abstractmethod
-    def update_activity(self, activity_data: Dict[str, Any]) -> Any:
+    def update_activity(self, activity_data: dict[str, Any]) -> Any:
         """Update an existing activity on the provider."""
 
     @abstractmethod
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Fetch gear/equipment from the provider, if supported."""
 
     @abstractmethod
@@ -84,7 +85,7 @@ class FitnessProvider(ABC):
         """Set the gear/equipment for a specific activity on the provider."""
 
     @abstractmethod
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Reset (delete) activities from local database.
 
         Args:

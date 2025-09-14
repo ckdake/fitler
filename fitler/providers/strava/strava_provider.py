@@ -1,21 +1,20 @@
 """Strava provider for Fitler."""
 
-import os
-import re
-import logging
-from typing import List, Optional, Dict, Any
 import datetime
 import json
-from decimal import Decimal
+import logging
+import os
+import re
 import time
+from decimal import Decimal
+from typing import Any
 
-from dateutil.relativedelta import relativedelta
 import pytz
-
+from dateutil.relativedelta import relativedelta
 from stravalib import Client
 
-from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
+from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.strava.strava_activity import StravaActivity
 
 
@@ -23,9 +22,9 @@ class StravaProvider(FitnessProvider):
     def __init__(
         self,
         token: str,
-        refresh_token: Optional[str] = None,
-        token_expires: Optional[str] = "0",
-        config: Optional[Dict[str, Any]] = None,
+        refresh_token: str | None = None,
+        token_expires: str | None = "0",
+        config: dict[str, Any] | None = None,
     ):
         super().__init__(config)
 
@@ -64,9 +63,7 @@ class StravaProvider(FitnessProvider):
             return f"{year} {before_year}"
         return gear_name
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List[StravaActivity]:
+    def pull_activities(self, date_filter: str | None = None) -> list[StravaActivity]:
         """Pull activities from Strava API for the given date filter."""
         if date_filter is None:
             print("Strava provider: pulling all activities not implemented yet")
@@ -83,14 +80,10 @@ class StravaProvider(FitnessProvider):
             for strava_lib_activity in raw_activities:
                 try:
                     # Convert stravalib activity to our StravaActivity
-                    strava_activity = self._convert_to_strava_activity(
-                        strava_lib_activity
-                    )
+                    strava_activity = self._convert_to_strava_activity(strava_lib_activity)
 
                     # Check for duplicates
-                    existing = StravaActivity.get_or_none(
-                        StravaActivity.strava_id == strava_activity.strava_id
-                    )
+                    existing = StravaActivity.get_or_none(StravaActivity.strava_id == strava_activity.strava_id)
                     if existing:
                         continue
 
@@ -111,9 +104,7 @@ class StravaProvider(FitnessProvider):
         # Always return activities for the requested month from database
         return self._get_strava_activities_for_month(date_filter)
 
-    def _get_strava_activities_for_month(
-        self, date_filter: str
-    ) -> List["StravaActivity"]:
+    def _get_strava_activities_for_month(self, date_filter: str) -> list["StravaActivity"]:
         """Get StravaActivity objects for a specific month."""
 
         year, month = map(int, date_filter.split("-"))
@@ -139,9 +130,7 @@ class StravaProvider(FitnessProvider):
         end_date = start_date + relativedelta(months=1)
 
         activities = []
-        for activity in self.client.get_activities(
-            after=start_date, before=end_date, limit=None
-        ):
+        for activity in self.client.get_activities(after=start_date, before=end_date, limit=None):
             activities.append(activity)
 
         return activities
@@ -158,27 +147,19 @@ class StravaProvider(FitnessProvider):
             full_activity = self.client.get_activity(int(activity_id))
 
         # Basic fields
-        setattr(strava_activity, "strava_id", str(getattr(full_activity, "id", "")))
-        setattr(strava_activity, "name", str(getattr(full_activity, "name", "") or ""))
-        setattr(
-            strava_activity,
-            "activity_type",
-            str(getattr(full_activity, "type", "") or ""),
-        )
+        strava_activity.strava_id = str(getattr(full_activity, "id", ""))
+        strava_activity.name = str(getattr(full_activity, "name", "") or "")
+        strava_activity.activity_type = str(getattr(full_activity, "type", "") or "")
 
         # Distance - convert from meters to miles
         distance_m = getattr(full_activity, "distance", None)
         if distance_m:
-            setattr(
-                strava_activity,
-                "distance",
-                Decimal(str(float(distance_m) * 0.000621371)),
-            )
+            strava_activity.distance = Decimal(str(float(distance_m) * 0.000621371))
 
         # Start time as timestamp string
         start_date = getattr(full_activity, "start_date", None)
         if start_date:
-            setattr(strava_activity, "start_time", int(start_date.timestamp()))
+            strava_activity.start_time = int(start_date.timestamp())
 
         # Duration
         elapsed_time = getattr(full_activity, "elapsed_time", None)
@@ -193,22 +174,14 @@ class StravaProvider(FitnessProvider):
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
             seconds = total_seconds % 60
-            setattr(
-                strava_activity,
-                "duration_hms",
-                f"{hours:02d}:{minutes:02d}:{seconds:02d}",
-            )
+            strava_activity.duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
         # Equipment/gear information
         gear = getattr(full_activity, "gear", None)
         if gear and hasattr(gear, "name"):
             gear_name = getattr(gear, "name", None)
             if gear_name:
-                setattr(
-                    strava_activity,
-                    "equipment",
-                    self._normalize_strava_gear_name(str(gear_name)),
-                )
+                strava_activity.equipment = self._normalize_strava_gear_name(str(gear_name))
 
         # Store raw data as full activity JSON
         if hasattr(full_activity, "model_dump"):
@@ -217,20 +190,20 @@ class StravaProvider(FitnessProvider):
             raw_data = full_activity.dict()
         else:
             raw_data = dict(full_activity)
-        setattr(strava_activity, "raw_data", json.dumps(raw_data, default=str))
+        strava_activity.raw_data = json.dumps(raw_data, default=str)
 
         return strava_activity
 
     # Abstract method implementations
-    def create_activity(self, activity_data: Dict[str, Any]) -> StravaActivity:
+    def create_activity(self, activity_data: dict[str, Any]) -> StravaActivity:
         """Create a new StravaActivity from activity data."""
         return StravaActivity.create(**activity_data)
 
-    def get_activity_by_id(self, activity_id: str) -> Optional[StravaActivity]:
+    def get_activity_by_id(self, activity_id: str) -> StravaActivity | None:
         """Get a StravaActivity by its provider ID."""
         return StravaActivity.get_or_none(StravaActivity.strava_id == activity_id)
 
-    def update_activity(self, activity_data: Dict[str, Any]) -> bool:
+    def update_activity(self, activity_data: dict[str, Any]) -> bool:
         """Update an existing Strava activity via API."""
         provider_id = activity_data["strava_id"]
 
@@ -247,7 +220,7 @@ class StravaProvider(FitnessProvider):
             print(f"Error updating Strava activity {provider_id}: {e}")
             return False
 
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Get all gear from Strava athlete profile."""
         try:
             athlete = self.client.get_athlete()
@@ -301,7 +274,7 @@ class StravaProvider(FitnessProvider):
             print(f"Error setting gear for Strava activity {activity_id}: {e}")
             return False
 
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Delete activities for a specific month or all activities."""
         if date_filter:
             start_timestamp, end_timestamp = self._YYYY_MM_to_unixtime_range(
@@ -310,10 +283,7 @@ class StravaProvider(FitnessProvider):
 
             deleted_count = (
                 StravaActivity.delete()
-                .where(
-                    (StravaActivity.start_time >= start_timestamp)
-                    & (StravaActivity.start_time <= end_timestamp)
-                )
+                .where((StravaActivity.start_time >= start_timestamp) & (StravaActivity.start_time <= end_timestamp))
                 .execute()
             )
             return deleted_count

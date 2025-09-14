@@ -26,7 +26,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "echo 'Running flake8...' && flake8 fitler/ tests/ && echo 'Running pylint...' && pylint fitler/ && echo 'Running mypy...' && mypy fitler/ && echo 'All Python linting passed!'"
+                "echo 'Running ruff check...' && ruff check fitler/ tests/ && echo 'Running mypy...' && mypy fitler/ && echo 'All Python linting passed!'"
             ],
             "group": "build",
             "presentation": {
@@ -40,8 +40,8 @@
         {
             "label": "Python: Format Code",
             "type": "shell",
-            "command": "black",
-            "args": ["--line-length=120", "fitler/", "tests/"],
+            "command": "ruff",
+            "args": ["format", "fitler/", "tests/"],
             "group": "build",
             "presentation": {
                 "echo": true,

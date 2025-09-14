@@ -1,9 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-import pytest
-from unittest.mock import patch, MagicMock
-from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
+
 from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
+from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
 
 
 @pytest.fixture(autouse=True)
@@ -14,15 +14,15 @@ def clean_spreadsheet_activities():
     # Cleanup after test if needed
 
 
-from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
-from fitler.providers.base_provider_activity import BaseProviderActivity
 import datetime
+
+from fitler.providers.base_provider_activity import BaseProviderActivity
 
 
 def seconds_to_hms(seconds):
     if seconds is None:
         return ""
-    return str(datetime.timedelta(seconds=int(round(seconds))))
+    return str(datetime.timedelta(seconds=round(seconds)))
 
 
 @pytest.fixture
@@ -91,9 +91,7 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Since the database is cleaned before each test, calling pull_activities
     # should process the mocked sheet data and create new activities
@@ -104,9 +102,7 @@ def test_pull_activities(mock_path, mock_load_workbook, mock_sheet):
     assert len(activities) == 1  # One data row from mock_sheet
     assert isinstance(activities[0], SpreadsheetActivity)
     assert activities[0].equipment == "Bike"
-    assert (
-        activities[0].spreadsheet_id == "2"
-    )  # Row 2 (first data row after header, as string)
+    assert activities[0].spreadsheet_id == "2"  # Row 2 (first data row after header, as string)
 
 
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
@@ -117,9 +113,7 @@ def test_get_activity_by_id(mock_path, mock_load_workbook, mock_sheet):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
     # Insert a mock activity into the test DB
     from fitler.providers.spreadsheet.spreadsheet_activity import SpreadsheetActivity
 
@@ -144,9 +138,7 @@ def test_create_activity(mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test with comprehensive activity data including all provider IDs
     activity_data = {
@@ -220,9 +212,7 @@ def test_set_gear(mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
     result = provider.set_gear("NewBike", "2")
     mock_sheet.cell.assert_called_with(row=2, column=7, value="NewBike")
     mock_wb.save.assert_called_once()
@@ -245,9 +235,7 @@ def test_update_activity(mock_get, mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test with dictionary data (no Activity objects in providers!)
     activity_data = {
@@ -345,9 +333,7 @@ def test_get_all_gear(mock_path, mock_load_workbook, mock_sheet):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
     gear = provider.get_all_gear()
     assert gear == {"Bike": "Bike", "Shoes": "Shoes"}
 
@@ -362,7 +348,7 @@ def test_spreadsheet_provider_with_config():
     # Test that config is stored
     assert provider.config == config
     assert provider.config["home_timezone"] == "US/Pacific"
-    assert provider.config["enabled"] == True
+    assert provider.config["enabled"]
 
 
 def test_spreadsheet_provider_without_config():
@@ -395,7 +381,7 @@ def test_spreadsheet_provider_config_access():
 
     # Test accessing various config values
     assert provider.config.get("home_timezone") == "Europe/London"
-    assert provider.config.get("debug") == True
+    assert provider.config.get("debug")
     assert provider.config.get("custom_setting") == "test_value"
     assert provider.config.get("nonexistent", "default") == "default"
 
@@ -408,7 +394,7 @@ def test_spreadsheet_provider_calls_super_with_config(mock_super_init):
     # Make the mock return None to avoid issues
     mock_super_init.return_value = None
 
-    provider = SpreadsheetProvider("/test/path.xlsx", config=config)
+    SpreadsheetProvider("/test/path.xlsx", config=config)
 
     # Verify super().__init__ was called with the config
     mock_super_init.assert_called_once_with(config)
@@ -427,8 +413,8 @@ def test_spreadsheet_provider_with_enhanced_config():
 
     # Verify all config values are accessible
     assert provider.config["home_timezone"] == "America/New_York"
-    assert provider.config["enabled"] == True
-    assert provider.config["debug"] == False
+    assert provider.config["enabled"]
+    assert not provider.config["debug"]
     assert provider.path == "/test/spreadsheet.xlsx"
 
 
@@ -445,7 +431,7 @@ def test_spreadsheet_provider_mimics_core_behavior():
     provider = SpreadsheetProvider("/test/spreadsheet.xlsx", config=enhanced_config)
 
     # Verify that the provider has access to both the provider config and home_timezone
-    assert provider.config["enabled"] == True
+    assert provider.config["enabled"]
     assert provider.config["path"] == "/test/spreadsheet.xlsx"
     assert provider.config["home_timezone"] == "US/Eastern"
     assert provider.path == "/test/spreadsheet.xlsx"
@@ -469,8 +455,8 @@ def test_spreadsheet_provider_timezone_access():
 
 def test_convert_to_gmt_timestamp_date_only_eastern():
     """Test _convert_to_gmt_timestamp with date-only string and US/Eastern timezone."""
+
     from fitler.providers.spreadsheet.spreadsheet_provider import SpreadsheetProvider
-    from zoneinfo import ZoneInfo
 
     # Feb 3, 2025 in US/Eastern should be 2025-02-03 00:00:00-05:00
     # Which is 2025-02-03 05:00:00 UTC
@@ -496,9 +482,7 @@ def test_create_activity_with_duration_hms(mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test with duration in seconds
     activity_data = {
@@ -536,9 +520,7 @@ def test_create_activity_with_zero_duration(mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     activity_data = {
         "start_time": "2024-06-01T10:00:00Z",
@@ -564,9 +546,7 @@ def test_create_activity_with_no_duration(mock_path, mock_load_workbook):
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     activity_data = {
         "start_time": "2024-06-01T10:00:00Z",
@@ -597,9 +577,7 @@ def test_update_activity_with_duration_hms(mock_get, mock_path, mock_load_workbo
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test updating duration_hms
     activity_data = {
@@ -622,9 +600,7 @@ def test_update_activity_with_duration_hms(mock_get, mock_path, mock_load_workbo
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.openpyxl.load_workbook")
 @patch("fitler.providers.spreadsheet.spreadsheet_provider.Path")
 @patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.get")
-def test_update_activity_with_notes_and_duration_hms(
-    mock_get, mock_path, mock_load_workbook
-):
+def test_update_activity_with_notes_and_duration_hms(mock_get, mock_path, mock_load_workbook):
     """Test that update_activity correctly updates both notes and duration_hms."""
     mock_activity = MagicMock()
     mock_get.return_value = mock_activity
@@ -637,9 +613,7 @@ def test_update_activity_with_notes_and_duration_hms(
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test updating both notes and duration_hms
     activity_data = {
@@ -667,7 +641,7 @@ def test_update_activity_with_notes_and_duration_hms(
     # The cell method is called with keyword arguments
     call_details = []
     for call in mock_sheet.cell.call_args_list:
-        args, kwargs = call
+        _args, kwargs = call
         if "row" in kwargs and "column" in kwargs and "value" in kwargs:
             call_details.append((kwargs["row"], kwargs["column"], kwargs["value"]))
 
@@ -696,9 +670,7 @@ def test_seconds_to_hms_conversion():
     assert SpreadsheetProvider._seconds_to_hms(None) == ""
 
     # Test with float values
-    assert (
-        SpreadsheetProvider._seconds_to_hms(3661.7) == "1:01:02"
-    )  # Rounds to nearest second
+    assert SpreadsheetProvider._seconds_to_hms(3661.7) == "1:01:02"  # Rounds to nearest second
 
 
 def test_hms_to_seconds_conversion():
@@ -732,9 +704,7 @@ def test_create_activity_stores_duration_hms_in_database(mock_path, mock_load_wo
     mock_load_workbook.return_value = mock_wb
     mock_path.return_value = "fake.xlsx"
 
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Test with duration_hms field provided directly
     activity_data = {
@@ -747,13 +717,11 @@ def test_create_activity_stores_duration_hms_in_database(mock_path, mock_load_wo
     }
 
     # Mock the database operations
-    with patch(
-        "fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.create"
-    ) as mock_create:
+    with patch("fitler.providers.spreadsheet.spreadsheet_activity.SpreadsheetActivity.create") as mock_create:
         mock_activity = MagicMock()
         mock_create.return_value = mock_activity
 
-        result = provider.create_activity(activity_data)
+        provider.create_activity(activity_data)
 
         # Verify create was called with duration_hms field
         mock_create.assert_called_once()
@@ -765,9 +733,7 @@ def test_create_activity_stores_duration_hms_in_database(mock_path, mock_load_wo
 
 def test_spreadsheet_activity_parsing_with_duration_hms():
     """Test that _process_parsed_data correctly sets duration_hms from spreadsheet."""
-    provider = SpreadsheetProvider(
-        "fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True}
-    )
+    provider = SpreadsheetProvider("fake.xlsx", config={"home_timezone": "US/Eastern", "test_mode": True})
 
     # Mock spreadsheet row data with duration_hms in column 7
     parsed_data = {

@@ -1,13 +1,12 @@
 import argparse
 import datetime
+
 from fitler.core import Fitler
 
 
 def print_activities(provider_name, activities, id_field, home_tz):
     print(f"\n{provider_name} (for selected month):")
-    print(
-        f"{'ID':<12} {'Name':<30} {'Raw Timestamp':<12} {'Local Time':<19} {'Distance (mi)':>12}"
-    )
+    print(f"{'ID':<12} {'Name':<30} {'Raw Timestamp':<12} {'Local Time':<19} {'Distance (mi)':>12}")
     print("-" * 85)
     for act in activities:
         act_id = getattr(act, id_field, None)
@@ -18,9 +17,7 @@ def print_activities(provider_name, activities, id_field, home_tz):
         if start_time:
             try:
                 timestamp = int(start_time)
-                utc_dt = datetime.datetime.fromtimestamp(
-                    timestamp, datetime.timezone.utc
-                )
+                utc_dt = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
                 local_dt = utc_dt.astimezone(home_tz)
                 raw_timestamp = str(timestamp)
                 date_str = f"{local_dt.strftime('%Y-%m-%d %H:%M')} {local_dt.tzname()}"
@@ -28,10 +25,7 @@ def print_activities(provider_name, activities, id_field, home_tz):
                 date_str = "invalid"
                 raw_timestamp = str(start_time) if start_time else "None"
         dist = getattr(act, "distance", 0)
-        line = (
-            f"{str(act_id):<12} {str(name)[:28]:<30} "
-            f"{str(raw_timestamp):<12} {str(date_str):<19} {dist:12.2f}"
-        )
+        line = f"{act_id!s:<12} {str(name)[:28]:<30} {raw_timestamp!s:<12} {date_str!s:<19} {dist:12.2f}"
         print(line)
 
 
@@ -50,7 +44,6 @@ def get_months():
 
 
 def run(args=None):
-
     if args is None:
         args = []
 
@@ -76,6 +69,4 @@ def run(args=None):
             for provider_name, provider_activities in activities.items():
                 if provider_activities:
                     display_name = provider_name.title()
-                    print_activities(
-                        display_name, provider_activities, "provider_id", home_tz
-                    )
+                    print_activities(display_name, provider_activities, "provider_id", home_tz)

@@ -1,4 +1,5 @@
 import argparse
+
 from fitler.core import Fitler
 from fitler.provider_sync import ProviderSync
 
@@ -25,9 +26,7 @@ def run(args=None):
             print(f"Resetting data for {year_month}...")
         else:
             print("Resetting ALL data...")
-            confirm = input(
-                "This will delete ALL activities and sync records. Are you sure? (yes/no): "
-            )
+            confirm = input("This will delete ALL activities and sync records. Are you sure? (yes/no): ")
             if confirm.lower() != "yes":
                 print("Reset cancelled.")
                 return

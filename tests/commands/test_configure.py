@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import tempfile
 
 import fitler.commands.configure as configure
@@ -41,33 +41,31 @@ def test_run_creates_config_file(monkeypatch):
 
         # Check top-level settings
         assert config["home_timezone"] == "US/Pacific"
-        assert config["debug"] == True
+        assert config["debug"]
         assert config["provider_priority"] == "spreadsheet,ridewithgps,strava"
 
         # Check providers block
         assert "providers" in config
 
         # Check spreadsheet provider
-        assert config["providers"]["spreadsheet"]["enabled"] == True
-        assert (
-            config["providers"]["spreadsheet"]["path"] == "/tmp/fake_spreadsheet.xlsx"
-        )
+        assert config["providers"]["spreadsheet"]["enabled"]
+        assert config["providers"]["spreadsheet"]["path"] == "/tmp/fake_spreadsheet.xlsx"
         assert config["providers"]["spreadsheet"]["priority"] == 1
 
         # Check file provider
-        assert config["providers"]["file"]["enabled"] == True
+        assert config["providers"]["file"]["enabled"]
         assert config["providers"]["file"]["glob"] == "./fake_glob/*"
 
         # Check Strava provider
-        assert config["providers"]["strava"]["enabled"] == True
+        assert config["providers"]["strava"]["enabled"]
         assert config["providers"]["strava"]["priority"] == 3
 
         # Check RideWithGPS provider
-        assert config["providers"]["ridewithgps"]["enabled"] == True
+        assert config["providers"]["ridewithgps"]["enabled"]
         assert config["providers"]["ridewithgps"]["priority"] == 2
 
         # Check Garmin provider
-        assert config["providers"]["garmin"]["enabled"] == True
+        assert config["providers"]["garmin"]["enabled"]
 
         # Check StravaJSON provider (should be disabled by default)
-        assert config["providers"]["stravajson"]["enabled"] == False
+        assert not config["providers"]["stravajson"]["enabled"]

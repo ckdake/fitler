@@ -26,9 +26,7 @@ def parse_tcx(file_path):
     start_time = first_activity.find(".//tcx:Lap", ns).get("StartTime")
     # DistanceMeters is optional and may need to be summed from Trackpoints
     distance_elem = first_activity.find(".//tcx:DistanceMeters", ns)
-    distance = (
-        float(distance_elem.text) * 0.00062137 if distance_elem is not None else None
-    )
+    distance = float(distance_elem.text) * 0.00062137 if distance_elem is not None else None
     return {
         "start_time": start_time,
         "distance": distance,

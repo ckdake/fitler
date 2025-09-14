@@ -7,6 +7,7 @@ access help/documentation.
 """
 
 import argparse
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,36 +18,23 @@ def main():
     parser = argparse.ArgumentParser(description="Fitler CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser(
-        "auth-strava", help="Authenticate with Strava and get an access token"
-    )
-    subparsers.add_parser(
-        "auth-garmin", help="Authenticate with Garmin Connect and store tokens"
-    )
+    subparsers.add_parser("auth-strava", help="Authenticate with Strava and get an access token")
+    subparsers.add_parser("auth-garmin", help="Authenticate with Garmin Connect and store tokens")
     subparsers.add_parser("configure", help="Configure Fitler for your environment")
 
     sync_month_parser = subparsers.add_parser(
         "sync-month",
-        help=(
-            "Correlate and show all activities for a given month (YYYY-MM) "
-            "across all sources, dry run"
-        ),
+        help=("Correlate and show all activities for a given month (YYYY-MM) across all sources, dry run"),
     )
-    sync_month_parser.add_argument(
-        "year_month", type=str, help="Year and month in YYYY-MM format"
-    )
+    sync_month_parser.add_argument("year_month", type=str, help="Year and month in YYYY-MM format")
     subparsers.add_parser("help", help="Show usage and documentation")
-    pull_parser = subparsers.add_parser(
-        "pull", help="Pull activities from all providers"
-    )
+    pull_parser = subparsers.add_parser("pull", help="Pull activities from all providers")
     pull_parser.add_argument(
         "--date",
         help="Date filter in YYYY-MM format (if not specified, pulls all activities)",
     )
 
-    reset_parser = subparsers.add_parser(
-        "reset", help="Reset (delete) activities and sync records"
-    )
+    reset_parser = subparsers.add_parser("reset", help="Reset (delete) activities and sync records")
     reset_parser.add_argument(
         "--date",
         help="Date filter in YYYY-MM format (if not specified, resets all data)",
@@ -74,17 +62,13 @@ def main():
         from fitler.commands.pull import run
 
         # Only pass --date if set, otherwise pass None
-        pull_args = (
-            ["--date", args.date] if hasattr(args, "date") and args.date else None
-        )
+        pull_args = ["--date", args.date] if hasattr(args, "date") and args.date else None
         run(pull_args)
     elif args.command == "reset":
         from fitler.commands.reset import run
 
         # Only pass --date if set, otherwise pass None
-        reset_args = (
-            ["--date", args.date] if hasattr(args, "date") and args.date else None
-        )
+        reset_args = ["--date", args.date] if hasattr(args, "date") and args.date else None
         run(reset_args)
     elif args.command == "help" or args.command is None:
         print(

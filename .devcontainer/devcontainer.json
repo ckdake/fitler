@@ -3,7 +3,7 @@
 {
 	"name": "python-fitler",
 	"image": "mcr.microsoft.com/devcontainers/python:1-3.13-bullseye",
-	
+
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
 		"ghcr.io/devcontainers/features/node:1": {
@@ -21,19 +21,21 @@
 				},
 				// Python settings
 				"python.defaultInterpreterPath": "/usr/local/bin/python",
-				"python.linting.enabled": true,
-				"python.linting.flake8Enabled": true,
-				"python.linting.pylintEnabled": true,
-				"python.linting.mypyEnabled": true,
-				"python.linting.lintOnSave": true,
-				"python.formatting.provider": "black",
-				"python.formatting.blackArgs": ["--line-length=120"],
+				"python.analysis.typeCheckingMode": "basic",
+				"python.analysis.autoImportCompletions": true,
 				"editor.formatOnSave": true,
 				"editor.codeActionsOnSave": {
 					"source.organizeImports": "explicit"
 				},
-				"python.analysis.typeCheckingMode": "basic",
-				"python.analysis.autoImportCompletions": true,
+				// Ruff settings
+				"[python]": {
+					"editor.defaultFormatter": "charliermarsh.ruff",
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+						"source.fixAll.ruff": "explicit",
+						"source.organizeImports.ruff": "explicit"
+					}
+				},
 				// JavaScript/CSS settings
 				"[javascript]": {
 					"editor.formatOnSave": true,
@@ -57,9 +59,8 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"ms-python.flake8",
 				"ms-python.mypy-type-checker",
-				"ms-python.black-formatter",
+				"charliermarsh.ruff",
 				"qwtel.sqlite-viewer",
 				"bradlc.vscode-tailwindcss",
 				"esbenp.prettier-vscode",

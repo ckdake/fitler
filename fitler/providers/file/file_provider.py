@@ -3,33 +3,33 @@ This module defines the FileProvider class, which provides an interface
 for processing activity files from the filesystem (GPX, FIT, TCX, etc).
 """
 
-import os
+import datetime
 import glob
+import gzip
 import hashlib
 import json
-import datetime
 import logging
-import tempfile
-import gzip
 import multiprocessing
-from typing import List, Optional, Dict, Any
+import os
+import tempfile
+from typing import Any, Optional
 
 import dateparser
 from peewee import DoesNotExist
 
-from fitler.providers.base_provider import FitnessProvider
 from fitler.provider_sync import ProviderSync
+from fitler.providers.base_provider import FitnessProvider
 from fitler.providers.file.file_activity import FileActivity
 
-from .formats.gpx import parse_gpx
 from .formats.fit import parse_fit
+from .formats.gpx import parse_gpx
 from .formats.tcx import parse_tcx
 
 
 class FileProvider(FitnessProvider):
     """File provider for processing activity files from filesystem."""
 
-    def __init__(self, file_glob: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, file_glob: str, config: dict[str, Any] | None = None):
         """Initialize with file glob pattern for finding activity files."""
         super().__init__(config)
         self.file_glob = file_glob
@@ -72,7 +72,7 @@ class FileProvider(FitnessProvider):
         return sha256_hash.hexdigest()
 
     @staticmethod
-    def _convert_start_time_to_int(start_time_val) -> Optional[int]:
+    def _convert_start_time_to_int(start_time_val) -> int | None:
         """Convert various start_time formats to Unix timestamp integer."""
         if not start_time_val:
             return None
@@ -92,7 +92,7 @@ class FileProvider(FitnessProvider):
         return None
 
     @staticmethod
-    def _parse_file(file_path: str) -> Optional[dict]:
+    def _parse_file(file_path: str) -> dict | None:
         """Parse an activity file and return activity data."""
 
         file_format, is_gzipped = FileProvider._determine_file_format(file_path)
@@ -141,7 +141,7 @@ class FileProvider(FitnessProvider):
             print(f"Error parsing file {file_path}: {e}")
             return (file_path, None)
 
-    def _pull_all_activities(self) -> List["FileActivity"]:
+    def _pull_all_activities(self) -> list["FileActivity"]:
         """Process all files matching the glob pattern without date filtering."""
         file_paths = glob.glob(self.file_glob)
         print(f"Found {len(file_paths)} files matching pattern: {self.file_glob}")
@@ -190,9 +190,7 @@ class FileProvider(FitnessProvider):
 
         return self._get_activities()
 
-    def _get_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List["FileActivity"]:
+    def _get_activities(self, date_filter: str | None = None) -> list["FileActivity"]:
         """Get FileActivity objects for a specific month."""
         file_activities = []
 
@@ -218,7 +216,7 @@ class FileProvider(FitnessProvider):
             file_path=parsed_data.get("file_path"),
             file_checksum=parsed_data.get("file_checksum"),
             file_size=parsed_data.get("file_size"),
-            file_format=parsed_data.get("file_format", None),
+            file_format=parsed_data.get("file_format"),
             name=parsed_data.get("name", ""),
             distance=parsed_data.get("distance", 0),
             start_time=self._convert_start_time_to_int(parsed_data.get("start_time")),
@@ -228,9 +226,7 @@ class FileProvider(FitnessProvider):
         )
         return file_activity
 
-    def pull_activities(
-        self, date_filter: Optional[str] = None
-    ) -> List["FileActivity"]:
+    def pull_activities(self, date_filter: str | None = None) -> list["FileActivity"]:
         """
         Process activity files and return FileActivity objects.
         If date_filter is provided (YYYY-MM format), only returns activities from that month.
@@ -255,15 +251,15 @@ class FileProvider(FitnessProvider):
         except (ValueError, DoesNotExist):
             return None
 
-    def update_activity(self, activity_data: Dict[str, Any]) -> Any:
+    def update_activity(self, activity_data: dict[str, Any]) -> Any:
         """File provider does not support updating activities."""
         raise NotImplementedError("File provider does not support updating activities")
 
-    def create_activity(self, activity_data: Dict[str, Any]) -> str:
+    def create_activity(self, activity_data: dict[str, Any]) -> str:
         """File provider does not support creating activities."""
         raise NotImplementedError("File provider does not support creating activities")
 
-    def get_all_gear(self) -> Dict[str, str]:
+    def get_all_gear(self) -> dict[str, str]:
         """Get all unique equipment from file activities."""
         gear_set = set()
         for activity in FileActivity.select():
@@ -275,7 +271,7 @@ class FileProvider(FitnessProvider):
         """File provider does not support setting gear."""
         raise NotImplementedError("File provider does not support setting gear")
 
-    def reset_activities(self, date_filter: Optional[str] = None) -> int:
+    def reset_activities(self, date_filter: str | None = None) -> int:
         """Reset (delete) File activities from local database."""
         from fitler.providers.file.file_activity import FileActivity
 
@@ -286,10 +282,7 @@ class FileProvider(FitnessProvider):
 
             return (
                 FileActivity.delete()
-                .where(
-                    (FileActivity.start_time >= start_timestamp)
-                    & (FileActivity.start_time <= end_timestamp)
-                )
+                .where((FileActivity.start_time >= start_timestamp) & (FileActivity.start_time <= end_timestamp))
                 .execute()
             )
         else:

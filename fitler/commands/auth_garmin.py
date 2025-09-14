@@ -12,12 +12,12 @@ from pathlib import Path
 
 try:
     import garminconnect
-    from garth.exc import GarthHTTPError
     from garminconnect import (
         GarminConnectAuthenticationError,
         GarminConnectConnectionError,
         GarminConnectTooManyRequestsError,
     )
+    from garth.exc import GarthHTTPError
 except ImportError:
     garminconnect = None
 
@@ -72,9 +72,7 @@ def run():
         print("\nAuthenticating with Garmin Connect...")
 
         # Create Garmin client with MFA support
-        garmin = garminconnect.Garmin(
-            email=email, password=password, is_cn=False, return_on_mfa=True
-        )
+        garmin = garminconnect.Garmin(email=email, password=password, is_cn=False, return_on_mfa=True)
 
         # Attempt login - returns (result, data) tuple in v0.2.28
         result, data = garmin.login()

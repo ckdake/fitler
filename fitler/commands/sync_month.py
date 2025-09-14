@@ -1,10 +1,12 @@
-from typing import Optional, NamedTuple
-from enum import Enum
-from zoneinfo import ZoneInfo
-from fitler.core import Fitler
-from datetime import datetime, timezone
 from collections import defaultdict
+from datetime import UTC, datetime
+from enum import Enum
+from typing import NamedTuple
+from zoneinfo import ZoneInfo
+
 from tabulate import tabulate
+
+from fitler.core import Fitler
 
 
 class ChangeType(Enum):
@@ -19,9 +21,9 @@ class ActivityChange(NamedTuple):
     change_type: ChangeType
     provider: str
     activity_id: str
-    old_value: Optional[str] = None
-    new_value: Optional[str] = None
-    source_provider: Optional[str] = None
+    old_value: str | None = None
+    new_value: str | None = None
+    source_provider: str | None = None
 
     def __str__(self) -> str:
         if self.change_type == ChangeType.UPDATE_NAME:
@@ -127,9 +129,7 @@ def generate_correlation_key(timestamp: int, distance: float) -> str:
         return ""
 
 
-def convert_activity_to_spreadsheet_format(
-    source_activity: dict, grouped_activities
-) -> dict:
+def convert_activity_to_spreadsheet_format(source_activity: dict, grouped_activities) -> dict:
     """Convert an activity from any provider to spreadsheet format."""
     # Extract the source activity object
     activity_obj = source_activity["obj"]
@@ -138,9 +138,7 @@ def convert_activity_to_spreadsheet_format(
     start_time = ""
     if source_activity["timestamp"]:
         try:
-            dt = datetime.fromtimestamp(
-                source_activity["timestamp"], ZoneInfo("US/Eastern")
-            )
+            dt = datetime.fromtimestamp(source_activity["timestamp"], ZoneInfo("US/Eastern"))
             start_time = dt.strftime("%Y-%m-%d")
         except (ValueError, TypeError):
             pass
@@ -151,9 +149,7 @@ def convert_activity_to_spreadsheet_format(
     ridewithgps_id = ""
 
     # Find the group this activity belongs to
-    correlation_key = generate_correlation_key(
-        source_activity["timestamp"], source_activity["distance"]
-    )
+    correlation_key = generate_correlation_key(source_activity["timestamp"], source_activity["distance"])
     if correlation_key in grouped_activities:
         group = grouped_activities[correlation_key]
         for act in group:
@@ -232,9 +228,7 @@ def run(year_month):
         # Group activities by correlation key (date + distance)
         grouped = defaultdict(list)
         for act in all_acts:
-            correlation_key = generate_correlation_key(
-                act["timestamp"], act["distance"]
-            )
+            correlation_key = generate_correlation_key(act["timestamp"], act["distance"])
             if correlation_key:  # Only group activities with valid correlation keys
                 grouped[correlation_key].append(act)
 
@@ -249,11 +243,9 @@ def run(year_month):
             # Find the earliest start time in the group for ordering
             start = min(
                 (
-                    datetime.fromtimestamp(a["timestamp"], timezone.utc).astimezone(
-                        home_tz
-                    )
+                    datetime.fromtimestamp(a["timestamp"], UTC).astimezone(home_tz)
                     if a["timestamp"]
-                    else datetime.fromtimestamp(0, timezone.utc).astimezone(home_tz)
+                    else datetime.fromtimestamp(0, UTC).astimezone(home_tz)
                 )
                 for a in group
             )
@@ -267,9 +259,7 @@ def run(year_month):
                 {
                     "start": start,
                     "providers": by_provider,
-                    "correlation_key": generate_correlation_key(
-                        group[0]["timestamp"], group[0]["distance"]
-                    ),
+                    "correlation_key": generate_correlation_key(group[0]["timestamp"], group[0]["distance"]),
                 }
             )
 
@@ -355,9 +345,7 @@ def run(year_month):
 
             for provider in provider_list:
                 sync_name = provider_config.get(provider, {}).get("sync_name", True)
-                sync_equipment = provider_config.get(provider, {}).get(
-                    "sync_equipment", True
-                )
+                sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
                 if provider in providers:
                     activity = providers[provider]
                     # Color code based on authority
@@ -406,9 +394,7 @@ def run(year_month):
                     # Special handling for spreadsheet metadata (duration_hms field)
                     if provider == "spreadsheet":
                         # Check if duration_hms needs to be updated with properly formatted duration
-                        current_duration_hms = (
-                            getattr(activity.get("obj"), "duration_hms", "") or ""
-                        )
+                        current_duration_hms = getattr(activity.get("obj"), "duration_hms", "") or ""
 
                         # Calculate the expected duration_hms from a non-spreadsheet provider
                         # Find the first non-spreadsheet provider with duration data
@@ -427,12 +413,8 @@ def run(year_month):
                                     "elapsed_time",
                                     "duration",
                                 ]:
-                                    potential_duration = getattr(
-                                        provider_activity_obj, duration_field, None
-                                    )
-                                    if potential_duration and isinstance(
-                                        potential_duration, (int, float)
-                                    ):
+                                    potential_duration = getattr(provider_activity_obj, duration_field, None)
+                                    if potential_duration and isinstance(potential_duration, (int, float)):
                                         duration_seconds = int(potential_duration)
                                         break
 
@@ -444,16 +426,11 @@ def run(year_month):
                                 hours = int(duration_seconds // 3600)
                                 minutes = int((duration_seconds % 3600) // 60)
                                 seconds = int(duration_seconds % 60)
-                                expected_duration_hms = (
-                                    f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-                                )
+                                expected_duration_hms = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
                             except (ValueError, TypeError):
                                 pass
 
-                        if (
-                            current_duration_hms != expected_duration_hms
-                            and expected_duration_hms
-                        ):
+                        if current_duration_hms != expected_duration_hms and expected_duration_hms:
                             all_changes.append(
                                 ActivityChange(
                                     change_type=ChangeType.UPDATE_METADATA,
@@ -466,30 +443,23 @@ def run(year_month):
                     # Equipment column
                     if sync_equipment:
                         if provider == auth_provider:
-                            equip_colored = color_text(
-                                activity["equipment"], True, False, False
-                            )
+                            equip_colored = color_text(activity["equipment"], True, False, False)
                         else:
                             equip_val = (activity["equipment"] or "").strip().lower()
                             equip_wrong = False
                             show_auth_equip = False
-                            if auth_equipment:
-                                if (
-                                    activity["equipment"] != auth_equipment
-                                    or equip_val == ""
-                                    or equip_val == "no equipment"
-                                ):
-                                    equip_wrong = True
-                                    if equip_val == "" or equip_val == "no equipment":
-                                        show_auth_equip = True
+                            if auth_equipment and (
+                                activity["equipment"] != auth_equipment
+                                or equip_val == ""
+                                or equip_val == "no equipment"
+                            ):
+                                equip_wrong = True
+                                if equip_val == "" or equip_val == "no equipment":
+                                    show_auth_equip = True
                             if show_auth_equip:
-                                equip_colored = color_text(
-                                    auth_equipment, False, True, False
-                                )
+                                equip_colored = color_text(auth_equipment, False, True, False)
                             else:
-                                equip_colored = color_text(
-                                    activity["equipment"], False, False, equip_wrong
-                                )
+                                equip_colored = color_text(activity["equipment"], False, False, equip_wrong)
                             if equip_wrong and auth_equipment:
                                 all_changes.append(
                                     ActivityChange(
@@ -506,18 +476,10 @@ def run(year_month):
                     missing_id = color_text("TBD", False, True, False)
                     table_row.append(missing_id)
                     if sync_name:
-                        missing_name = (
-                            color_text(auth_name, False, True, False)
-                            if auth_name
-                            else ""
-                        )
+                        missing_name = color_text(auth_name, False, True, False) if auth_name else ""
                         table_row.append(missing_name)
                     if sync_equipment:
-                        missing_equip = (
-                            color_text(auth_equipment, False, True, False)
-                            if auth_equipment
-                            else ""
-                        )
+                        missing_equip = color_text(auth_equipment, False, True, False) if auth_equipment else ""
                         table_row.append(missing_equip)
                     # Record that this activity should be added to this provider
                     if sync_name and auth_name:
@@ -539,9 +501,7 @@ def run(year_month):
         headers = ["Start"]
         for provider in provider_list:
             sync_name = provider_config.get(provider, {}).get("sync_name", True)
-            sync_equipment = provider_config.get(provider, {}).get(
-                "sync_equipment", True
-            )
+            sync_equipment = provider_config.get(provider, {}).get("sync_equipment", True)
             headers.append(f"{provider.title()} ID")
             if sync_name:
                 headers.append(f"{provider.title()} Name")
@@ -561,9 +521,7 @@ def run(year_month):
         )
 
         print("\nLegend:")
-        print(
-            f"{green_bg}Green{reset} = Source of truth (from highest priority provider)"
-        )
+        print(f"{green_bg}Green{reset} = Source of truth (from highest priority provider)")
         print(f"{yellow_bg}Yellow{reset} = New entry to be created")
         print(f"{red_bg}Red{reset} = Needs to be updated to match source of truth")
 
@@ -595,58 +553,42 @@ def run(year_month):
 
             # Prompt for ridewithgps equipment updates
             ridewithgps_equipment_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
-                if change.provider == "ridewithgps"
+                change for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT] if change.provider == "ridewithgps"
             ]
 
             # Prompt for strava equipment updates
             strava_equipment_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT]
-                if change.provider == "strava"
+                change for change in changes_by_type[ChangeType.UPDATE_EQUIPMENT] if change.provider == "strava"
             ]
 
             # Prompt for ridewithgps name updates
             ridewithgps_name_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_NAME]
-                if change.provider == "ridewithgps"
+                change for change in changes_by_type[ChangeType.UPDATE_NAME] if change.provider == "ridewithgps"
             ]
 
             # Prompt for strava name updates
             strava_name_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_NAME]
-                if change.provider == "strava"
+                change for change in changes_by_type[ChangeType.UPDATE_NAME] if change.provider == "strava"
             ]
 
             # Prompt for garmin name updates
             garmin_name_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_NAME]
-                if change.provider == "garmin"
+                change for change in changes_by_type[ChangeType.UPDATE_NAME] if change.provider == "garmin"
             ]
 
             # Prompt for spreadsheet additions
             spreadsheet_additions = [
-                change
-                for change in changes_by_type[ChangeType.ADD_ACTIVITY]
-                if change.provider == "spreadsheet"
+                change for change in changes_by_type[ChangeType.ADD_ACTIVITY] if change.provider == "spreadsheet"
             ]
 
             # Prompt for spreadsheet notes updates (UPDATE_NAME for notes field)
             spreadsheet_name_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_NAME]
-                if change.provider == "spreadsheet"
+                change for change in changes_by_type[ChangeType.UPDATE_NAME] if change.provider == "spreadsheet"
             ]
 
             # Prompt for spreadsheet metadata updates (UPDATE_METADATA for duration_hms, etc.)
             spreadsheet_metadata_changes = [
-                change
-                for change in changes_by_type[ChangeType.UPDATE_METADATA]
-                if change.provider == "spreadsheet"
+                change for change in changes_by_type[ChangeType.UPDATE_METADATA] if change.provider == "spreadsheet"
             ]
 
             if (
@@ -665,20 +607,14 @@ def run(year_month):
                 garmin_provider = fitler.garmin
                 spreadsheet_provider = fitler.spreadsheet
 
-                if not ridewithgps_provider and (
-                    ridewithgps_equipment_changes or ridewithgps_name_changes
-                ):
+                if not ridewithgps_provider and (ridewithgps_equipment_changes or ridewithgps_name_changes):
                     print("RideWithGPS provider not available")
-                elif not strava_provider and (
-                    strava_equipment_changes or strava_name_changes
-                ):
+                elif not strava_provider and (strava_equipment_changes or strava_name_changes):
                     print("Strava provider not available")
                 elif not garmin_provider and garmin_name_changes:
                     print("Garmin provider not available")
                 elif not spreadsheet_provider and (
-                    spreadsheet_additions
-                    or spreadsheet_name_changes
-                    or spreadsheet_metadata_changes
+                    spreadsheet_additions or spreadsheet_name_changes or spreadsheet_metadata_changes
                 ):
                     print("Spreadsheet provider not available")
                 else:
@@ -691,9 +627,7 @@ def run(year_month):
 
                             if response == "y":
                                 try:
-                                    success = ridewithgps_provider.set_gear(
-                                        change.new_value, change.activity_id
-                                    )
+                                    success = ridewithgps_provider.set_gear(change.new_value, change.activity_id)
                                     if success:
                                         print(f"✓ Gear for {change.activity_id}")
                                     else:
@@ -712,9 +646,7 @@ def run(year_month):
 
                             if response == "y":
                                 try:
-                                    success = strava_provider.set_gear(
-                                        change.new_value, change.activity_id
-                                    )
+                                    success = strava_provider.set_gear(change.new_value, change.activity_id)
                                     if success:
                                         print(f"✓ Gear for {change.activity_id}")
                                     else:
@@ -810,8 +742,7 @@ def run(year_month):
                                     for group in grouped.values():
                                         for act in group:
                                             if (
-                                                act["provider"]
-                                                == change.source_provider
+                                                act["provider"] == change.source_provider
                                                 and str(act["id"]) == change.activity_id
                                             ):
                                                 source_activity = act
@@ -821,24 +752,14 @@ def run(year_month):
 
                                     if source_activity:
                                         # Convert source activity to spreadsheet format
-                                        activity_data = (
-                                            convert_activity_to_spreadsheet_format(
-                                                source_activity, grouped
-                                            )
-                                        )
+                                        activity_data = convert_activity_to_spreadsheet_format(source_activity, grouped)
 
                                         # Create the activity in spreadsheet
-                                        new_id = spreadsheet_provider.create_activity(
-                                            activity_data
-                                        )
+                                        new_id = spreadsheet_provider.create_activity(activity_data)
                                         if new_id:
-                                            print(
-                                                f"✓ Added activity to spreadsheet with ID {new_id}"
-                                            )
+                                            print(f"✓ Added activity to spreadsheet with ID {new_id}")
                                         else:
-                                            print(
-                                                "✗ Failed to add activity to spreadsheet"
-                                            )
+                                            print("✗ Failed to add activity to spreadsheet")
                                     else:
                                         print("✗ Could not find source activity")
                                 except Exception as e:

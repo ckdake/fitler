@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 
 def run():
@@ -21,9 +21,7 @@ def run():
     metadata_db_path = input(
         "Path to metadata database (default: /home/vscode/Documents/fitler-metadata.sqlite3): "
     ).strip()
-    config["metadata_db"] = (
-        metadata_db_path or "/home/vscode/Documents/fitler-metadata.sqlite3"
-    )
+    config["metadata_db"] = metadata_db_path or "/home/vscode/Documents/fitler-metadata.sqlite3"
 
     # Create providers block
     config["providers"] = {}
@@ -32,19 +30,14 @@ def run():
 
     # Spreadsheet provider
     print("\nSpreadsheet Provider:")
-    enable_spreadsheet = (
-        input("Enable spreadsheet provider? (Y/n): ").strip().lower() != "n"
-    )
+    enable_spreadsheet = input("Enable spreadsheet provider? (Y/n): ").strip().lower() != "n"
     spreadsheet_path = ""
     spreadsheet_priority = 0
     if enable_spreadsheet:
         spreadsheet_path = input(
             "Path to activity spreadsheet (e.g.: /home/vscode/Documents/exerciselog.xlsx): "
         ).strip()
-        spreadsheet_priority = int(
-            input("Priority (1-5, lower is higher priority, default: 1): ").strip()
-            or "1"
-        )
+        spreadsheet_priority = int(input("Priority (1-5, lower is higher priority, default: 1): ").strip() or "1")
 
     config["providers"]["spreadsheet"] = {
         "enabled": enable_spreadsheet,
@@ -58,9 +51,7 @@ def run():
     enable_file = input("Enable file provider? (Y/n): ").strip().lower() != "n"
     file_glob = ""
     if enable_file:
-        file_glob = input(
-            "Glob for activity files (e.g: ./export*/activities/*): "
-        ).strip()
+        file_glob = input("Glob for activity files (e.g: ./export*/activities/*): ").strip()
 
     config["providers"]["file"] = {"enabled": enable_file, "glob": file_glob}
 
@@ -70,10 +61,7 @@ def run():
     strava_priority = 0
     if enable_strava:
         print("Note: Strava credentials should be set in .env file.")
-        strava_priority = int(
-            input("Priority (1-5, lower is higher priority, default: 3): ").strip()
-            or "3"
-        )
+        strava_priority = int(input("Priority (1-5, lower is higher priority, default: 3): ").strip() or "3")
 
     config["providers"]["strava"] = {"enabled": enable_strava}
     if enable_strava and strava_priority > 0:
@@ -81,16 +69,11 @@ def run():
 
     # RideWithGPS provider
     print("\nRideWithGPS Provider:")
-    enable_ridewithgps = (
-        input("Enable RideWithGPS provider? (Y/n): ").strip().lower() != "n"
-    )
+    enable_ridewithgps = input("Enable RideWithGPS provider? (Y/n): ").strip().lower() != "n"
     ridewithgps_priority = 0
     if enable_ridewithgps:
         print("Note: RideWithGPS credentials should be set in .env file.")
-        ridewithgps_priority = int(
-            input("Priority (1-5, lower is higher priority, default: 2): ").strip()
-            or "2"
-        )
+        ridewithgps_priority = int(input("Priority (1-5, lower is higher priority, default: 2): ").strip() or "2")
 
     config["providers"]["ridewithgps"] = {"enabled": enable_ridewithgps}
     if enable_ridewithgps and ridewithgps_priority > 0:
@@ -123,9 +106,7 @@ def run():
         # Default priority if none specified
         config["provider_priority"] = "spreadsheet,ridewithgps,strava"
 
-    config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../../fitler_config.json")
-    )
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../fitler_config.json"))
     with open(config_path, "w") as f:
         json.dump(config, f, indent=4)
     print(f"\nConfiguration saved to {config_path}")

@@ -4,18 +4,19 @@ This module defines the base class that all provider-specific activity models
 should inherit from, providing common fields and functionality.
 """
 
-from datetime import datetime, timezone
 import zoneinfo
+from datetime import UTC, datetime
 
 from peewee import (
-    Model,
+    SQL,
     CharField,
+    DateTimeField,
     DecimalField,
     IntegerField,
-    DateTimeField,
+    Model,
     TextField,
-    SQL,
 )
+
 from fitler.db import db
 
 
@@ -82,9 +83,8 @@ class BaseProviderActivity(Model):
             return ""
 
         try:
-
             # Convert timestamp to date string
-            dt = datetime.fromtimestamp(self.start_time, timezone.utc)
+            dt = datetime.fromtimestamp(self.start_time, UTC)
             date_str = dt.strftime("%Y-%m-%d")
 
             # Round distance to nearest 0.1 mile for fuzzy matching
@@ -101,7 +101,7 @@ class BaseProviderActivity(Model):
         if not start_time_val:
             return None
         try:
-            return datetime.fromtimestamp(start_time_val, timezone.utc).date()
+            return datetime.fromtimestamp(start_time_val, UTC).date()
         except (ValueError, TypeError):
             return None
 
@@ -112,7 +112,7 @@ class BaseProviderActivity(Model):
         if not start_time_val:
             return ""
         try:
-            dt = datetime.fromtimestamp(start_time_val, timezone.utc)
+            dt = datetime.fromtimestamp(start_time_val, UTC)
             # Default to US/Eastern if no timezone provided
             local_tz = zoneinfo.ZoneInfo("US/Eastern")
             local_dt = dt.astimezone(local_tz)
@@ -152,6 +152,4 @@ class BaseProviderActivity(Model):
 
     def __str__(self) -> str:
         """String representation of the activity."""
-        return (
-            f"{self.__class__.__name__}({self.provider_id}: {self.name or 'Unnamed'})"
-        )
+        return f"{self.__class__.__name__}({self.provider_id}: {self.name or 'Unnamed'})"

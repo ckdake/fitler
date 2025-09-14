@@ -1,15 +1,15 @@
 """Core Activity model for fitler."""
 
 from peewee import (
-    Model,
-    DateTimeField,
+    SQL,
     CharField,
+    DateField,
+    DateTimeField,
     DecimalField,
     FloatField,
     IntegerField,
-    DateField,
+    Model,
     TextField,
-    SQL,
 )
 
 from fitler.db import db

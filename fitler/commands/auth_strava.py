@@ -1,7 +1,8 @@
 import os
-import webbrowser
 import socket
 import urllib.parse
+import webbrowser
+
 from stravalib.client import Client
 
 
@@ -30,7 +31,7 @@ def run():
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(("127.0.0.1", port))
         s.listen()
-        conn, addr = s.accept()
+        conn, _addr = s.accept()
         request_bytes = b""
         with conn:
             while True:
@@ -41,7 +42,7 @@ def run():
             conn.sendall(b"HTTP/1.1 200 OK\r\n\r\nsuccess\r\n")
         request = request_bytes.decode("utf-8")
         status_line = request.split("\n", 1)[0]
-        method, raw_url, protocol_version = status_line.split(" ")
+        _method, raw_url, _protocol_version = status_line.split(" ")
         url = urllib.parse.urlparse(raw_url)
         query_params = urllib.parse.parse_qs(url.query, keep_blank_values=True)
         if url.path == "/authorization_successful":
